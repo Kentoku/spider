@@ -3533,7 +3533,8 @@ int spider_db_handlersocket_util::open_item_func(
       {
         Item_func_conv_charset *item_func_conv_charset =
           (Item_func_conv_charset *)item_func;
-        CHARSET_INFO *conv_charset = item_func_conv_charset->conv_charset;
+        CHARSET_INFO *conv_charset =
+          item_func_conv_charset->SPIDER_Item_func_conv_charset_conv_charset;
         uint cset_length = strlen(conv_charset->csname);
         if (str->reserve(SPIDER_SQL_USING_LEN + cset_length))
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
