@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2015 Kentoku Shiba
+/* Copyright (C) 2008-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -502,6 +502,7 @@ int spider_create_trx_alter_table(
   char **tmp_tgt_ssl_keys;
   char **tmp_tgt_default_files;
   char **tmp_tgt_default_groups;
+  char **tmp_static_link_ids;
   uint *tmp_server_names_lengths;
   uint *tmp_tgt_table_names_lengths;
   uint *tmp_tgt_dbs_lengths;
@@ -517,6 +518,7 @@ int spider_create_trx_alter_table(
   uint *tmp_tgt_ssl_keys_lengths;
   uint *tmp_tgt_default_files_lengths;
   uint *tmp_tgt_default_groups_lengths;
+  uint *tmp_static_link_ids_lengths;
   long *tmp_tgt_ports;
   long *tmp_tgt_ssl_vscs;
   long *tmp_link_statuses;
@@ -535,6 +537,7 @@ int spider_create_trx_alter_table(
   char *tmp_tgt_ssl_keys_char;
   char *tmp_tgt_default_files_char;
   char *tmp_tgt_default_groups_char;
+  char *tmp_static_link_ids_char;
   uint old_elements;
 
   DBUG_ENTER("spider_create_trx_alter_table");
@@ -560,6 +563,7 @@ int spider_create_trx_alter_table(
       &tmp_tgt_ssl_keys, sizeof(char *) * share->all_link_count,
       &tmp_tgt_default_files, sizeof(char *) * share->all_link_count,
       &tmp_tgt_default_groups, sizeof(char *) * share->all_link_count,
+      &tmp_static_link_ids, sizeof(char *) * share->all_link_count,
 
       &tmp_server_names_lengths, sizeof(uint) * share->all_link_count,
       &tmp_tgt_table_names_lengths, sizeof(uint) * share->all_link_count,
@@ -576,6 +580,7 @@ int spider_create_trx_alter_table(
       &tmp_tgt_ssl_keys_lengths, sizeof(uint) * share->all_link_count,
       &tmp_tgt_default_files_lengths, sizeof(uint) * share->all_link_count,
       &tmp_tgt_default_groups_lengths, sizeof(uint) * share->all_link_count,
+      &tmp_static_link_ids_lengths, sizeof(uint) * share->all_link_count,
 
       &tmp_tgt_ports, sizeof(long) * share->all_link_count,
       &tmp_tgt_ssl_vscs, sizeof(long) * share->all_link_count,
@@ -611,6 +616,8 @@ int spider_create_trx_alter_table(
         (share_alter->tmp_tgt_default_files_charlen + 1),
       &tmp_tgt_default_groups_char, sizeof(char) *
         (share_alter->tmp_tgt_default_groups_charlen + 1),
+      &tmp_static_link_ids_char, sizeof(char) *
+        (share_alter->tmp_static_link_ids_charlen + 1),
       NullS))
   ) {
     error_num = HA_ERR_OUT_OF_MEM;
@@ -644,6 +651,7 @@ int spider_create_trx_alter_table(
   alter_table->tmp_tgt_ssl_keys = tmp_tgt_ssl_keys;
   alter_table->tmp_tgt_default_files = tmp_tgt_default_files;
   alter_table->tmp_tgt_default_groups = tmp_tgt_default_groups;
+  alter_table->tmp_static_link_ids = tmp_static_link_ids;
 
   alter_table->tmp_tgt_ports = tmp_tgt_ports;
   alter_table->tmp_tgt_ssl_vscs = tmp_tgt_ssl_vscs;
@@ -664,6 +672,7 @@ int spider_create_trx_alter_table(
   alter_table->tmp_tgt_ssl_keys_lengths = tmp_tgt_ssl_keys_lengths;
   alter_table->tmp_tgt_default_files_lengths = tmp_tgt_default_files_lengths;
   alter_table->tmp_tgt_default_groups_lengths = tmp_tgt_default_groups_lengths;
+  alter_table->tmp_static_link_ids_lengths = tmp_static_link_ids_lengths;
 
   for(roop_count = 0; roop_count < (int) share->all_link_count; roop_count++)
   {
@@ -762,6 +771,16 @@ int spider_create_trx_alter_table(
       sizeof(char) * share_alter->tmp_tgt_default_groups_lengths[roop_count]);
     tmp_tgt_default_groups_char +=
       share_alter->tmp_tgt_default_groups_lengths[roop_count] + 1;
+
+    if (share_alter->tmp_static_link_ids[roop_count])
+    {
+      tmp_static_link_ids[roop_count] = tmp_static_link_ids_char;
+      memcpy(tmp_static_link_ids_char,
+        share_alter->tmp_static_link_ids[roop_count],
+        sizeof(char) * share_alter->tmp_static_link_ids_lengths[roop_count]);
+      tmp_static_link_ids_char +=
+        share_alter->tmp_static_link_ids_lengths[roop_count] + 1;
+    }
   }
 
   memcpy(tmp_tgt_ports, share_alter->tmp_tgt_ports,
@@ -803,6 +822,9 @@ int spider_create_trx_alter_table(
   memcpy(tmp_tgt_default_groups_lengths,
     share_alter->tmp_tgt_default_groups_lengths,
     sizeof(uint) * share->all_link_count);
+  memcpy(tmp_static_link_ids_lengths,
+    share_alter->tmp_static_link_ids_lengths,
+    sizeof(uint) * share->all_link_count);
 
   alter_table->tmp_server_names_length =
     share_alter->tmp_server_names_length;
@@ -834,6 +856,8 @@ int spider_create_trx_alter_table(
     share_alter->tmp_tgt_default_files_length;
   alter_table->tmp_tgt_default_groups_length =
     share_alter->tmp_tgt_default_groups_length;
+  alter_table->tmp_static_link_ids_length =
+    share_alter->tmp_static_link_ids_length;
   alter_table->tmp_tgt_ports_length =
     share_alter->tmp_tgt_ports_length;
   alter_table->tmp_tgt_ssl_vscs_length =
@@ -1031,6 +1055,16 @@ bool spider_cmp_trx_alter_table(
           !cmp2->tmp_tgt_default_groups[roop_count] ||
           strcmp(cmp1->tmp_tgt_default_groups[roop_count],
             cmp2->tmp_tgt_default_groups[roop_count])
+        )
+      ) ||
+      (
+        cmp1->tmp_static_link_ids[roop_count] !=
+          cmp2->tmp_static_link_ids[roop_count] &&
+        (
+          !cmp1->tmp_static_link_ids[roop_count] ||
+          !cmp2->tmp_static_link_ids[roop_count] ||
+          strcmp(cmp1->tmp_static_link_ids[roop_count],
+            cmp2->tmp_static_link_ids[roop_count])
         )
       ) ||
       cmp1->tmp_tgt_ports[roop_count] != cmp2->tmp_tgt_ports[roop_count] ||

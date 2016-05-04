@@ -3481,12 +3481,21 @@ int spider_create_mon_threads(
         if (share->monitoring_bg_kind[roop_count])
         {
           conv_name_str.length(share->table_name_length);
-          link_idx_str_length = my_sprintf(link_idx_str, (link_idx_str,
-            "%010d", roop_count));
+          if (share->static_link_ids[roop_count])
+          {
+            memcpy(link_idx_str, share->static_link_ids[roop_count],
+              share->static_link_ids_lengths[roop_count] + 1);
+            link_idx_str_length = share->static_link_ids_lengths[roop_count];
+          } else {
+            link_idx_str_length = my_sprintf(link_idx_str, (link_idx_str,
+              "%010d", roop_count));
+          }
           conv_name_str.q_append(link_idx_str, link_idx_str_length + 1);
           conv_name_str.length(conv_name_str.length() - 1);
           if (!(table_mon_list = spider_get_ping_table_mon_list(trx, trx->thd,
             &conv_name_str, share->table_name_length, roop_count,
+            share->static_link_ids[roop_count],
+            share->static_link_ids_lengths[roop_count],
             (uint32) share->monitoring_sid[roop_count], FALSE, &error_num)))
             goto error_get_ping_table_mon_list;
           spider_free_ping_table_mon_list(table_mon_list);

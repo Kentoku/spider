@@ -13,7 +13,7 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
-#define SPIDER_DETAIL_VERSION "3.2.42"
+#define SPIDER_DETAIL_VERSION "3.2.43"
 #define SPIDER_HEX_VERSION 0x0302
 
 #if MYSQL_VERSION_ID < 50500
@@ -157,7 +157,7 @@
 #define SPIDER_LINK_MON_DRAW_FEW_MON         1
 #define SPIDER_LINK_MON_DRAW                 2
 
-#define SPIDER_TMP_SHARE_CHAR_PTR_COUNT     19
+#define SPIDER_TMP_SHARE_CHAR_PTR_COUNT     20
 #define SPIDER_TMP_SHARE_UINT_COUNT         17
 #define SPIDER_TMP_SHARE_LONG_COUNT         18
 #define SPIDER_TMP_SHARE_LONGLONG_COUNT      3
@@ -182,6 +182,7 @@
 
 class ha_spider;
 typedef struct st_spider_share SPIDER_SHARE;
+typedef struct st_spider_table_mon_list SPIDER_TABLE_MON_LIST;
 
 typedef struct st_spider_file_pos
 {
@@ -230,6 +231,7 @@ typedef struct st_spider_alter_table
   char               **tmp_tgt_ssl_keys;
   char               **tmp_tgt_default_files;
   char               **tmp_tgt_default_groups;
+  char               **tmp_static_link_ids;
   long               *tmp_tgt_ports;
   long               *tmp_tgt_ssl_vscs;
   long               *tmp_link_statuses;
@@ -249,6 +251,7 @@ typedef struct st_spider_alter_table
   uint               *tmp_tgt_ssl_keys_lengths;
   uint               *tmp_tgt_default_files_lengths;
   uint               *tmp_tgt_default_groups_lengths;
+  uint               *tmp_static_link_ids_lengths;
 
   uint               tmp_server_names_charlen;
   uint               tmp_tgt_table_names_charlen;
@@ -265,6 +268,7 @@ typedef struct st_spider_alter_table
   uint               tmp_tgt_ssl_keys_charlen;
   uint               tmp_tgt_default_files_charlen;
   uint               tmp_tgt_default_groups_charlen;
+  uint               tmp_static_link_ids_charlen;
 
   uint               tmp_server_names_length;
   uint               tmp_tgt_table_names_length;
@@ -281,6 +285,7 @@ typedef struct st_spider_alter_table
   uint               tmp_tgt_ssl_keys_length;
   uint               tmp_tgt_default_files_length;
   uint               tmp_tgt_default_groups_length;
+  uint               tmp_static_link_ids_length;
   uint               tmp_tgt_ports_length;
   uint               tmp_tgt_ssl_vscs_length;
   uint               tmp_link_statuses_length;
@@ -859,6 +864,7 @@ typedef struct st_spider_share
   char               **tgt_ssl_keys;
   char               **tgt_default_files;
   char               **tgt_default_groups;
+  char               **static_link_ids;
   char               **tgt_pk_names;
   char               **tgt_sequence_names;
   char               **conn_keys;
@@ -911,6 +917,7 @@ typedef struct st_spider_share
   uint               *tgt_ssl_keys_lengths;
   uint               *tgt_default_files_lengths;
   uint               *tgt_default_groups_lengths;
+  uint               *static_link_ids_lengths;
   uint               *tgt_pk_names_lengths;
   uint               *tgt_sequence_names_lengths;
   uint               *conn_keys_lengths;
@@ -940,6 +947,7 @@ typedef struct st_spider_share
   uint               tgt_ssl_keys_charlen;
   uint               tgt_default_files_charlen;
   uint               tgt_default_groups_charlen;
+  uint               static_link_ids_charlen;
   uint               tgt_pk_names_charlen;
   uint               tgt_sequence_names_charlen;
   uint               conn_keys_charlen;
@@ -965,6 +973,7 @@ typedef struct st_spider_share
   uint               tgt_ssl_keys_length;
   uint               tgt_default_files_length;
   uint               tgt_default_groups_length;
+  uint               static_link_ids_length;
   uint               tgt_pk_names_length;
   uint               tgt_sequence_names_length;
   uint               conn_keys_length;
@@ -1151,6 +1160,7 @@ typedef struct st_spider_table_mon
 {
   SPIDER_SHARE               *share;
   uint32                     server_id;
+  st_spider_table_mon_list   *parent;
   st_spider_table_mon        *next;
 } SPIDER_TABLE_MON;
 

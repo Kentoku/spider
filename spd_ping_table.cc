@@ -1,4 +1,4 @@
-/* Copyright (C) 2009-2015 Kentoku Shiba
+/* Copyright (C) 2009-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -80,6 +80,8 @@ SPIDER_TABLE_MON_LIST *spider_get_ping_table_mon_list(
   spider_string *str,
   uint conv_name_length,
   int link_idx,
+  char *static_link_id,
+  uint static_link_id_length,
   uint32 server_id,
   bool need_lock,
   int *error_num
@@ -138,7 +140,8 @@ SPIDER_TABLE_MON_LIST *spider_get_ping_table_mon_list(
       spider_release_ping_table_mon_list_loop(mutex_hash, table_mon_list);
 
     if (!(table_mon_list = spider_get_ping_table_tgt(thd, str->c_ptr(),
-      conv_name_length, link_idx, server_id, str, need_lock, error_num)))
+      conv_name_length, link_idx, static_link_id, static_link_id_length,
+      server_id, str, need_lock, error_num)))
     {
       pthread_mutex_unlock(&spider_udf_table_mon_mutexes[mutex_hash]);
       goto error;
@@ -233,7 +236,7 @@ void spider_release_ping_table_mon_list(
 ) {
   uint mutex_hash;
   SPIDER_TABLE_MON_LIST *table_mon_list;
-  char link_idx_str[SPIDER_SQL_INT_LEN];
+  char link_idx_str[SPIDER_CONNECT_INFO_MAX_LEN + 1];
   int link_idx_str_length;
   DBUG_ENTER("spider_release_ping_table_mon_list");
   DBUG_PRINT("info", ("spider conv_name=%s", conv_name));
@@ -313,6 +316,28 @@ int spider_get_ping_table_mon(
     my_error(error_num, MYF(0));
     goto error;
   }
+  if (table_mon_list->share->static_link_ids[0])
+  {
+    spider_store_tables_name(table_link_mon, name, name_length);
+    spider_store_tables_link_idx_str(table_link_mon,
+      table_mon_list->share->static_link_ids[0],
+      table_mon_list->share->static_link_ids_lengths[0]);
+    if (!(error_num = spider_ping_table_cache_compare(table_link_mon, mem_root)))
+      goto create_table_mon;
+    if (error_num == HA_ERR_OUT_OF_MEM)
+      goto error;
+    if ((tmp_ptr = strstr(name, "#P#")))
+    {
+      *tmp_ptr = '\0';
+      spider_store_tables_name(table_link_mon, name, strlen(name));
+      *tmp_ptr = '#';
+      if (!(error_num = spider_ping_table_cache_compare(table_link_mon,
+        mem_root)))
+        goto create_table_mon;
+      if (error_num == HA_ERR_OUT_OF_MEM)
+        goto error;
+    }
+  }
   spider_store_tables_name(table_link_mon, name, name_length);
   spider_store_tables_link_idx(table_link_mon, link_idx);
   if (!(error_num = spider_ping_table_cache_compare(table_link_mon, mem_root)))
@@ -362,6 +387,7 @@ create_table_mon:
       tmp_connect_info_length, tmp_long, tmp_longlong);
     tmp_share->link_statuses[0] = -1;
     table_mon->share = tmp_share;
+    table_mon->parent = table_mon_list;
     if (table_mon_prev)
       table_mon_prev->next = table_mon;
     else
@@ -440,6 +466,8 @@ SPIDER_TABLE_MON_LIST *spider_get_ping_table_tgt(
   char *name,
   uint name_length,
   int link_idx,
+  char *static_link_id,
+  uint static_link_id_length,
   uint32 server_id,
   spider_string *str,
   bool need_lock,
@@ -496,9 +524,29 @@ SPIDER_TABLE_MON_LIST *spider_get_ping_table_tgt(
     goto error;
   }
   spider_store_tables_name(table_tables, name, name_length);
-  spider_store_tables_link_idx(table_tables, link_idx);
+  if (static_link_id)
+  {
+    spider_store_tables_static_link_id(table_tables,
+      static_link_id, static_link_id_length);
+    if (
+      (*error_num = spider_get_sys_table_by_idx(table_tables, table_key, 2,
+        SPIDER_SYS_TABLES_UIDX1_COL_CNT)) ||
+      (*error_num = spider_get_sys_tables_link_idx(
+        table_tables, &link_idx, &mem_root))
+    ) {
+      table_tables->file->print_error(*error_num, MYF(0));
+      goto error;
+    }
+  } else {
+    spider_store_tables_link_idx(table_tables, link_idx);
+    if (
+      (*error_num = spider_check_sys_table(table_tables, table_key))
+    ) {
+      table_tables->file->print_error(*error_num, MYF(0));
+      goto error;
+    }
+  }
   if (
-    (*error_num = spider_check_sys_table(table_tables, table_key)) ||
     (*error_num = spider_get_sys_tables_connect_info(
       table_tables, tmp_share, 0, &mem_root)) ||
     (*error_num = spider_get_sys_tables_link_status(
@@ -832,7 +880,7 @@ long long spider_ping_table_body(
   char buf[MAX_FIELD_WIDTH];
   spider_string conv_name(buf, sizeof(buf), system_charset_info);
   int conv_name_length;
-  char link_idx_str[SPIDER_SQL_INT_LEN];
+  char link_idx_str[SPIDER_CONNECT_INFO_MAX_LEN + 1];
   int link_idx_str_length;
   bool get_lock = FALSE;
   DBUG_ENTER("spider_ping_table_body");
@@ -903,25 +951,51 @@ long long spider_ping_table_body(
   if (
     args->lengths[0] > SPIDER_CONNECT_INFO_MAX_LEN
   ) {
-    my_printf_error(ER_SPIDER_UDF_PING_TABLE_PARAM_TOO_LONG_NUM,
-      ER_SPIDER_UDF_PING_TABLE_PARAM_TOO_LONG_STR, MYF(0));
+    my_printf_error(ER_SPIDER_UDF_PARAM_TOO_LONG_NUM,
+      ER_SPIDER_UDF_PARAM_TOO_LONG_STR, MYF(0), "table name");
     goto error;
   }
   if (
     args->lengths[0] == 0
   ) {
-    my_printf_error(ER_SPIDER_UDF_PING_TABLE_PARAM_REQIRED_NUM,
-      ER_SPIDER_UDF_PING_TABLE_PARAM_REQIRED_STR, MYF(0));
+    my_printf_error(ER_SPIDER_UDF_PARAM_REQIRED_NUM,
+      ER_SPIDER_UDF_PARAM_REQIRED_STR, MYF(0), "table name");
     goto error;
   }
-
-  link_idx = (int) (args->args[1] ? *((longlong *) args->args[1]) : 0);
+  if (args->arg_type[1] == STRING_RESULT)
+  {
+    if (
+      !args->args[1]
+    ) {
+      my_printf_error(ER_SPIDER_UDF_PARAM_REQIRED_NUM,
+        ER_SPIDER_UDF_PARAM_REQIRED_STR, MYF(0), "link id");
+      goto error;
+    }
+    if (
+      args->lengths[1] > SPIDER_CONNECT_INFO_MAX_LEN
+    ) {
+      my_printf_error(ER_SPIDER_UDF_PARAM_TOO_LONG_NUM,
+        ER_SPIDER_UDF_PARAM_TOO_LONG_STR, MYF(0), "link id");
+      goto error;
+    }
+    link_idx_str_length = args->lengths[1];
+    memcpy(link_idx_str, args->args[1], link_idx_str_length + 1);
+    if (link_idx_str[0] >= '0' && link_idx_str[0] <= '9')
+    {
+      link_idx = atoi(link_idx_str);
+    } else {
+      link_idx = -1;
+      static_link_id = link_idx_str;
+      static_link_id_length = link_idx_str_length;
+    }
+  } else {
+    link_idx = (int) (args->args[1] ? *((longlong *) args->args[1]) : 0);
+    link_idx_str_length = my_sprintf(link_idx_str, (link_idx_str, "%010d",
+      link_idx));
+  }
   flags = (int) (args->args[2] ? *((longlong *) args->args[2]) : 0);
   limit = args->args[3] ? *((longlong *) args->args[3]) : 0;
   where_clause = args->args[4] ? args->args[4] : (char *) "";
-
-  link_idx_str_length = my_sprintf(link_idx_str, (link_idx_str, "%010d",
-    link_idx));
 
   if (conv_name.append(args->args[0], args->lengths[0],
     trx->thd->variables.character_set_client))
@@ -1214,7 +1288,6 @@ my_bool spider_ping_table_init_body(
     goto error;
   }
   if (
-    args->arg_type[1] != INT_RESULT ||
     args->arg_type[2] != INT_RESULT ||
     args->arg_type[3] != INT_RESULT ||
     args->arg_type[5] != INT_RESULT ||
@@ -1223,8 +1296,16 @@ my_bool spider_ping_table_init_body(
     args->arg_type[8] != INT_RESULT ||
     args->arg_type[9] != INT_RESULT
   ) {
-    strcpy(message, "spider_ping_table() requires integer 2nd, 3rd, 4,6,7,8,"
+    strcpy(message, "spider_ping_table() requires integer 3rd, 4,6,7,8,"
       "9th and 10th argument");
+    goto error;
+  }
+  if (
+    args->arg_type[1] != INT_RESULT &&
+    args->arg_type[1] != STRING_RESULT
+  ) {
+    strcpy(message, "spider_ping_table() requires string or integer for "
+      "2nd argument");
     goto error;
   }
 
@@ -1331,7 +1412,7 @@ int spider_ping_table_mon_from_table(
   SPIDER_MON_TABLE_RESULT mon_table_result;
   SPIDER_CONN *mon_conn;
   TABLE_SHARE *table_share = share->table_share;
-  char link_idx_str[SPIDER_SQL_INT_LEN];
+  char link_idx_str[SPIDER_CONNECT_INFO_MAX_LEN + 1];
   int link_idx_str_length;
   uint sql_command = thd_sql_command(thd);
   DBUG_ENTER("spider_ping_table_mon_from_table");
@@ -1360,8 +1441,15 @@ int spider_ping_table_mon_from_table(
     DBUG_RETURN(ER_SPIDER_COND_SKIP_NUM);
   }
 
-  link_idx_str_length = my_sprintf(link_idx_str, (link_idx_str, "%010d",
-    link_idx));
+  if (share->static_link_ids[link_idx])
+  {
+    memcpy(link_idx_str, share->static_link_ids[link_idx],
+      share->static_link_ids_lengths[link_idx] + 1);
+    link_idx_str_length = share->static_link_ids_lengths[link_idx];
+  } else {
+    link_idx_str_length = my_sprintf(link_idx_str, (link_idx_str, "%010d",
+      link_idx));
+  }
 #ifdef _MSC_VER
   spider_string conv_name_str(conv_name_length + link_idx_str_length + 1);
   conv_name_str.set_charset(system_charset_info);
@@ -1390,8 +1478,10 @@ int spider_ping_table_mon_from_table(
     flags |= SPIDER_UDF_PING_TABLE_USE_ALL_MONITORING_NODES;
 
   if (!(table_mon_list = spider_get_ping_table_mon_list(trx, thd,
-    &conv_name_str, conv_name_length, link_idx, server_id, need_lock,
-    &error_num)))
+    &conv_name_str, conv_name_length, link_idx,
+    share->static_link_ids[link_idx],
+    share->static_link_ids_lengths[link_idx],
+    server_id, need_lock, &error_num)))
     goto end;
 
   if (table_mon_list->mon_status == SPIDER_LINK_MON_NG)

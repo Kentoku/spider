@@ -2885,6 +2885,7 @@ int spider_db_oracle_util::open_item_func(
     separete_str_length = SPIDER_SQL_NULL_CHAR_LEN,
     last_str_length = SPIDER_SQL_NULL_CHAR_LEN;
   int use_pushdown_udf;
+  bool merge_func = FALSE;
   DBUG_ENTER("spider_db_oracle_util::open_item_func");
   if (str)
   {
@@ -3070,34 +3071,103 @@ int spider_db_oracle_util::open_item_func(
         last_str = SPIDER_SQL_IS_NOT_TRUE_STR;
         last_str_length = SPIDER_SQL_IS_NOT_TRUE_LEN;
         break;
-      } else if (func_name_length == 10 &&
-        !strncasecmp("isnotfalse", func_name, func_name_length)
-      ) {
-        last_str = SPIDER_SQL_IS_NOT_FALSE_STR;
-        last_str_length = SPIDER_SQL_IS_NOT_FALSE_LEN;
-        break;
-      } else if (func_name_length == 12)
+      } else if (func_name_length == 10)
       {
-        if (!strncasecmp("cast_as_date", func_name, func_name_length))
+        if (!strncasecmp("isnotfalse", func_name, func_name_length))
+        {
+          last_str = SPIDER_SQL_IS_NOT_FALSE_STR;
+          last_str_length = SPIDER_SQL_IS_NOT_FALSE_LEN;
+          break;
+        } else if (!strncasecmp("column_get", func_name, func_name_length))
         {
           if (str)
           {
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-            if (str->reserve(SPIDER_SQL_CAST_LEN))
+            if (str->reserve(func_name_length + SPIDER_SQL_OPEN_PAREN_LEN))
               DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-            str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            str->q_append(func_name, func_name_length);
+            str->q_append(SPIDER_SQL_OPEN_PAREN_STR, SPIDER_SQL_OPEN_PAREN_LEN);
+          }
+          func_name = SPIDER_SQL_COMMA_STR;
+          func_name_length = SPIDER_SQL_COMMA_LEN;
+          separete_str = SPIDER_SQL_COMMA_STR;
+          separete_str_length = SPIDER_SQL_COMMA_LEN;
+          break;
+        }
+      } else if (func_name_length == 12)
+      {
+        if (!strncasecmp("cast_as_date", func_name, func_name_length))
+        {
+          item = item_list[0];
+          if (item->type() == Item::FUNC_ITEM)
+          {
+            DBUG_PRINT("info",("spider child is FUNC_ITEM"));
+            Item_func *ifunc = (Item_func *) item;
+            if (ifunc->functype() == Item_func::UNKNOWN_FUNC)
+            {
+              const char *child_func_name;
+              int child_func_name_length;
+              DBUG_PRINT("info",("spider child is UNKNOWN_FUNC"));
+              child_func_name = (char*) ifunc->func_name();
+              child_func_name_length = strlen(child_func_name);
+              DBUG_PRINT("info",("spider child func_name is %s", child_func_name));
+              if (
+                child_func_name_length == 10 &&
+                !strncasecmp("column_get", child_func_name, child_func_name_length)
+              ) {
+                DBUG_PRINT("info",("spider this is merge func"));
+                merge_func = TRUE;
+              }
+            }
+          }
+
+          if (str)
+          {
+            str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
+            if (!merge_func)
+            {
+              if (str->reserve(SPIDER_SQL_CAST_LEN))
+                DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+              str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            }
           }
           last_str = SPIDER_SQL_AS_DATE_STR;
           last_str_length = SPIDER_SQL_AS_DATE_LEN;
           break;
         } else if (!strncasecmp("cast_as_time", func_name, func_name_length))
         {
+          item = item_list[0];
+          if (item->type() == Item::FUNC_ITEM)
+          {
+            DBUG_PRINT("info",("spider child is FUNC_ITEM"));
+            Item_func *ifunc = (Item_func *) item;
+            if (ifunc->functype() == Item_func::UNKNOWN_FUNC)
+            {
+              const char *child_func_name;
+              int child_func_name_length;
+              DBUG_PRINT("info",("spider child is UNKNOWN_FUNC"));
+              child_func_name = (char*) ifunc->func_name();
+              child_func_name_length = strlen(child_func_name);
+              DBUG_PRINT("info",("spider child func_name is %s", child_func_name));
+              if (
+                child_func_name_length == 10 &&
+                !strncasecmp("column_get", child_func_name, child_func_name_length)
+              ) {
+                DBUG_PRINT("info",("spider this is merge func"));
+                merge_func = TRUE;
+              }
+            }
+          }
+
           if (str)
           {
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-            if (str->reserve(SPIDER_SQL_CAST_LEN))
-              DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-            str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            if (!merge_func)
+            {
+              if (str->reserve(SPIDER_SQL_CAST_LEN))
+                DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+              str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            }
           }
           last_str = SPIDER_SQL_AS_TIME_STR;
           last_str_length = SPIDER_SQL_AS_TIME_LEN;
@@ -3200,6 +3270,29 @@ int spider_db_oracle_util::open_item_func(
       {
         if (!strncasecmp("cast_as_binary", func_name, func_name_length))
         {
+          item = item_list[0];
+          if (item->type() == Item::FUNC_ITEM)
+          {
+            DBUG_PRINT("info",("spider child is FUNC_ITEM"));
+            Item_func *ifunc = (Item_func *) item;
+            if (ifunc->functype() == Item_func::UNKNOWN_FUNC)
+            {
+              const char *child_func_name;
+              int child_func_name_length;
+              DBUG_PRINT("info",("spider child is UNKNOWN_FUNC"));
+              child_func_name = (char*) ifunc->func_name();
+              child_func_name_length = strlen(child_func_name);
+              DBUG_PRINT("info",("spider child func_name is %s", child_func_name));
+              if (
+                child_func_name_length == 10 &&
+                !strncasecmp("column_get", child_func_name, child_func_name_length)
+              ) {
+                DBUG_PRINT("info",("spider this is merge func"));
+                merge_func = TRUE;
+              }
+            }
+          }
+
           if (str)
           {
             char tmp_buf[MAX_FIELD_WIDTH], *tmp_ptr, *tmp_ptr2;
@@ -3207,9 +3300,12 @@ int spider_db_oracle_util::open_item_func(
             tmp_str.init_calc_mem(123);
             tmp_str.length(0);
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-            if (str->reserve(SPIDER_SQL_CAST_LEN))
-              DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-            str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            if (!merge_func)
+            {
+              if (str->reserve(SPIDER_SQL_CAST_LEN))
+                DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+              str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            }
 #if MYSQL_VERSION_ID < 50500
             item_func->print(tmp_str.get_str(), QT_IS);
 #else
@@ -3228,12 +3324,38 @@ int spider_db_oracle_util::open_item_func(
           break;
         } else if (!strncasecmp("cast_as_signed", func_name, func_name_length))
         {
+          item = item_list[0];
+          if (item->type() == Item::FUNC_ITEM)
+          {
+            DBUG_PRINT("info",("spider child is FUNC_ITEM"));
+            Item_func *ifunc = (Item_func *) item;
+            if (ifunc->functype() == Item_func::UNKNOWN_FUNC)
+            {
+              const char *child_func_name;
+              int child_func_name_length;
+              DBUG_PRINT("info",("spider child is UNKNOWN_FUNC"));
+              child_func_name = (char*) ifunc->func_name();
+              child_func_name_length = strlen(child_func_name);
+              DBUG_PRINT("info",("spider child func_name is %s", child_func_name));
+              if (
+                child_func_name_length == 10 &&
+                !strncasecmp("column_get", child_func_name, child_func_name_length)
+              ) {
+                DBUG_PRINT("info",("spider this is merge func"));
+                merge_func = TRUE;
+              }
+            }
+          }
+
           if (str)
           {
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-            if (str->reserve(SPIDER_SQL_CAST_LEN))
-              DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-            str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            if (!merge_func)
+            {
+              if (str->reserve(SPIDER_SQL_CAST_LEN))
+                DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+              str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            }
           }
           last_str = SPIDER_SQL_AS_SIGNED_STR;
           last_str_length = SPIDER_SQL_AS_SIGNED_LEN;
@@ -3243,12 +3365,38 @@ int spider_db_oracle_util::open_item_func(
       {
         if (!strncasecmp("cast_as_unsigned", func_name, func_name_length))
         {
+          item = item_list[0];
+          if (item->type() == Item::FUNC_ITEM)
+          {
+            DBUG_PRINT("info",("spider child is FUNC_ITEM"));
+            Item_func *ifunc = (Item_func *) item;
+            if (ifunc->functype() == Item_func::UNKNOWN_FUNC)
+            {
+              const char *child_func_name;
+              int child_func_name_length;
+              DBUG_PRINT("info",("spider child is UNKNOWN_FUNC"));
+              child_func_name = (char*) ifunc->func_name();
+              child_func_name_length = strlen(child_func_name);
+              DBUG_PRINT("info",("spider child func_name is %s", child_func_name));
+              if (
+                child_func_name_length == 10 &&
+                !strncasecmp("column_get", child_func_name, child_func_name_length)
+              ) {
+                DBUG_PRINT("info",("spider this is merge func"));
+                merge_func = TRUE;
+              }
+            }
+          }
+
           if (str)
           {
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-            if (str->reserve(SPIDER_SQL_CAST_LEN))
-              DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-            str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            if (!merge_func)
+            {
+              if (str->reserve(SPIDER_SQL_CAST_LEN))
+                DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+              str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            }
           }
           last_str = SPIDER_SQL_AS_UNSIGNED_STR;
           last_str_length = SPIDER_SQL_AS_UNSIGNED_LEN;
@@ -3256,6 +3404,29 @@ int spider_db_oracle_util::open_item_func(
         } else if (!strncasecmp("decimal_typecast", func_name,
           func_name_length))
         {
+          item = item_list[0];
+          if (item->type() == Item::FUNC_ITEM)
+          {
+            DBUG_PRINT("info",("spider child is FUNC_ITEM"));
+            Item_func *ifunc = (Item_func *) item;
+            if (ifunc->functype() == Item_func::UNKNOWN_FUNC)
+            {
+              const char *child_func_name;
+              int child_func_name_length;
+              DBUG_PRINT("info",("spider child is UNKNOWN_FUNC"));
+              child_func_name = (char*) ifunc->func_name();
+              child_func_name_length = strlen(child_func_name);
+              DBUG_PRINT("info",("spider child func_name is %s", child_func_name));
+              if (
+                child_func_name_length == 10 &&
+                !strncasecmp("column_get", child_func_name, child_func_name_length)
+              ) {
+                DBUG_PRINT("info",("spider this is merge func"));
+                merge_func = TRUE;
+              }
+            }
+          }
+
           if (str)
           {
             char tmp_buf[MAX_FIELD_WIDTH], *tmp_ptr, *tmp_ptr2;
@@ -3263,9 +3434,12 @@ int spider_db_oracle_util::open_item_func(
             tmp_str.init_calc_mem(124);
             tmp_str.length(0);
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-            if (str->reserve(SPIDER_SQL_CAST_LEN))
-              DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-            str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            if (!merge_func)
+            {
+              if (str->reserve(SPIDER_SQL_CAST_LEN))
+                DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+              str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            }
 #if MYSQL_VERSION_ID < 50500
             item_func->print(tmp_str.get_str(), QT_IS);
 #else
@@ -3285,12 +3459,38 @@ int spider_db_oracle_util::open_item_func(
         } else if (!strncasecmp("cast_as_datetime", func_name,
           func_name_length))
         {
+          item = item_list[0];
+          if (item->type() == Item::FUNC_ITEM)
+          {
+            DBUG_PRINT("info",("spider child is FUNC_ITEM"));
+            Item_func *ifunc = (Item_func *) item;
+            if (ifunc->functype() == Item_func::UNKNOWN_FUNC)
+            {
+              const char *child_func_name;
+              int child_func_name_length;
+              DBUG_PRINT("info",("spider child is UNKNOWN_FUNC"));
+              child_func_name = (char*) ifunc->func_name();
+              child_func_name_length = strlen(child_func_name);
+              DBUG_PRINT("info",("spider child func_name is %s", child_func_name));
+              if (
+                child_func_name_length == 10 &&
+                !strncasecmp("column_get", child_func_name, child_func_name_length)
+              ) {
+                DBUG_PRINT("info",("spider this is merge func"));
+                merge_func = TRUE;
+              }
+            }
+          }
+
           if (str)
           {
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-            if (str->reserve(SPIDER_SQL_CAST_LEN))
-              DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-            str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            if (!merge_func)
+            {
+              if (str->reserve(SPIDER_SQL_CAST_LEN))
+                DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+              str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+            }
           }
           last_str = SPIDER_SQL_AS_DATETIME_STR;
           last_str_length = SPIDER_SQL_AS_DATETIME_LEN;
@@ -3488,7 +3688,31 @@ int spider_db_oracle_util::open_item_func(
       DBUG_RETURN(spider_db_open_item_string(item_func, spider, str,
         alias, alias_length, dbton_id));
     case Item_func::CHAR_TYPECAST_FUNC:
+      DBUG_PRINT("info",("spider CHAR_TYPECAST_FUNC"));
       {
+        item = item_list[0];
+        if (item->type() == Item::FUNC_ITEM)
+        {
+          DBUG_PRINT("info",("spider child is FUNC_ITEM"));
+          Item_func *ifunc = (Item_func *) item;
+          if (ifunc->functype() == Item_func::UNKNOWN_FUNC)
+          {
+            const char *child_func_name;
+            int child_func_name_length;
+            DBUG_PRINT("info",("spider child is UNKNOWN_FUNC"));
+            child_func_name = (char*) ifunc->func_name();
+            child_func_name_length = strlen(child_func_name);
+            DBUG_PRINT("info",("spider child func_name is %s", child_func_name));
+            if (
+              child_func_name_length == 10 &&
+              !strncasecmp("column_get", child_func_name, child_func_name_length)
+            ) {
+              DBUG_PRINT("info",("spider this is merge func"));
+              merge_func = TRUE;
+            }
+          }
+        }
+
         if (str)
         {
           char tmp_buf[MAX_FIELD_WIDTH], *tmp_ptr, *tmp_ptr2;
@@ -3496,9 +3720,12 @@ int spider_db_oracle_util::open_item_func(
           tmp_str.init_calc_mem(125);
           tmp_str.length(0);
           str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-          if (str->reserve(SPIDER_SQL_CAST_LEN))
-            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-          str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+          if (!merge_func)
+          {
+            if (str->reserve(SPIDER_SQL_CAST_LEN))
+              DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+            str->q_append(SPIDER_SQL_CAST_STR, SPIDER_SQL_CAST_LEN);
+          }
 #if MYSQL_VERSION_ID < 50500
           item_func->print(tmp_str.get_str(), QT_IS);
 #else
@@ -3832,6 +4059,8 @@ int spider_db_oracle_util::open_item_func(
   }
   if (str)
   {
+    if (merge_func)
+      str->length(str->length() - SPIDER_SQL_CLOSE_PAREN_LEN);
     if (str->reserve(last_str_length + SPIDER_SQL_CLOSE_PAREN_LEN))
       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
     str->q_append(last_str, last_str_length);

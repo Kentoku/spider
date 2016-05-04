@@ -39,11 +39,12 @@
 #define SPIDER_SYS_TABLES_COL_CNT 22
 #define SPIDER_SYS_TABLES_PK_COL_CNT 2
 #define SPIDER_SYS_TABLES_IDX1_COL_CNT 1
+#define SPIDER_SYS_TABLES_UIDX1_COL_CNT 3
 #define SPIDER_SYS_LINK_MON_TABLE_COL_CNT 19
 
 #define SPIDER_SYS_LINK_MON_TABLE_DB_NAME_SIZE 64
 #define SPIDER_SYS_LINK_MON_TABLE_TABLE_NAME_SIZE 64
-#define SPIDER_SYS_LINK_MON_TABLE_LINK_ID_SIZE 10
+#define SPIDER_SYS_LINK_MON_TABLE_LINK_ID_SIZE 64
 
 class SPIDER_MON_KEY: public SPIDER_SORT
 {
@@ -212,6 +213,12 @@ void spider_store_tables_link_idx_str(
   const uint link_idx_length
 );
 
+void spider_store_tables_static_link_id(
+  TABLE *table,
+  const char *static_link_id,
+  const uint static_link_id_length
+);
+
 void spider_store_tables_priority(
   TABLE *table,
   longlong priority
@@ -355,6 +362,13 @@ int spider_get_sys_tables_link_status(
 int spider_get_sys_tables_link_idx(
   TABLE *table,
   int *link_idx,
+  MEM_ROOT *mem_root
+);
+
+int spider_get_sys_tables_static_link_id(
+  TABLE *table,
+  char **static_link_id,
+  uint *static_link_id_length,
   MEM_ROOT *mem_root
 );
 
