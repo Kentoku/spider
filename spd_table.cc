@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2015 Kentoku Shiba
+/* Copyright (C) 2008-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -713,6 +713,17 @@ int spider_free_share_alloc(
     }
     spider_free(spider_current_trx, share->tgt_sequence_names, MYF(0));
   }
+  if (share->static_link_ids)
+  {
+    for (roop_count = 0; roop_count < (int) share->static_link_ids_length;
+      roop_count++)
+    {
+      if (share->static_link_ids[roop_count])
+        spider_free(spider_current_trx, share->static_link_ids[roop_count],
+          MYF(0));
+    }
+    spider_free(spider_current_trx, share->static_link_ids, MYF(0));
+  }
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   if (share->hs_read_socks)
   {
@@ -894,6 +905,11 @@ void spider_free_tmp_share_alloc(
   {
     spider_free(spider_current_trx, share->tgt_sequence_names[0], MYF(0));
     share->tgt_sequence_names[0] = NULL;
+  }
+  if (share->static_link_ids && share->static_link_ids[0])
+  {
+    spider_free(spider_current_trx, share->static_link_ids[0], MYF(0));
+    share->static_link_ids[0] = NULL;
   }
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   if (share->hs_read_socks && share->hs_read_socks[0])
@@ -1396,6 +1412,56 @@ error:
     spider_free(spider_current_trx, tmp_str_list, MYF(0));
   my_error(ER_OUT_OF_RESOURCES, MYF(0), HA_ERR_OUT_OF_MEM);
   DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+}
+
+int spider_increase_null_string_list(
+  char ***string_list,
+  uint **string_length_list,
+  uint *list_length,
+  uint *list_charlen,
+  uint link_count
+) {
+  int roop_count;
+  char **tmp_str_list;
+  uint *tmp_length_list;
+  DBUG_ENTER("spider_increase_null_string_list");
+  if (*list_length == link_count)
+    DBUG_RETURN(0);
+
+  if (!(tmp_str_list = (char**)
+    spider_bulk_malloc(spider_current_trx, 247, MYF(MY_WME | MY_ZEROFILL),
+      &tmp_str_list, sizeof(char*) * link_count,
+      &tmp_length_list, sizeof(uint) * link_count,
+      NullS))
+  ) {
+    my_error(ER_OUT_OF_RESOURCES, MYF(0), HA_ERR_OUT_OF_MEM);
+    DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+  }
+
+  for (roop_count = 0; roop_count < (int) *list_length; roop_count++)
+  {
+    tmp_str_list[roop_count] = (*string_list)[roop_count];
+    tmp_length_list[roop_count] = (*string_length_list)[roop_count];
+  }
+  if (*string_list)
+  {
+    spider_free(spider_current_trx, *string_list, MYF(0));
+  }
+  *list_length = link_count;
+  *string_list = tmp_str_list;
+  *string_length_list = tmp_length_list;
+#ifndef DBUG_OFF
+  DBUG_PRINT("info",("spider list_length=%u", *list_length));
+  for (roop_count = 0; roop_count < (int) *list_length; roop_count++)
+  {
+    DBUG_PRINT("info",("spider string_list[%d]=%s", roop_count,
+      (*string_list)[roop_count] ? (*string_list)[roop_count] : "NULL"));
+    DBUG_PRINT("info",("spider string_length_list[%d]=%u", roop_count,
+      (*string_length_list)[roop_count]));
+  }
+#endif
+
+  DBUG_RETURN(0);
 }
 
 int spider_increase_long_list(
@@ -2088,6 +2154,7 @@ int spider_parse_connect_info(
           SPIDER_PARAM_INT_WITH_MAX("sdc", skip_default_condition, 0, 1);
           SPIDER_PARAM_DOUBLE("siv", sts_interval, 0);
           SPIDER_PARAM_STR_LIST("sky", tgt_ssl_keys);
+          SPIDER_PARAM_STR_LIST("sli", static_link_ids);
           SPIDER_PARAM_INT_WITH_MAX("slm", selupd_lock_mode, 0, 2);
           SPIDER_PARAM_INT_WITH_MAX("smd", sts_mode, 1, 2);
           SPIDER_PARAM_LONGLONG("smr", static_mean_rec_length, 0);
@@ -2251,6 +2318,7 @@ int spider_parse_connect_info(
           SPIDER_PARAM_INT_WITH_MAX("read_only_mode", read_only_mode, 0, 1);
           SPIDER_PARAM_LONG_LIST_WITH_MAX("access_balance", access_balances, 0,
             2147483647);
+          SPIDER_PARAM_STR_LIST("static_link_id", static_link_ids);
           error_num = ER_SPIDER_INVALID_CONNECT_INFO_NUM;
           my_printf_error(error_num, ER_SPIDER_INVALID_CONNECT_INFO_STR,
             MYF(0), tmp_ptr);
@@ -2467,6 +2535,8 @@ int spider_parse_connect_info(
     share->all_link_count = share->tgt_pk_names_length;
   if (share->all_link_count < share->tgt_sequence_names_length)
     share->all_link_count = share->tgt_sequence_names_length;
+  if (share->all_link_count < share->static_link_ids_length)
+    share->all_link_count = share->static_link_ids_length;
   if (share->all_link_count < share->tgt_ports_length)
     share->all_link_count = share->tgt_ports_length;
   if (share->all_link_count < share->tgt_ssl_vscs_length)
@@ -2638,6 +2708,13 @@ int spider_parse_connect_info(
     &share->tgt_sequence_names_charlen,
     share->all_link_count)))
     goto error;
+  if ((error_num = spider_increase_null_string_list(
+    &share->static_link_ids,
+    &share->static_link_ids_lengths,
+    &share->static_link_ids_length,
+    &share->static_link_ids_charlen,
+    share->all_link_count)))
+    goto error;
   if ((error_num = spider_increase_long_list(
     &share->tgt_ports,
     &share->tgt_ports_length,
@@ -2775,9 +2852,9 @@ int spider_parse_connect_info(
   if (!(share_alter->tmp_server_names = (char **)
     spider_bulk_malloc(spider_current_trx, 43, MYF(MY_WME | MY_ZEROFILL),
       &share_alter->tmp_server_names,
-      sizeof(char *) * 15 * share->all_link_count,
+      sizeof(char *) * 16 * share->all_link_count,
       &share_alter->tmp_server_names_lengths,
-      sizeof(uint *) * 15 * share->all_link_count,
+      sizeof(uint *) * 16 * share->all_link_count,
       &share_alter->tmp_tgt_ports,
       sizeof(long) * share->all_link_count,
       &share_alter->tmp_tgt_ssl_vscs,
@@ -2850,6 +2927,10 @@ int spider_parse_connect_info(
   share_alter->tmp_tgt_default_groups =
     share_alter->tmp_tgt_default_files + share->all_link_count;
   memcpy(share_alter->tmp_tgt_default_groups, share->tgt_default_groups,
+    sizeof(char *) * share->all_link_count);
+  share_alter->tmp_static_link_ids =
+    share_alter->tmp_tgt_default_groups + share->all_link_count;
+  memcpy(share_alter->tmp_static_link_ids, share->static_link_ids,
     sizeof(char *) * share->all_link_count);
 
   memcpy(share_alter->tmp_tgt_ports, share->tgt_ports,
@@ -2932,6 +3013,11 @@ int spider_parse_connect_info(
   memcpy(share_alter->tmp_tgt_default_groups_lengths,
     share->tgt_default_groups_lengths,
     sizeof(uint) * share->all_link_count);
+  share_alter->tmp_static_link_ids_lengths =
+    share_alter->tmp_tgt_default_groups_lengths + share->all_link_count;
+  memcpy(share_alter->tmp_static_link_ids_lengths,
+    share->static_link_ids_lengths,
+    sizeof(uint) * share->all_link_count);
 
   share_alter->tmp_server_names_charlen = share->server_names_charlen;
   share_alter->tmp_tgt_table_names_charlen = share->tgt_table_names_charlen;
@@ -2950,6 +3036,8 @@ int spider_parse_connect_info(
     share->tgt_default_files_charlen;
   share_alter->tmp_tgt_default_groups_charlen =
     share->tgt_default_groups_charlen;
+  share_alter->tmp_static_link_ids_charlen =
+    share->static_link_ids_charlen;
 
   share_alter->tmp_server_names_length = share->server_names_length;
   share_alter->tmp_tgt_table_names_length = share->tgt_table_names_length;
@@ -2967,6 +3055,8 @@ int spider_parse_connect_info(
   share_alter->tmp_tgt_default_files_length = share->tgt_default_files_length;
   share_alter->tmp_tgt_default_groups_length =
     share->tgt_default_groups_length;
+  share_alter->tmp_static_link_ids_length =
+    share->static_link_ids_length;
   share_alter->tmp_tgt_ports_length = share->tgt_ports_length;
   share_alter->tmp_tgt_ssl_vscs_length = share->tgt_ssl_vscs_length;
   share_alter->tmp_monitoring_binlog_pos_at_failing_length =
@@ -3210,6 +3300,51 @@ int spider_parse_connect_info(
           MYF(0), share->tgt_sequence_names[roop_count], "sequence_name");
         goto error;
       }
+
+      DBUG_PRINT("info",
+        ("spider static_link_ids_lengths[%d] = %u", roop_count,
+        share->static_link_ids_lengths[roop_count]));
+      if (share->static_link_ids_lengths[roop_count] >
+        SPIDER_CONNECT_INFO_MAX_LEN)
+      {
+        error_num = ER_SPIDER_INVALID_CONNECT_INFO_TOO_LONG_NUM;
+        my_printf_error(error_num, ER_SPIDER_INVALID_CONNECT_INFO_TOO_LONG_STR,
+          MYF(0), share->static_link_ids[roop_count], "static_link_id");
+        goto error;
+      }
+      if (share->static_link_ids[roop_count])
+      {
+        if (
+          share->static_link_ids_lengths[roop_count] > 0 &&
+          share->static_link_ids[roop_count][0] >= '0' &&
+          share->static_link_ids[roop_count][0] <= '9'
+        ) {
+          error_num = ER_SPIDER_INVALID_CONNECT_INFO_START_WITH_NUM_NUM;
+          my_printf_error(error_num,
+            ER_SPIDER_INVALID_CONNECT_INFO_START_WITH_NUM_STR,
+            MYF(0), share->static_link_ids[roop_count], "static_link_id");
+          goto error;
+        }
+        for (roop_count2 = roop_count + 1;
+          roop_count2 < (int) share->all_link_count;
+          roop_count2++)
+        {
+          if (
+            share->static_link_ids_lengths[roop_count] ==
+              share->static_link_ids_lengths[roop_count2] &&
+            !memcmp(share->static_link_ids[roop_count],
+              share->static_link_ids[roop_count2],
+              share->static_link_ids_lengths[roop_count])
+          ) {
+            error_num = ER_SPIDER_INVALID_CONNECT_INFO_SAME_NUM;
+            my_printf_error(error_num,
+              ER_SPIDER_INVALID_CONNECT_INFO_SAME_STR,
+              MYF(0), share->static_link_ids[roop_count],
+              "static_link_id");
+            goto error;
+          }
+        }
+      }
     }
   }
 
@@ -3365,6 +3500,22 @@ int spider_set_connect_info_default(
         DBUG_RETURN(HA_ERR_OUT_OF_MEM);
       }
     }
+
+/*
+    if (!share->static_link_ids[roop_count])
+    {
+      DBUG_PRINT("info",("spider create default static_link_ids"));
+      share->static_link_ids_lengths[roop_count] =
+        SPIDER_DB_STATIC_LINK_ID_LEN;
+      if (
+        !(share->static_link_ids[roop_count] = spider_create_string(
+          SPIDER_DB_STATIC_LINK_ID_STR,
+          share->static_link_ids_lengths[roop_count]))
+      ) {
+        DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+      }
+    }
+*/
 
     if (share->tgt_ports[roop_count] == -1)
     {
@@ -7577,9 +7728,10 @@ void spider_set_tmp_share_pointer(
   tmp_share->tgt_default_groups = &tmp_connect_info[14];
   tmp_share->tgt_pk_names = &tmp_connect_info[15];
   tmp_share->tgt_sequence_names = &tmp_connect_info[16];
+  tmp_share->static_link_ids = &tmp_connect_info[17];
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
-  tmp_share->hs_read_socks = &tmp_connect_info[17];
-  tmp_share->hs_write_socks = &tmp_connect_info[18];
+  tmp_share->hs_read_socks = &tmp_connect_info[18];
+  tmp_share->hs_write_socks = &tmp_connect_info[19];
 #endif
   tmp_share->tgt_ports = &tmp_long[0];
   tmp_share->tgt_ssl_vscs = &tmp_long[1];
@@ -7629,9 +7781,10 @@ void spider_set_tmp_share_pointer(
   tmp_share->tgt_default_groups_lengths = &tmp_connect_info_length[14];
   tmp_share->tgt_pk_names_lengths = &tmp_connect_info_length[15];
   tmp_share->tgt_sequence_names_lengths = &tmp_connect_info_length[16];
+  tmp_share->static_link_ids_lengths = &tmp_connect_info_length[17];
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
-  tmp_share->hs_read_socks_lengths = &tmp_connect_info_length[17];
-  tmp_share->hs_write_socks_lengths = &tmp_connect_info_length[18];
+  tmp_share->hs_read_socks_lengths = &tmp_connect_info_length[18];
+  tmp_share->hs_write_socks_lengths = &tmp_connect_info_length[19];
 #endif
   tmp_share->server_names_length = 1;
   tmp_share->tgt_table_names_length = 1;
@@ -7650,6 +7803,7 @@ void spider_set_tmp_share_pointer(
   tmp_share->tgt_default_groups_length = 1;
   tmp_share->tgt_pk_names_length = 1;
   tmp_share->tgt_sequence_names_length = 1;
+  tmp_share->static_link_ids_length = 1;
   tmp_share->tgt_ports_length = 1;
   tmp_share->tgt_ssl_vscs_length = 1;
   tmp_share->link_statuses_length = 1;

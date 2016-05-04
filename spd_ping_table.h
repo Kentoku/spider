@@ -1,4 +1,4 @@
-/* Copyright (C) 2009-2015 Kentoku Shiba
+/* Copyright (C) 2009-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@ SPIDER_TABLE_MON_LIST *spider_get_ping_table_mon_list(
   spider_string *str,
   uint conv_name_length,
   int link_idx,
+  char *static_link_id,
+  uint static_link_id_length,
   uint32 server_id,
   bool need_lock,
   int *error_num
@@ -55,6 +57,8 @@ SPIDER_TABLE_MON_LIST *spider_get_ping_table_tgt(
   char *name,
   uint name_length,
   int link_idx,
+  char *static_link_id,
+  uint static_link_id_length,
   uint32 server_id,
   spider_string *str,
   bool need_lock,
