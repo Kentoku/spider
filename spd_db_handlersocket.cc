@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2015 Kentoku Shiba
+/* Copyright (C) 2012-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -589,7 +589,8 @@ bool spider_db_handlersocket_result_buffer::check_size(
 }
 
 spider_db_handlersocket_result::spider_db_handlersocket_result(
-) : spider_db_result(spider_dbton_handlersocket.dbton_id)
+  SPIDER_DB_CONN *in_db_conn
+) : spider_db_result(in_db_conn, spider_dbton_handlersocket.dbton_id)
 {
   DBUG_ENTER("spider_db_handlersocket_result::spider_db_handlersocket_result");
   DBUG_PRINT("info",("spider this=%p", this));

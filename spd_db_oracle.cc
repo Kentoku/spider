@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2015 Kentoku Shiba
+/* Copyright (C) 2012-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -744,8 +744,8 @@ int spider_db_oracle_row::fetch()
   DBUG_RETURN(0);
 }
 
-spider_db_oracle_result::spider_db_oracle_result() :
-  spider_db_result(spider_dbton_oracle.dbton_id),
+spider_db_oracle_result::spider_db_oracle_result(SPIDER_DB_CONN *in_db_conn) :
+  spider_db_result(in_db_conn, spider_dbton_oracle.dbton_id),
   db_conn(NULL), stmtp(NULL), field_count(0), access_charset(NULL),
   fetched(FALSE)
 {

@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2015 Kentoku Shiba
+/* Copyright (C) 2012-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -195,7 +195,7 @@ public:
   spider_db_oracle_row row;
   int              store_error_num;
 
-  spider_db_oracle_result();
+  spider_db_oracle_result(SPIDER_DB_CONN *in_db_conn);
   ~spider_db_oracle_result();
   bool has_result();
   void free_result();
