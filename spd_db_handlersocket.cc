@@ -1227,7 +1227,7 @@ spider_db_result *spider_db_handlersocket::store_result(
     *spider_res_buf = (spider_db_result_buffer *) hs_res_buf;
   }
   hs_res_buf->clear();
-  if (!(result = new spider_db_handlersocket_result()))
+  if (!(result = new spider_db_handlersocket_result(this)))
   {
     *error_num = HA_ERR_OUT_OF_MEM;
     DBUG_RETURN(NULL);
@@ -1437,7 +1437,7 @@ spider_db_result *spider_db_handlersocket::use_result(
   spider_db_handlersocket_result *result;
   DBUG_ENTER("spider_db_handlersocket::use_result");
   DBUG_PRINT("info",("spider this=%p", this));
-  if (!(result = new spider_db_handlersocket_result()))
+  if (!(result = new spider_db_handlersocket_result(this)))
   {
     *error_num = HA_ERR_OUT_OF_MEM;
     DBUG_RETURN(NULL);
@@ -3263,12 +3263,15 @@ int spider_db_handlersocket_util::open_item_func(
           bool has_other_item = FALSE;
           while((item = lif++))
           {
+#ifdef SPIDER_HAS_EXPR_CACHE_ITEM
             if (
               item->type() == Item::EXPR_CACHE_ITEM
             ) {
               DBUG_PRINT("info",("spider EXPR_CACHE_ITEM"));
               has_expr_cache_item = TRUE;
-            } else if (
+            } else
+#endif
+            if (
               item->type() == Item::FUNC_ITEM &&
               ((Item_func *) item)->functype() == Item_func::ISNOTNULL_FUNC
             ) {
@@ -5451,7 +5454,7 @@ int spider_handlersocket_handler::show_table_status(
   int sts_mode,
   uint flag
 ) {
-  spider_db_handlersocket_result res;
+  spider_db_handlersocket_result res(NULL);
   SPIDER_SHARE *share = spider->share;
   ulonglong auto_increment_value = 0;
   DBUG_ENTER("spider_handlersocket_show_table_status");
