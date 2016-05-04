@@ -2018,7 +2018,7 @@ int spider_bg_conn_search(
         DBUG_RETURN(result_list->bgs_error);
       }
     }
-    if (!result_list->finish_flg)
+    if (result_list->bgs_working || !result_list->finish_flg)
     {
       pthread_mutex_lock(&conn->bg_conn_mutex);
       if (!result_list->finish_flg)

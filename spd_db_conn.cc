@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2015 Kentoku Shiba
+/* Copyright (C) 2008-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -3175,6 +3175,10 @@ int spider_db_fetch_minimum_columns(
   } else {
     if (result_list->current_row_num < result_list->quick_page_size)
     {
+      DBUG_PRINT("info", ("spider current=%p", current));
+      DBUG_PRINT("info", ("spider first_position=%p", current->first_position));
+      DBUG_PRINT("info", ("spider current_row_num=%d", result_list->current_row_num));
+      DBUG_PRINT("info", ("spider first_position[]=%p", &current->first_position[result_list->current_row_num]));
       row = current->first_position[result_list->current_row_num].row;
     } else {
       if ((error_num = spider_db_get_row_from_tmp_tbl(
@@ -4012,6 +4016,10 @@ int spider_db_store_result(
         conn->quick_target = NULL;
         spider->quick_targets[link_idx] = NULL;
       }
+#ifndef WITHOUT_SPIDER_BG_SEARCH
+      DBUG_PRINT("info", ("spider bgs_phase=%d", result_list->bgs_phase));
+#endif
+      DBUG_PRINT("info", ("spider quick_phase=%d", result_list->quick_phase));
       if (
 #ifndef WITHOUT_SPIDER_BG_SEARCH
         result_list->bgs_phase <= 1 &&
@@ -4020,6 +4028,12 @@ int spider_db_store_result(
       ) {
         result_list->current_row_num = 0;
       }
+      DBUG_PRINT("info", ("spider result_list->current=%p", result_list->current));
+      DBUG_PRINT("info", ("spider current=%p", current));
+      DBUG_PRINT("info", ("spider first_position=%p", current->first_position));
+      DBUG_PRINT("info", ("spider current_row_num=%d", result_list->current_row_num));
+      DBUG_PRINT("info", ("spider first_position[]=%p", &current->first_position[result_list->current_row_num]));
+      DBUG_PRINT("info", ("spider row=%p", current->first_position[result_list->current_row_num].row));
     }
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   } else {
