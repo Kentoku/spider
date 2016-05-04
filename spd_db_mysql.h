@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2015 Kentoku Shiba
+/* Copyright (C) 2012-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -161,7 +161,7 @@ public:
   spider_db_mysql_row row;
   MYSQL_ROW_OFFSET    first_row;
   int                 store_error_num;
-  spider_db_mysql_result();
+  spider_db_mysql_result(SPIDER_DB_CONN *in_db_conn);
   ~spider_db_mysql_result();
   bool has_result();
   void free_result();
@@ -231,9 +231,9 @@ public:
 
 class spider_db_mysql: public spider_db_conn
 {
-  MYSQL          *db_conn;
   int            stored_error;
 public:
+  MYSQL          *db_conn;
   HASH           lock_table_hash;
   bool           lock_table_hash_inited;
   uint           lock_table_hash_id;

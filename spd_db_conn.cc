@@ -3907,6 +3907,7 @@ int spider_db_store_result(
       SPIDER_DB_ROW *row;
       if (!(row = current->result->fetch_row()))
       {
+        error_num = current->result->get_errno();
         DBUG_PRINT("info",("spider set finish_flg point 3"));
         DBUG_PRINT("info",("spider current->finish_flg = TRUE"));
         DBUG_PRINT("info",("spider result_list->finish_flg = TRUE"));
@@ -3926,7 +3927,10 @@ int spider_db_store_result(
         ) {
           result_list->current_row_num = 0;
           table->status = STATUS_NOT_FOUND;
-        } else if (result_list->quick_phase > 0)
+        }
+        if (error_num)
+          DBUG_RETURN(error_num);
+        else if (result_list->quick_phase > 0)
           DBUG_RETURN(0);
         DBUG_RETURN(HA_ERR_END_OF_FILE);
       }

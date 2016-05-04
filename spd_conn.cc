@@ -2107,11 +2107,33 @@ int spider_bg_conn_search(
         DBUG_PRINT("info",("spider bg current->finish_flg=%s",
           result_list->current ?
           (result_list->current->finish_flg ? "TRUE" : "FALSE") : "NULL"));
+        if (result_list->bgs_error)
+        {
+          DBUG_PRINT("info",("spider bg error"));
+          if (result_list->bgs_error != HA_ERR_END_OF_FILE)
+          {
+            if (result_list->bgs_error_with_message)
+              my_message(result_list->bgs_error,
+                result_list->bgs_error_msg, MYF(0));
+            DBUG_RETURN(result_list->bgs_error);
+          }
+        }
       }
     } else {
       DBUG_PRINT("info",("spider bg current->finish_flg=%s",
         result_list->current ?
         (result_list->current->finish_flg ? "TRUE" : "FALSE") : "NULL"));
+      if (result_list->bgs_error)
+      {
+        DBUG_PRINT("info",("spider bg error"));
+        if (result_list->bgs_error != HA_ERR_END_OF_FILE)
+        {
+          if (result_list->bgs_error_with_message)
+            my_message(result_list->bgs_error,
+              result_list->bgs_error_msg, MYF(0));
+          DBUG_RETURN(result_list->bgs_error);
+        }
+      }
     }
   } else {
     DBUG_PRINT("info",("spider bg search"));
