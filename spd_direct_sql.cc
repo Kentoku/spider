@@ -1622,6 +1622,15 @@ long long spider_direct_sql_body(
       goto error;
     }
   }
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
+  if (trx->trx_start && direct_sql->access_mode != 1)
+  {
+#endif
+    trx->updated_in_this_trx = TRUE;
+    DBUG_PRINT("info",("spider trx->updated_in_this_trx=TRUE"));
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
+  }
+#endif
 #if MYSQL_VERSION_ID < 50500
 #else
   use_real_table = spider_param_udf_ds_use_real_table(thd,

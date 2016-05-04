@@ -13,7 +13,7 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
-#define SPIDER_DETAIL_VERSION "3.2.41"
+#define SPIDER_DETAIL_VERSION "3.2.42"
 #define SPIDER_HEX_VERSION 0x0302
 
 #if MYSQL_VERSION_ID < 50500
@@ -549,6 +549,8 @@ typedef struct st_spider_transaction
   query_id_t         query_id;
   bool               tmp_flg;
   bool               registed_allocated_thds;
+
+  bool               updated_in_this_trx;
 
   THD                *thd;
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE

@@ -1452,6 +1452,7 @@ int ha_spider::external_lock(
     if (thd_test_options(trx->thd, OPTION_NOT_AUTOCOMMIT | OPTION_BEGIN))
       trans_register_ha(trx->thd, TRUE, spider_hton_ptr);
   }
+
   if ((conn_kinds & SPIDER_CONN_KIND_HS_READ))
   {
     SPIDER_CONN *hs_conn;
@@ -1533,6 +1534,43 @@ int ha_spider::external_lock(
     }
   }
 #endif
+
+  DBUG_PRINT("info",("spider trx_start=%s", trx->trx_start ? "TRUE" : "FALSE"));
+  /* need to check after spider_internal_start_trx() */
+  if (trx->trx_start)
+  {
+    switch (sql_command)
+    {
+      case SQLCOM_SELECT:
+      case SQLCOM_HA_READ:
+#ifdef HS_HAS_SQLCOM
+      case SQLCOM_HS_READ:
+#endif
+        /* nothing to do */
+        break;
+      case SQLCOM_UPDATE:
+      case SQLCOM_UPDATE_MULTI:
+#ifdef HS_HAS_SQLCOM
+      case SQLCOM_HS_UPDATE:
+#endif
+      case SQLCOM_CREATE_TABLE:
+      case SQLCOM_INSERT:
+      case SQLCOM_INSERT_SELECT:
+      case SQLCOM_DELETE:
+      case SQLCOM_LOAD:
+      case SQLCOM_REPLACE:
+      case SQLCOM_REPLACE_SELECT:
+      case SQLCOM_DELETE_MULTI:
+#ifdef HS_HAS_SQLCOM
+      case SQLCOM_HS_INSERT:
+      case SQLCOM_HS_DELETE:
+#endif
+      default:
+        trx->updated_in_this_trx = TRUE;
+        DBUG_PRINT("info",("spider trx->updated_in_this_trx=TRUE"));
+        break;
+    }
+  }
   DBUG_RETURN(0);
 }
 

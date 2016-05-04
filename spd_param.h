@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2015 Kentoku Shiba
+/* Copyright (C) 2008-2016 Kentoku Shiba
 
   This program is free software); you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -39,6 +39,9 @@ uint spider_param_internal_xa_snapshot(
   THD *thd
 );
 uint spider_param_force_commit(
+  THD *thd
+);
+uint spider_param_xa_register_mode(
   THD *thd
 );
 longlong spider_param_internal_offset(
