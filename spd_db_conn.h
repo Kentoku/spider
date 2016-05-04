@@ -263,13 +263,6 @@ int spider_db_connect(
   int link_idx
 );
 
-int spider_db_ping_internal(
-  SPIDER_SHARE *share,
-  SPIDER_CONN *conn,
-  int all_link_idx,
-  int *need_mon
-);
-
 int spider_db_ping(
   ha_spider *spider,
   SPIDER_CONN *conn,

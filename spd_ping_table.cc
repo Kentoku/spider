@@ -696,165 +696,6 @@ error:
   DBUG_RETURN(NULL);
 }
 
-int spider_get_ping_table_gtid_pos(
-  SPIDER_TRX *trx,
-  THD *thd,
-  spider_string *str,
-  uint conv_name_length,
-  int failed_link_idx,
-  uint32 server_id,
-  bool need_lock,
-  spider_string *tmp_str
-) {
-  int error_num, source_link_idx, need_mon;
-  char table_key[MAX_KEY_LENGTH];
-  TABLE *table_tables, *table_gtid_pos;
-#if MYSQL_VERSION_ID < 50500
-  Open_tables_state open_tables_backup_tables;
-  Open_tables_state open_tables_backup_gtid_pos;
-#else
-  Open_tables_backup open_tables_backup_tables;
-  Open_tables_backup open_tables_backup_gtid_pos;
-#endif
-  MEM_ROOT mem_root;
-  long link_status;
-  long monitoring_binlog_pos_at_failing;
-  SPIDER_TABLE_MON_LIST *table_mon_list;
-  SPIDER_CONN *ping_conn = NULL;
-  char *static_link_id;
-  uint static_link_id_length;
-  DBUG_ENTER("spider_get_ping_table_gtid_pos");
-
-  /*
-    select * from
-      mysql.spider_tables
-    where
-      db_name = setted db_name and
-      table_name = setted table_name
-  */
-  if (
-    !(table_tables = spider_open_sys_table(
-      thd, SPIDER_SYS_TABLES_TABLE_NAME_STR,
-      SPIDER_SYS_TABLES_TABLE_NAME_LEN, FALSE, &open_tables_backup_tables,
-      need_lock, &error_num))
-  )
-    goto error_open_table_tables;
-
-  if (
-    !(table_gtid_pos = spider_open_sys_table(
-      thd, SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_STR,
-      SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_LEN, TRUE,
-      &open_tables_backup_gtid_pos, need_lock, &error_num))
-  )
-    goto error_open_table_gtid_pos;
-
-  table_tables->use_all_columns();
-  table_gtid_pos->use_all_columns();
-  spider_store_tables_name(table_tables, str->ptr(), conv_name_length);
-  spider_store_tables_name(table_gtid_pos, str->ptr(), conv_name_length);
-  spider_store_binlog_pos_failed_link_idx(table_gtid_pos, failed_link_idx);
-  if ((error_num = spider_get_sys_table_by_idx(table_tables, table_key, 0,
-    SPIDER_SYS_TABLES_PK_COL_CNT - 1)))
-  {
-    if (error_num == HA_ERR_KEY_NOT_FOUND || error_num == HA_ERR_END_OF_FILE)
-    {
-      error_num = 0;
-    }
-    goto error_get_sys_table_by_idx;
-  }
-
-  SPD_INIT_ALLOC_ROOT(&mem_root, 4096, 0, MYF(MY_WME));
-  do {
-    if (
-      (error_num = spider_get_sys_tables_link_status(table_tables,
-        &link_status, &mem_root)) ||
-      (error_num = spider_get_sys_tables_static_link_id(table_tables,
-        &static_link_id, &static_link_id_length, &mem_root)) ||
-      (error_num = spider_get_sys_tables_monitoring_binlog_pos_at_failing(
-        table_tables, &monitoring_binlog_pos_at_failing, &mem_root))
-    ) {
-      goto error_get_sys_tables_link_status;
-    }
-
-    if (link_status == 1 && monitoring_binlog_pos_at_failing > 0)
-    {
-      if ((error_num = spider_get_sys_tables_link_idx(table_tables,
-        &source_link_idx, &mem_root)))
-      {
-        goto error_get_sys_tables_link_idx;
-      }
-      if (
-        (table_mon_list = spider_get_ping_table_mon_list(
-          trx,
-          thd,
-          str,
-          conv_name_length,
-          source_link_idx,
-          static_link_id,
-          static_link_id_length,
-          server_id,
-          need_lock,
-          &error_num
-        ))
-      ) {
-        SPIDER_DB_RESULT *res1 = NULL;
-        SPIDER_DB_RESULT *res2 = NULL;
-        if (
-          (ping_conn = spider_get_ping_table_tgt_conn(trx,
-            table_mon_list->share, &error_num
-          )) &&
-          !(error_num = ping_conn->db_conn->show_master_status(
-            trx, table_mon_list->share, 0, &need_mon, table_gtid_pos, tmp_str,
-            monitoring_binlog_pos_at_failing == 1 ? 0 : 1, &res1, &res2))
-        ) {
-          spider_store_binlog_pos_source_link_idx(
-            table_gtid_pos, source_link_idx);
-          spider_insert_sys_table(table_gtid_pos);
-        }
-        if (res1)
-        {
-          res1->free_result();
-          delete res1;
-        }
-        if (res2)
-        {
-          res2->free_result();
-          delete res2;
-        }
-        spider_free_ping_table_mon_list(table_mon_list);
-      }
-    }
-
-    error_num = spider_sys_index_next_same(table_tables, table_key);
-  } while (error_num == 0);
-  free_root(&mem_root, MYF(0));
-
-  if ((error_num = spider_sys_index_end(table_tables)))
-  {
-    goto error_sys_index_end;
-  }
-  spider_close_sys_table(thd, table_gtid_pos, &open_tables_backup_gtid_pos,
-    need_lock);
-  spider_close_sys_table(thd, table_tables, &open_tables_backup_tables,
-    need_lock);
-
-  DBUG_RETURN(0);
-
-error_get_sys_tables_link_idx:
-error_get_sys_tables_link_status:
-  free_root(&mem_root, MYF(0));
-  spider_sys_index_end(table_tables);
-error_sys_index_end:
-error_get_sys_table_by_idx:
-  spider_close_sys_table(thd, table_gtid_pos, &open_tables_backup_gtid_pos,
-    need_lock);
-error_open_table_gtid_pos:
-  spider_close_sys_table(thd, table_tables, &open_tables_backup_tables,
-    need_lock);
-error_open_table_tables:
-  DBUG_RETURN(error_num);
-}
-
 int spider_init_ping_table_mon_cache(
   THD *thd,
   MEM_ROOT *mem_root,
@@ -1025,7 +866,7 @@ long long spider_ping_table_body(
 ) {
   int error_num = 0, link_idx, flags, full_mon_count, current_mon_count,
     success_count, fault_count, tmp_error_num = 0;
-  uint32 first_sid, server_id;
+  uint32 first_sid;
   longlong limit, tmp_sid = -1;
   SPIDER_MON_TABLE_RESULT *mon_table_result =
     (SPIDER_MON_TABLE_RESULT *) initid->ptr;
@@ -1036,24 +877,15 @@ long long spider_ping_table_body(
   SPIDER_TABLE_MON_LIST *table_mon_list;
   SPIDER_TABLE_MON *table_mon;
 
-  char buf[MAX_FIELD_WIDTH], buf2[MAX_FIELD_WIDTH];
+  char buf[MAX_FIELD_WIDTH];
   spider_string conv_name(buf, sizeof(buf), system_charset_info);
-  spider_string tmp_str(buf2, sizeof(buf2), system_charset_info);
   int conv_name_length;
   char link_idx_str[SPIDER_CONNECT_INFO_MAX_LEN + 1];
   int link_idx_str_length;
-  char *static_link_id = NULL;
-  int static_link_id_length = 0;
-  bool get_lock = FALSE, status_changed_to_ng = FALSE;
+  bool get_lock = FALSE;
   DBUG_ENTER("spider_ping_table_body");
   conv_name.init_calc_mem(135);
-  tmp_str.init_calc_mem(247);
   conv_name.length(0);
-#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100002
-  server_id = global_system_variables.server_id;
-#else
-  server_id = thd->server_id;
-#endif
   if (
     thd->open_tables != 0 ||
     thd->handler_tables_hash.records != 0 ||
@@ -1180,10 +1012,14 @@ long long spider_ping_table_body(
   conv_name.q_append(link_idx_str, link_idx_str_length + 1);
   conv_name.length(conv_name.length() - 1);
 
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100002
   if (!(table_mon_list = spider_get_ping_table_mon_list(trx, trx->thd,
-    &conv_name, conv_name_length, link_idx,
-    static_link_id, static_link_id_length,
-    server_id, TRUE, &error_num)))
+    &conv_name, conv_name_length, link_idx, global_system_variables.server_id,
+    TRUE, &error_num)))
+#else
+  if (!(table_mon_list = spider_get_ping_table_mon_list(trx, trx->thd,
+    &conv_name, conv_name_length, link_idx, thd->server_id, TRUE, &error_num)))
+#endif
     goto error;
 
   if (table_mon_list->mon_status == SPIDER_LINK_MON_NG)
@@ -1210,7 +1046,11 @@ long long spider_ping_table_body(
       goto error_with_free_table_mon_list;
     }
   } else {
-    first_sid = server_id;
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100002
+    first_sid = global_system_variables.server_id;
+#else
+    first_sid = thd->server_id;
+#endif
     full_mon_count = table_mon_list->list_size;
     current_mon_count = 1;
   }
@@ -1272,21 +1112,11 @@ long long spider_ping_table_body(
               SPIDER_LINK_STATUS_NG, TRUE);
             spider_sys_log_tables_link_failed(trx->thd,
               conv_name.c_ptr(), conv_name_length, link_idx, TRUE);
-            status_changed_to_ng = TRUE;
           }
 /*
           pthread_mutex_unlock(&table_mon_list->update_status_mutex);
 */
           pthread_mutex_unlock(&spider_udf_table_mon_mutexes[table_mon_list->mutex_hash]);
-          if (status_changed_to_ng)
-          {
-            bool is_error = trx->thd->is_error();
-            spider_get_ping_table_gtid_pos(trx, trx->thd,
-              &conv_name, conv_name_length, link_idx, server_id, TRUE,
-              &tmp_str);
-            if (!is_error && trx->thd->is_error())
-              trx->thd->clear_error();
-          }
         }
         goto end;
       }
@@ -1345,21 +1175,11 @@ long long spider_ping_table_body(
                 SPIDER_LINK_STATUS_NG, TRUE);
               spider_sys_log_tables_link_failed(trx->thd,
                 conv_name.c_ptr(), conv_name_length, link_idx, TRUE);
-              status_changed_to_ng = TRUE;
             }
 /*
             pthread_mutex_unlock(&table_mon_list->update_status_mutex);
 */
             pthread_mutex_unlock(&spider_udf_table_mon_mutexes[table_mon_list->mutex_hash]);
-            if (status_changed_to_ng)
-            {
-              bool is_error = trx->thd->is_error();
-              spider_get_ping_table_gtid_pos(trx, trx->thd,
-                &conv_name, conv_name_length, link_idx, server_id, TRUE,
-                &tmp_str);
-              if (!is_error && trx->thd->is_error())
-                trx->thd->clear_error();
-            }
           }
         } else if (
           (flags & SPIDER_UDF_PING_TABLE_USE_ALL_MONITORING_NODES) &&
@@ -1408,21 +1228,11 @@ long long spider_ping_table_body(
                 SPIDER_LINK_STATUS_NG, TRUE);
               spider_sys_log_tables_link_failed(trx->thd,
                 conv_name.c_ptr(), conv_name_length, link_idx, TRUE);
-              status_changed_to_ng = TRUE;
             }
 /*
             pthread_mutex_unlock(&table_mon_list->update_status_mutex);
 */
             pthread_mutex_unlock(&spider_udf_table_mon_mutexes[table_mon_list->mutex_hash]);
-            if (status_changed_to_ng)
-            {
-              bool is_error = trx->thd->is_error();
-              spider_get_ping_table_gtid_pos(trx, trx->thd,
-                &conv_name, conv_name_length, link_idx, server_id, TRUE,
-                &tmp_str);
-              if (!is_error && trx->thd->is_error())
-                trx->thd->clear_error();
-            }
           }
           table_mon_list->last_receptor_result =
             mon_table_result->result_status;
@@ -1581,7 +1391,6 @@ int spider_ping_table_mon_from_table(
   SPIDER_TRX *trx,
   THD *thd,
   SPIDER_SHARE *share,
-  int base_link_idx,
   uint32 server_id,
   char *conv_name,
   uint conv_name_length,

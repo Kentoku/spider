@@ -764,8 +764,6 @@ int spider_free_share_alloc(
   if (share->monitoring_bg_kind)
     spider_free(spider_current_trx, share->monitoring_bg_kind, MYF(0));
 #endif
-  if (share->monitoring_binlog_pos_at_failing)
-    spider_free(spider_current_trx, share->monitoring_binlog_pos_at_failing, MYF(0));
   if (share->monitoring_flag)
     spider_free(spider_current_trx, share->monitoring_flag, MYF(0));
   if (share->monitoring_kind)
@@ -2121,7 +2119,6 @@ int spider_parse_connect_info(
             "mbi", monitoring_bg_interval, 0, 4294967295LL);
           SPIDER_PARAM_LONG_LIST_WITH_MAX("mbk", monitoring_bg_kind, 0, 3);
 #endif
-          SPIDER_PARAM_LONG_LIST_WITH_MAX("mbp", monitoring_binlog_pos_at_failing, 0, 2);
           SPIDER_PARAM_LONG_LIST_WITH_MAX("mfg", monitoring_flag, 0, 1);
           SPIDER_PARAM_LONG_LIST_WITH_MAX("mkd", monitoring_kind, 0, 3);
           SPIDER_PARAM_LONGLONG_LIST_WITH_MAX(
@@ -2483,13 +2480,6 @@ int spider_parse_connect_info(
           my_printf_error(error_num, ER_SPIDER_INVALID_CONNECT_INFO_STR,
             MYF(0), tmp_ptr);
           goto error;
-        case 32:
-          SPIDER_PARAM_LONG_LIST_WITH_MAX("monitoring_binlog_pos_at_failing",
-            monitoring_binlog_pos_at_failing, 0, 2);
-          error_num = ER_SPIDER_INVALID_CONNECT_INFO_NUM;
-          my_printf_error(error_num, ER_SPIDER_INVALID_CONNECT_INFO_STR,
-            MYF(0), tmp_ptr);
-          goto error;
         default:
           error_num = ER_SPIDER_INVALID_CONNECT_INFO_NUM;
           my_printf_error(error_num, ER_SPIDER_INVALID_CONNECT_INFO_STR,
@@ -2543,8 +2533,6 @@ int spider_parse_connect_info(
     share->all_link_count = share->tgt_ssl_vscs_length;
   if (share->all_link_count < share->link_statuses_length)
     share->all_link_count = share->link_statuses_length;
-  if (share->all_link_count < share->monitoring_binlog_pos_at_failing_length)
-    share->all_link_count = share->monitoring_binlog_pos_at_failing_length;
   if (share->all_link_count < share->monitoring_flag_length)
     share->all_link_count = share->monitoring_flag_length;
   if (share->all_link_count < share->monitoring_kind_length)
@@ -2743,11 +2731,6 @@ int spider_parse_connect_info(
     goto error;
 #endif
   if ((error_num = spider_increase_long_list(
-    &share->monitoring_binlog_pos_at_failing,
-    &share->monitoring_binlog_pos_at_failing_length,
-    share->all_link_count)))
-    goto error;
-  if ((error_num = spider_increase_long_list(
     &share->monitoring_flag,
     &share->monitoring_flag_length,
     share->all_link_count)))
@@ -2859,8 +2842,6 @@ int spider_parse_connect_info(
       sizeof(long) * share->all_link_count,
       &share_alter->tmp_tgt_ssl_vscs,
       sizeof(long) * share->all_link_count,
-      &share_alter->tmp_monitoring_binlog_pos_at_failing,
-      sizeof(long) * share->all_link_count,
       &share_alter->tmp_link_statuses,
       sizeof(long) * share->all_link_count,
       NullS))
@@ -2936,9 +2917,6 @@ int spider_parse_connect_info(
   memcpy(share_alter->tmp_tgt_ports, share->tgt_ports,
     sizeof(long) * share->all_link_count);
   memcpy(share_alter->tmp_tgt_ssl_vscs, share->tgt_ssl_vscs,
-    sizeof(long) * share->all_link_count);
-  memcpy(share_alter->tmp_monitoring_binlog_pos_at_failing,
-    share->monitoring_binlog_pos_at_failing,
     sizeof(long) * share->all_link_count);
   memcpy(share_alter->tmp_link_statuses, share->link_statuses,
     sizeof(long) * share->all_link_count);
@@ -3059,8 +3037,6 @@ int spider_parse_connect_info(
     share->static_link_ids_length;
   share_alter->tmp_tgt_ports_length = share->tgt_ports_length;
   share_alter->tmp_tgt_ssl_vscs_length = share->tgt_ssl_vscs_length;
-  share_alter->tmp_monitoring_binlog_pos_at_failing_length =
-    share->monitoring_binlog_pos_at_failing_length;
   share_alter->tmp_link_statuses_length = share->link_statuses_length;
   /* copy for tables end */
 
@@ -3556,8 +3532,6 @@ int spider_set_connect_info_default(
     if (share->monitoring_bg_kind[roop_count] == -1)
       share->monitoring_bg_kind[roop_count] = 0;
 #endif
-    if (share->monitoring_binlog_pos_at_failing[roop_count] == -1)
-      share->monitoring_binlog_pos_at_failing[roop_count] = 0;
     if (share->monitoring_flag[roop_count] == -1)
       share->monitoring_flag[roop_count] = 0;
     if (share->monitoring_kind[roop_count] == -1)
@@ -4827,7 +4801,6 @@ SPIDER_SHARE *spider_get_share(
                 spider->trx,
                 spider->trx->thd,
                 share,
-                roop_count,
                 (uint32) share->monitoring_sid[roop_count],
                 share->table_name,
                 share->table_name_length,
@@ -5255,7 +5228,6 @@ SPIDER_SHARE *spider_get_share(
                 spider->trx,
                 spider->trx->thd,
                 share,
-                roop_count,
                 (uint32) share->monitoring_sid[roop_count],
                 share->table_name,
                 share->table_name_length,
@@ -7736,29 +7708,28 @@ void spider_set_tmp_share_pointer(
   tmp_share->tgt_ports = &tmp_long[0];
   tmp_share->tgt_ssl_vscs = &tmp_long[1];
   tmp_share->link_statuses = &tmp_long[2];
-  tmp_share->monitoring_binlog_pos_at_failing = &tmp_long[3];
-  tmp_share->monitoring_flag = &tmp_long[4];
-  tmp_share->monitoring_kind = &tmp_long[5];
+  tmp_share->monitoring_flag = &tmp_long[3];
+  tmp_share->monitoring_kind = &tmp_long[4];
 #ifndef WITHOUT_SPIDER_BG_SEARCH
-  tmp_share->monitoring_bg_flag = &tmp_long[6];
-  tmp_share->monitoring_bg_kind = &tmp_long[7];
+  tmp_share->monitoring_bg_flag = &tmp_long[5];
+  tmp_share->monitoring_bg_kind = &tmp_long[6];
 #endif
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
-  tmp_share->use_hs_reads = &tmp_long[8];
-  tmp_share->use_hs_writes = &tmp_long[9];
-  tmp_share->hs_read_ports = &tmp_long[10];
-  tmp_share->hs_write_ports = &tmp_long[11];
-  tmp_share->hs_write_to_reads = &tmp_long[12];
+  tmp_share->use_hs_reads = &tmp_long[7];
+  tmp_share->use_hs_writes = &tmp_long[8];
+  tmp_share->hs_read_ports = &tmp_long[9];
+  tmp_share->hs_write_ports = &tmp_long[10];
+  tmp_share->hs_write_to_reads = &tmp_long[11];
 #endif
-  tmp_share->use_handlers = &tmp_long[13];
-  tmp_share->connect_timeouts = &tmp_long[14];
+  tmp_share->use_handlers = &tmp_long[12];
+  tmp_share->connect_timeouts = &tmp_long[13];
   tmp_long[13] = -1;
-  tmp_share->net_read_timeouts = &tmp_long[15];
+  tmp_share->net_read_timeouts = &tmp_long[14];
   tmp_long[14] = -1;
-  tmp_share->net_write_timeouts = &tmp_long[16];
+  tmp_share->net_write_timeouts = &tmp_long[15];
   tmp_long[15] = -1;
-  tmp_share->access_balances = &tmp_long[17];
-  tmp_share->bka_table_name_types = &tmp_long[18];
+  tmp_share->access_balances = &tmp_long[16];
+  tmp_share->bka_table_name_types = &tmp_long[17];
   tmp_share->monitoring_limit = &tmp_longlong[0];
   tmp_share->monitoring_sid = &tmp_longlong[1];
 #ifndef WITHOUT_SPIDER_BG_SEARCH
@@ -7807,7 +7778,6 @@ void spider_set_tmp_share_pointer(
   tmp_share->tgt_ports_length = 1;
   tmp_share->tgt_ssl_vscs_length = 1;
   tmp_share->link_statuses_length = 1;
-  tmp_share->monitoring_binlog_pos_at_failing_length = 1;
   tmp_share->monitoring_flag_length = 1;
   tmp_share->monitoring_kind_length = 1;
 #ifndef WITHOUT_SPIDER_BG_SEARCH
@@ -7839,7 +7809,6 @@ void spider_set_tmp_share_pointer(
   tmp_share->monitoring_bg_flag[0] = -1;
   tmp_share->monitoring_bg_kind[0] = -1;
 #endif
-  tmp_share->monitoring_binlog_pos_at_failing[0] = -1;
   tmp_share->monitoring_flag[0] = -1;
   tmp_share->monitoring_kind[0] = -1;
 #ifndef WITHOUT_SPIDER_BG_SEARCH

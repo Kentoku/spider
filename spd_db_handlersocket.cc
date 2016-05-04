@@ -1840,22 +1840,6 @@ int spider_db_handlersocket::set_time_zone(
   DBUG_RETURN(0);
 }
 
-int spider_db_handlersocket::show_master_status(
-  SPIDER_TRX *trx,
-  SPIDER_SHARE *share,
-  int all_link_idx,
-  int *need_mon,
-  TABLE *table,
-  spider_string *str,
-  int mode,
-  SPIDER_DB_RESULT **res1,
-  SPIDER_DB_RESULT **res2
-) {
-  DBUG_ENTER("spider_db_handlersocket::show_master_status");
-  DBUG_PRINT("info",("spider this=%p", this));
-  DBUG_RETURN(0);
-}
-
 int spider_db_handlersocket::append_sql(
   char *sql,
   ulong sql_length,
