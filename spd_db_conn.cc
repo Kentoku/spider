@@ -193,24 +193,29 @@ int spider_db_connect(
   DBUG_RETURN(0);
 }
 
-int spider_db_ping_internal(
-  SPIDER_SHARE *share,
+int spider_db_ping(
+  ha_spider *spider,
   SPIDER_CONN *conn,
-  int all_link_idx,
-  int *need_mon
+  int link_idx
 ) {
   int error_num;
-  DBUG_ENTER("spider_db_ping_internal");
+  DBUG_ENTER("spider_db_ping");
+#ifndef DBUG_OFF
+  if (spider->trx->thd)
+    DBUG_PRINT("info", ("spider thd->query_id is %lld",
+      spider->trx->thd->query_id));
+#endif
   if (!conn->mta_conn_mutex_lock_already)
   {
     pthread_mutex_lock(&conn->mta_conn_mutex);
     SPIDER_SET_FILE_POS(&conn->mta_conn_mutex_file_pos);
-    conn->need_mon = need_mon;
+    conn->need_mon = &spider->need_mons[link_idx];
   }
   DBUG_ASSERT(conn->mta_conn_mutex_file_pos.file_name);
   if (conn->server_lost || conn->queued_connect)
   {
-    if ((error_num = spider_db_connect(share, conn, all_link_idx)))
+    if ((error_num = spider_db_connect(spider->share, conn,
+      spider->conn_link_idx[link_idx])))
     {
       if (!conn->mta_conn_mutex_unlock_later)
       {
@@ -225,7 +230,8 @@ int spider_db_ping_internal(
   if ((error_num = conn->db_conn->ping()))
   {
     spider_db_disconnect(conn);
-    if ((error_num = spider_db_connect(share, conn, all_link_idx)))
+    if ((error_num = spider_db_connect(spider->share, conn,
+      spider->conn_link_idx[link_idx])))
     {
       DBUG_PRINT("info", ("spider conn=%p SERVER_LOST", conn));
       conn->server_lost = TRUE;
@@ -256,22 +262,6 @@ int spider_db_ping_internal(
     pthread_mutex_unlock(&conn->mta_conn_mutex);
   }
   DBUG_RETURN(0);
-}
-
-int spider_db_ping(
-  ha_spider *spider,
-  SPIDER_CONN *conn,
-  int link_idx
-) {
-  int error_num;
-  DBUG_ENTER("spider_db_ping");
-#ifndef DBUG_OFF
-  if (spider->trx->thd)
-    DBUG_PRINT("info", ("spider thd->query_id is %lld",
-      spider->trx->thd->query_id));
-#endif
-  DBUG_RETURN(spider_db_ping_internal(spider->share, conn,
-    spider->conn_link_idx[link_idx], &spider->need_mons[link_idx]));
 }
 
 void spider_db_disconnect(
@@ -960,7 +950,6 @@ int spider_db_query_with_set_names(
           spider->trx,
           spider->trx->thd,
           share,
-          link_idx,
           (uint32) share->monitoring_sid[link_idx],
           share->table_name,
           share->table_name_length,
@@ -994,7 +983,6 @@ int spider_db_query_with_set_names(
           spider->trx,
           spider->trx->thd,
           share,
-          link_idx,
           (uint32) share->monitoring_sid[link_idx],
           share->table_name,
           share->table_name_length,
@@ -1047,7 +1035,6 @@ int spider_db_query_for_bulk_update(
           spider->trx,
           spider->trx->thd,
           share,
-          link_idx,
           (uint32) share->monitoring_sid[link_idx],
           share->table_name,
           share->table_name_length,
@@ -1085,7 +1072,6 @@ int spider_db_query_for_bulk_update(
           spider->trx,
           spider->trx->thd,
           share,
-          link_idx,
           (uint32) share->monitoring_sid[link_idx],
           share->table_name,
           share->table_name_length,
@@ -1130,7 +1116,6 @@ int spider_db_query_for_bulk_update(
           spider->trx,
           spider->trx->thd,
           share,
-          link_idx,
           (uint32) share->monitoring_sid[link_idx],
           share->table_name,
           share->table_name_length,
@@ -4423,7 +4408,6 @@ int spider_db_seek_next(
                     spider->trx,
                     spider->trx->thd,
                     share,
-                    roop_count,
                     (uint32) share->monitoring_sid[roop_count],
                     share->table_name,
                     share->table_name_length,
@@ -4458,7 +4442,6 @@ int spider_db_seek_next(
                     spider->trx,
                     spider->trx->thd,
                     share,
-                    roop_count,
                     (uint32) share->monitoring_sid[roop_count],
                     share->table_name,
                     share->table_name_length,
@@ -4491,7 +4474,6 @@ int spider_db_seek_next(
                       spider->trx,
                       spider->trx->thd,
                       share,
-                      roop_count,
                       (uint32) share->monitoring_sid[roop_count],
                       share->table_name,
                       share->table_name_length,
@@ -4674,7 +4656,6 @@ int spider_db_seek_last(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -4708,7 +4689,6 @@ int spider_db_seek_last(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -4739,7 +4719,6 @@ int spider_db_seek_last(
                 spider->trx,
                 spider->trx->thd,
                 share,
-                roop_count,
                 (uint32) share->monitoring_sid[roop_count],
                 share->table_name,
                 share->table_name_length,
@@ -4877,7 +4856,6 @@ int spider_db_seek_last(
             spider->trx,
             spider->trx->thd,
             share,
-            roop_count,
             (uint32) share->monitoring_sid[roop_count],
             share->table_name,
             share->table_name_length,
@@ -4911,7 +4889,6 @@ int spider_db_seek_last(
             spider->trx,
             spider->trx->thd,
             share,
-            roop_count,
             (uint32) share->monitoring_sid[roop_count],
             share->table_name,
             share->table_name_length,
@@ -4942,7 +4919,6 @@ int spider_db_seek_last(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -5545,7 +5521,6 @@ int spider_db_bulk_insert_init(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -5716,7 +5691,6 @@ int spider_db_bulk_insert(
                 spider->trx,
                 spider->trx->thd,
                 share,
-                roop_count2,
                 (uint32) share->monitoring_sid[roop_count2],
                 share->table_name,
                 share->table_name_length,
@@ -5766,7 +5740,6 @@ int spider_db_bulk_insert(
                 spider->trx,
                 spider->trx->thd,
                 share,
-                roop_count2,
                 (uint32) share->monitoring_sid[roop_count2],
                 share->table_name,
                 share->table_name_length,
@@ -6413,7 +6386,6 @@ int spider_db_update(
             spider->trx,
             spider->trx->thd,
             share,
-            roop_count,
             (uint32) share->monitoring_sid[roop_count],
             share->table_name,
             share->table_name_length,
@@ -6450,7 +6422,6 @@ int spider_db_update(
             spider->trx,
             spider->trx->thd,
             share,
-            roop_count,
             (uint32) share->monitoring_sid[roop_count],
             share->table_name,
             share->table_name_length,
@@ -6503,7 +6474,6 @@ int spider_db_update(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -6745,7 +6715,6 @@ int spider_db_direct_update(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -6785,7 +6754,6 @@ int spider_db_direct_update(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -7175,7 +7143,6 @@ int spider_db_direct_delete(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -7209,7 +7176,6 @@ int spider_db_direct_delete(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -7368,7 +7334,6 @@ int spider_db_delete_all_rows(
                 spider->trx,
                 spider->trx->thd,
                 share,
-                roop_count,
                 (uint32) share->monitoring_sid[roop_count],
                 share->table_name,
                 share->table_name_length,
@@ -7397,7 +7362,6 @@ int spider_db_delete_all_rows(
                 spider->trx,
                 spider->trx->thd,
                 share,
-                roop_count,
                 (uint32) share->monitoring_sid[roop_count],
                 share->table_name,
                 share->table_name_length,
@@ -7431,7 +7395,6 @@ int spider_db_delete_all_rows(
                 spider->trx,
                 spider->trx->thd,
                 share,
-                roop_count,
                 (uint32) share->monitoring_sid[roop_count],
                 share->table_name,
                 share->table_name_length,
@@ -7459,7 +7422,6 @@ int spider_db_delete_all_rows(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -7518,7 +7480,6 @@ int spider_db_disable_keys(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -7571,7 +7532,6 @@ int spider_db_enable_keys(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -7625,7 +7585,6 @@ int spider_db_check_table(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -7679,7 +7638,6 @@ int spider_db_repair_table(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -7732,7 +7690,6 @@ int spider_db_analyze_table(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -7785,7 +7742,6 @@ int spider_db_optimize_table(
               spider->trx,
               spider->trx->thd,
               share,
-              roop_count,
               (uint32) share->monitoring_sid[roop_count],
               share->table_name,
               share->table_name_length,
@@ -7835,7 +7791,6 @@ int spider_db_flush_tables(
             spider->trx,
             spider->trx->thd,
             share,
-            roop_count,
             (uint32) share->monitoring_sid[roop_count],
             share->table_name,
             share->table_name_length,
@@ -7883,7 +7838,6 @@ int spider_db_flush_logs(
             spider->trx,
             spider->trx->thd,
             share,
-            roop_count,
             (uint32) share->monitoring_sid[roop_count],
             share->table_name,
             share->table_name_length,
