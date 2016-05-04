@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2015 Kentoku Shiba
+/* Copyright (C) 2012-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -466,8 +466,8 @@ int spider_db_mysql_row::store_to_tmp_table(
   DBUG_RETURN(tmp_table->file->ha_write_row(tmp_table->record[0]));
 }
 
-spider_db_mysql_result::spider_db_mysql_result() :
-  spider_db_result(spider_dbton_mysql.dbton_id),
+spider_db_mysql_result::spider_db_mysql_result(SPIDER_DB_CONN *in_db_conn) :
+  spider_db_result(in_db_conn, spider_dbton_mysql.dbton_id),
   db_result(NULL)
 {
   DBUG_ENTER("spider_db_mysql_result::spider_db_mysql_result");
@@ -519,7 +519,13 @@ SPIDER_DB_ROW *spider_db_mysql_result::fetch_row()
   DBUG_PRINT("info",("spider this=%p", this));
   if (!(row.row = mysql_fetch_row(db_result)))
   {
-    store_error_num = HA_ERR_END_OF_FILE;
+    if (mysql_errno(((spider_db_mysql *) db_conn)->db_conn))
+    {
+      store_error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn);
+      my_message(store_error_num,
+        mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+    } else
+      store_error_num = HA_ERR_END_OF_FILE;
     DBUG_RETURN(NULL);
   }
   row.lengths = mysql_fetch_lengths(db_result);
@@ -536,7 +542,13 @@ SPIDER_DB_ROW *spider_db_mysql_result::fetch_row_from_result_buffer(
   DBUG_PRINT("info",("spider this=%p", this));
   if (!(row.row = mysql_fetch_row(db_result)))
   {
-    store_error_num = HA_ERR_END_OF_FILE;
+    if (mysql_errno(((spider_db_mysql *) db_conn)->db_conn))
+    {
+      store_error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn);
+      my_message(store_error_num,
+        mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+    } else
+      store_error_num = HA_ERR_END_OF_FILE;
     DBUG_RETURN(NULL);
   }
   row.lengths = mysql_fetch_lengths(db_result);
@@ -619,6 +631,12 @@ int spider_db_mysql_result::fetch_table_status(
   if (!(mysql_row = mysql_fetch_row(db_result)))
   {
     DBUG_PRINT("info",("spider fetch row is null"));
+    if ((error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn)))
+    {
+      my_message(error_num,
+        mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+      DBUG_RETURN(error_num);
+    }
     DBUG_RETURN(ER_SPIDER_REMOTE_TABLE_NOT_FOUND_NUM);
   }
   if (mode == 1)
@@ -879,6 +897,12 @@ int spider_db_mysql_result::fetch_table_records(
   if (!(mysql_row = mysql_fetch_row(db_result)))
   {
     DBUG_PRINT("info",("spider fetch row is null"));
+    if ((error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn)))
+    {
+      my_message(error_num,
+        mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+      DBUG_RETURN(error_num);
+    }
     DBUG_RETURN(ER_QUERY_ON_FOREIGN_DATA_SOURCE);
   }
   if (mode == 1)
@@ -923,6 +947,12 @@ int spider_db_mysql_result::fetch_table_cardinality(
   if (!(mysql_row = mysql_fetch_row(db_result)))
   {
     DBUG_PRINT("info",("spider fetch row is null"));
+    if ((error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn)))
+    {
+      my_message(error_num,
+        mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+      DBUG_RETURN(error_num);
+    }
     /* no index */
     DBUG_RETURN(0);
   }
@@ -989,18 +1019,31 @@ int spider_db_mysql_result::fetch_table_cardinality(
       mysql_row = mysql_fetch_row(db_result);
     }
   }
+  if ((error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn)))
+  {
+    my_message(error_num,
+      mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+    DBUG_RETURN(error_num);
+  }
   DBUG_RETURN(0);
 }
 
 int spider_db_mysql_result::fetch_table_mon_status(
   int &status
 ) {
+  int error_num;
   MYSQL_ROW mysql_row;
   DBUG_ENTER("spider_db_mysql_result::fetch_table_mon_status");
   DBUG_PRINT("info",("spider this=%p", this));
   if (!(mysql_row = mysql_fetch_row(db_result)))
   {
     DBUG_PRINT("info",("spider fetch row is null"));
+    if ((error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn)))
+    {
+      my_message(error_num,
+        mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+      DBUG_RETURN(error_num);
+    }
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   }
   if (num_fields() != 1)
@@ -1057,12 +1100,19 @@ int spider_db_mysql_result::fetch_columns_for_discover_table_structure(
   spider_string *str,
   CHARSET_INFO *access_charset
 ) {
+  int error_num;
   MYSQL_ROW mysql_row;
   DBUG_ENTER("spider_db_mysql_result::fetch_columns_for_discover_table_structure");
   DBUG_PRINT("info",("spider this=%p", this));
   if (!(mysql_row = mysql_fetch_row(db_result)))
   {
     DBUG_PRINT("info",("spider fetch row is null"));
+    if ((error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn)))
+    {
+      my_message(error_num,
+        mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+      DBUG_RETURN(error_num);
+    }
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   }
   if (num_fields() != 7)
@@ -1172,6 +1222,12 @@ int spider_db_mysql_result::fetch_columns_for_discover_table_structure(
     }
     str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
   } while ((mysql_row = mysql_fetch_row(db_result)));
+  if ((error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn)))
+  {
+    my_message(error_num,
+      mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+    DBUG_RETURN(error_num);
+  }
   DBUG_RETURN(0);
 }
 
@@ -1179,15 +1235,18 @@ int spider_db_mysql_result::fetch_index_for_discover_table_structure(
   spider_string *str,
   CHARSET_INFO *access_charset
 ) {
+  int error_num;
   MYSQL_ROW mysql_row;
   DBUG_ENTER("spider_db_mysql_result::fetch_index_for_discover_table_structure");
   DBUG_PRINT("info",("spider this=%p", this));
   if (!(mysql_row = mysql_fetch_row(db_result)))
   {
     DBUG_PRINT("info",("spider fetch row is null"));
-    if (mysql_errno(db_result->handle))
+    if ((error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn)))
     {
-      DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+      my_message(error_num,
+        mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+      DBUG_RETURN(error_num);
     }
     DBUG_RETURN(0);
   }
@@ -1355,6 +1414,12 @@ int spider_db_mysql_result::fetch_index_for_discover_table_structure(
     else
       using_hash = FALSE;
   } while ((mysql_row = mysql_fetch_row(db_result)));
+  if ((error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn)))
+  {
+    my_message(error_num,
+      mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+    DBUG_RETURN(error_num);
+  }
   if (!first)
   {
     if (str->reserve(SPIDER_SQL_CLOSE_PAREN_LEN + SPIDER_SQL_COMMA_LEN +
@@ -1375,12 +1440,19 @@ int spider_db_mysql_result::fetch_table_for_discover_table_structure(
   SPIDER_SHARE *spider_share,
   CHARSET_INFO *access_charset
 ) {
+  int error_num;
   MYSQL_ROW mysql_row;
   DBUG_ENTER("spider_db_mysql_result::fetch_table_for_discover_table_structure");
   DBUG_PRINT("info",("spider this=%p", this));
   if (!(mysql_row = mysql_fetch_row(db_result)))
   {
     DBUG_PRINT("info",("spider fetch row is null"));
+    if ((error_num = mysql_errno(((spider_db_mysql *) db_conn)->db_conn)))
+    {
+      my_message(error_num,
+        mysql_error(((spider_db_mysql *) db_conn)->db_conn), MYF(0));
+      DBUG_RETURN(error_num);
+    }
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   }
   if (num_fields() != 18)
@@ -1915,7 +1987,7 @@ spider_db_result *spider_db_mysql::store_result(
   DBUG_ENTER("spider_db_mysql::store_result");
   DBUG_PRINT("info",("spider this=%p", this));
   DBUG_ASSERT(!spider_res_buf);
-  if ((result = new spider_db_mysql_result()))
+  if ((result = new spider_db_mysql_result(this)))
   {
     *error_num = 0;
     if (
@@ -1941,7 +2013,7 @@ spider_db_result *spider_db_mysql::use_result(
   spider_db_mysql_result *result;
   DBUG_ENTER("spider_db_mysql::use_result");
   DBUG_PRINT("info",("spider this=%p", this));
-  if ((result = new spider_db_mysql_result()))
+  if ((result = new spider_db_mysql_result(this)))
   {
     *error_num = 0;
     if (

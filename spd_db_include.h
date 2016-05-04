@@ -745,9 +745,12 @@ public:
 
 class spider_db_result
 {
+protected:
+  SPIDER_DB_CONN *db_conn;
 public:
   uint dbton_id;
-  spider_db_result(uint in_dbton_id) : dbton_id(in_dbton_id) {}
+  spider_db_result(SPIDER_DB_CONN *in_db_conn, uint in_dbton_id) :
+    db_conn(in_db_conn), dbton_id(in_dbton_id) {}
   virtual ~spider_db_result() {}
   virtual bool has_result() = 0;
   virtual void free_result() = 0;
