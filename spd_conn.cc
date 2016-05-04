@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2015 Kentoku Shiba
+/* Copyright (C) 2008-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -153,10 +153,10 @@ int spider_free_conn_alloc(
   SPIDER_CONN *conn
 ) {
   DBUG_ENTER("spider_free_conn_alloc");
-  spider_db_disconnect(conn);
 #ifndef WITHOUT_SPIDER_BG_SEARCH
   spider_free_conn_thread(conn);
 #endif
+  spider_db_disconnect(conn);
   if (conn->db_conn)
   {
     delete conn->db_conn;
