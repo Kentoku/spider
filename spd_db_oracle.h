@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2015 Kentoku Shiba
+/* Copyright (C) 2012-2014 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -408,17 +408,6 @@ public:
   int set_time_zone(
     Time_zone *time_zone,
     int *need_mon
-  );
-  int show_master_status(
-    SPIDER_TRX *trx,
-    SPIDER_SHARE *share,
-    int all_link_idx,
-    int *need_mon,
-    TABLE *table,
-    spider_string *str,
-    int mode,
-    SPIDER_DB_RESULT **res1,
-    SPIDER_DB_RESULT **res2
   );
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   int append_sql(
