@@ -13,7 +13,7 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
-#define SPIDER_DETAIL_VERSION "3.3.7"
+#define SPIDER_DETAIL_VERSION "3.3.8"
 #define SPIDER_HEX_VERSION 0x0303
 
 #if MYSQL_VERSION_ID < 50500
@@ -770,6 +770,8 @@ typedef struct st_spider_share
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   int                sts_sync;
 #endif
+  int                store_last_sts;
+  int                load_sts_at_startup;
 #ifndef WITHOUT_SPIDER_BG_SEARCH
   int                crd_bg_mode;
 #endif
@@ -778,6 +780,8 @@ typedef struct st_spider_share
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   int                crd_sync;
 #endif
+  int                store_last_crd;
+  int                load_crd_at_startup;
   int                crd_type;
   double             crd_weight;
   longlong           internal_offset;

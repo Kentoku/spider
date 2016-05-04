@@ -391,3 +391,15 @@ int spider_param_bka_table_name_type(
   THD *thd,
   int bka_table_name_type
 );
+int spider_param_store_last_sts(
+  int store_last_sts
+);
+int spider_param_store_last_crd(
+  int store_last_crd
+);
+int spider_param_load_sts_at_startup(
+  int load_sts_at_startup
+);
+int spider_param_load_crd_at_startup(
+  int load_crd_at_startup
+);
