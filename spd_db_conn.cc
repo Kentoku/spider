@@ -263,7 +263,6 @@ int spider_db_ping(
   SPIDER_CONN *conn,
   int link_idx
 ) {
-  int error_num;
   DBUG_ENTER("spider_db_ping");
 #ifndef DBUG_OFF
   if (spider->trx->thd)
