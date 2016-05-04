@@ -9447,6 +9447,8 @@ int spider_db_udf_ping_table_append_mon_next(
   char *child_table_name,
   uint child_table_name_length,
   int link_id,
+  char *static_link_id,
+  uint static_link_id_length,
   char *where_clause,
   uint where_clause_length,
   longlong first_sid,
@@ -9474,7 +9476,13 @@ int spider_db_udf_ping_table_append_mon_next(
     SPIDER_SQL_SELECT_LEN +
     SPIDER_SQL_PING_TABLE_LEN +
     (child_table_name_length * 2) +
-    (SPIDER_SQL_INT_LEN * 6) +
+    (
+      static_link_id ?
+      (SPIDER_SQL_INT_LEN * 5) +
+      (SPIDER_SQL_VALUE_QUOTE_LEN * 2) +
+      (static_link_id_length * 2) :
+      (SPIDER_SQL_INT_LEN * 6)
+    ) +
     sid_str_length +
     limit_str_length +
     (where_clause_length * 2) +
@@ -9489,7 +9497,14 @@ int spider_db_udf_ping_table_append_mon_next(
   str->append_escape_string(child_table_name_str.ptr(), child_table_name_str.length());
   str->q_append(SPIDER_SQL_VALUE_QUOTE_STR, SPIDER_SQL_VALUE_QUOTE_LEN);
   str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
-  str->qs_append(link_id);
+  if (static_link_id)
+  {
+    str->q_append(SPIDER_SQL_VALUE_QUOTE_STR, SPIDER_SQL_VALUE_QUOTE_LEN);
+    str->append_for_single_quote(static_link_id, static_link_id_length);
+    str->q_append(SPIDER_SQL_VALUE_QUOTE_STR, SPIDER_SQL_VALUE_QUOTE_LEN);
+  } else {
+    str->qs_append(link_id);
+  }
   str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
   str->qs_append(flags);
   str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
@@ -9601,7 +9616,10 @@ int spider_db_udf_ping_table_mon_next(
 
   share->access_charset = thd->variables.character_set_client;
   if ((error_num = spider_db_udf_ping_table_append_mon_next(&sql_str,
-    child_table_name, child_table_name_length, link_id, where_clause,
+    child_table_name, child_table_name_length, link_id,
+    table_mon->parent->share->static_link_ids[0],
+    table_mon->parent->share->static_link_ids_lengths[0],
+    where_clause,
     where_clause_length, first_sid, full_mon_count, current_mon_count,
     success_count, fault_count, flags, limit)))
   {

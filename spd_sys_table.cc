@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2015 Kentoku Shiba
+/* Copyright (C) 2008-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -753,6 +753,26 @@ void spider_store_tables_link_idx_str(
   DBUG_VOID_RETURN;
 }
 
+void spider_store_tables_static_link_id(
+  TABLE *table,
+  const char *static_link_id,
+  const uint static_link_id_length
+) {
+  DBUG_ENTER("spider_store_tables_static_link_id");
+  if (static_link_id)
+  {
+    table->field[24]->set_notnull();
+    table->field[24]->store(
+      static_link_id,
+      static_link_id_length,
+      system_charset_info);
+  } else {
+    table->field[24]->set_null();
+    table->field[24]->reset();
+  }
+  DBUG_VOID_RETURN;
+}
+
 void spider_store_tables_priority(
   TABLE *table,
   longlong priority
@@ -959,6 +979,21 @@ void spider_store_tables_connect_info(
   } else {
     table->field[21]->set_null();
     table->field[21]->reset();
+  }
+  table->field[23]->store((longlong) 0, FALSE);
+  if (alter_table->tmp_static_link_ids[link_idx])
+  {
+    DBUG_PRINT("info",("spider static_link_id[%d] = %s",
+      link_idx, alter_table->tmp_static_link_ids[link_idx]));
+    table->field[24]->set_notnull();
+    table->field[24]->store(
+      alter_table->tmp_static_link_ids[link_idx],
+      (uint) alter_table->tmp_static_link_ids_lengths[link_idx],
+      system_charset_info);
+  } else {
+    DBUG_PRINT("info",("spider static_link_id[%d] = NULL", link_idx));
+    table->field[24]->set_null();
+    table->field[24]->reset();
   }
   DBUG_VOID_RETURN;
 }
@@ -1968,6 +2003,17 @@ int spider_get_sys_tables_connect_info(
     share->tgt_table_names_lengths[link_idx] = 0;
     share->tgt_table_names[link_idx] = NULL;
   }
+  if (
+    !table->field[24]->is_null() &&
+    (ptr = get_field(mem_root, table->field[24]))
+  ) {
+    share->static_link_ids_lengths[link_idx] = strlen(ptr);
+    share->static_link_ids[link_idx] =
+      spider_create_string(ptr, share->static_link_ids_lengths[link_idx]);
+  } else {
+    share->static_link_ids_lengths[link_idx] = 0;
+    share->static_link_ids[link_idx] = NULL;
+  }
   DBUG_RETURN(error_num);
 }
 
@@ -2038,6 +2084,27 @@ int spider_get_sys_tables_link_idx(
   else
     *link_idx = 1;
   DBUG_PRINT("info",("spider link_idx=%d", *link_idx));
+  DBUG_RETURN(error_num);
+}
+
+int spider_get_sys_tables_static_link_id(
+  TABLE *table,
+  char **static_link_id,
+  uint *static_link_id_length,
+  MEM_ROOT *mem_root
+) {
+  char *ptr;
+  int error_num = 0;
+  DBUG_ENTER("spider_get_sys_tables_static_link_id");
+  if (
+    !table->field[24]->is_null() &&
+    (*static_link_id = get_field(mem_root, table->field[24]))
+  ) {
+    *static_link_id_length = strlen(*static_link_id);
+  } else {
+    *static_link_id_length = 0;
+  }
+  DBUG_PRINT("info",("spider static_link_id=%s", *static_link_id ? *static_link_id : "NULL"));
   DBUG_RETURN(error_num);
 }
 
