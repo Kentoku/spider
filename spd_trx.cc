@@ -519,7 +519,6 @@ int spider_create_trx_alter_table(
   uint *tmp_tgt_default_groups_lengths;
   long *tmp_tgt_ports;
   long *tmp_tgt_ssl_vscs;
-  long *tmp_monitoring_binlog_pos_at_failing;
   long *tmp_link_statuses;
   char *tmp_server_names_char;
   char *tmp_tgt_table_names_char;
@@ -580,8 +579,6 @@ int spider_create_trx_alter_table(
 
       &tmp_tgt_ports, sizeof(long) * share->all_link_count,
       &tmp_tgt_ssl_vscs, sizeof(long) * share->all_link_count,
-      &tmp_monitoring_binlog_pos_at_failing,
-        sizeof(long) * share->all_link_count,
       &tmp_link_statuses, sizeof(long) * share->all_link_count,
 
       &tmp_server_names_char, sizeof(char) *
@@ -650,8 +647,6 @@ int spider_create_trx_alter_table(
 
   alter_table->tmp_tgt_ports = tmp_tgt_ports;
   alter_table->tmp_tgt_ssl_vscs = tmp_tgt_ssl_vscs;
-  alter_table->tmp_monitoring_binlog_pos_at_failing =
-    tmp_monitoring_binlog_pos_at_failing;
   alter_table->tmp_link_statuses = tmp_link_statuses;
 
   alter_table->tmp_server_names_lengths = tmp_server_names_lengths;
@@ -773,9 +768,6 @@ int spider_create_trx_alter_table(
     sizeof(long) * share->all_link_count);
   memcpy(tmp_tgt_ssl_vscs, share_alter->tmp_tgt_ssl_vscs,
     sizeof(long) * share->all_link_count);
-  memcpy(tmp_monitoring_binlog_pos_at_failing,
-    share_alter->tmp_monitoring_binlog_pos_at_failing,
-    sizeof(long) * share->all_link_count);
   memcpy(tmp_link_statuses, share_alter->tmp_link_statuses,
     sizeof(long) * share->all_link_count);
 
@@ -846,8 +838,6 @@ int spider_create_trx_alter_table(
     share_alter->tmp_tgt_ports_length;
   alter_table->tmp_tgt_ssl_vscs_length =
     share_alter->tmp_tgt_ssl_vscs_length;
-  alter_table->tmp_monitoring_binlog_pos_at_failing_length =
-    share_alter->tmp_monitoring_binlog_pos_at_failing_length;
   alter_table->tmp_link_statuses_length =
     share_alter->tmp_link_statuses_length;
 
@@ -1046,8 +1036,6 @@ bool spider_cmp_trx_alter_table(
       cmp1->tmp_tgt_ports[roop_count] != cmp2->tmp_tgt_ports[roop_count] ||
       cmp1->tmp_tgt_ssl_vscs[roop_count] !=
         cmp2->tmp_tgt_ssl_vscs[roop_count] ||
-      cmp1->tmp_monitoring_binlog_pos_at_failing[roop_count] !=
-        cmp2->tmp_monitoring_binlog_pos_at_failing[roop_count] ||
       cmp1->tmp_link_statuses[roop_count] !=
         cmp2->tmp_link_statuses[roop_count]
     )
@@ -3843,7 +3831,6 @@ int spider_check_trx_and_get_conn(
                 trx,
                 trx->thd,
                 share,
-                roop_count,
                 (uint32) share->monitoring_sid[roop_count],
                 share->table_name,
                 share->table_name_length,
@@ -3886,7 +3873,6 @@ int spider_check_trx_and_get_conn(
                 trx,
                 trx->thd,
                 share,
-                roop_count,
                 (uint32) share->monitoring_sid[roop_count],
                 share->table_name,
                 share->table_name_length,
@@ -3991,7 +3977,6 @@ int spider_check_trx_and_get_conn(
                 trx,
                 trx->thd,
                 share,
-                roop_count,
                 (uint32) share->monitoring_sid[roop_count],
                 share->table_name,
                 share->table_name_length,
@@ -4035,7 +4020,6 @@ int spider_check_trx_and_get_conn(
                   trx,
                   trx->thd,
                   share,
-                  roop_count,
                   (uint32) share->monitoring_sid[roop_count],
                   share->table_name,
                   share->table_name_length,

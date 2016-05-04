@@ -1,4 +1,4 @@
-/* Copyright (C) 2009-2015 Kentoku Shiba
+/* Copyright (C) 2009-2014 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -67,17 +67,6 @@ SPIDER_CONN *spider_get_ping_table_tgt_conn(
   int *error_num
 );
 
-int spider_get_ping_table_gtid_pos(
-  SPIDER_TRX *trx,
-  THD *thd,
-  spider_string *str,
-  uint conv_name_length,
-  int failed_link_idx,
-  uint32 server_id,
-  bool need_lock,
-  spider_string *tmp_str
-);
-
 int spider_init_ping_table_mon_cache(
   THD *thd,
   MEM_ROOT *mem_root,
@@ -101,7 +90,6 @@ int spider_ping_table_mon_from_table(
   SPIDER_TRX *trx,
   THD *thd,
   SPIDER_SHARE *share,
-  int base_link_idx,
   uint32 server_id,
   char *conv_name,
   uint conv_name_length,

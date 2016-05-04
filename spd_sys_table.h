@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2015 Kentoku Shiba
+/* Copyright (C) 2008-2014 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,8 +25,6 @@
 #define SPIDER_SYS_LINK_FAILED_TABLE_NAME_LEN (sizeof(SPIDER_SYS_LINK_FAILED_TABLE_NAME_STR) - 1)
 #define SPIDER_SYS_XA_FAILED_TABLE_NAME_STR "spider_xa_failed_log"
 #define SPIDER_SYS_XA_FAILED_TABLE_NAME_LEN (sizeof(SPIDER_SYS_XA_FAILED_TABLE_NAME_STR) - 1)
-#define SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_STR "spider_table_position_for_recovery"
-#define SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_LEN (sizeof(SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_STR) - 1)
 
 #define SPIDER_SYS_XA_PREPARED_STR "PREPARED"
 #define SPIDER_SYS_XA_NOT_YET_STR "NOT YET"
@@ -38,11 +36,10 @@
 #define SPIDER_SYS_XA_IDX1_COL_CNT 1
 #define SPIDER_SYS_XA_MEMBER_COL_CNT 18
 #define SPIDER_SYS_XA_MEMBER_PK_COL_CNT 6
-#define SPIDER_SYS_TABLES_COL_CNT 23
-#define SPIDER_SYS_TABLES_PK_COL_CNT 3
+#define SPIDER_SYS_TABLES_COL_CNT 22
+#define SPIDER_SYS_TABLES_PK_COL_CNT 2
 #define SPIDER_SYS_TABLES_IDX1_COL_CNT 1
 #define SPIDER_SYS_LINK_MON_TABLE_COL_CNT 19
-#define SPIDER_SYS_POS_FOR_RECOVERY_TABLE_COL_CNT 7
 
 #define SPIDER_SYS_LINK_MON_TABLE_DB_NAME_SIZE 64
 #define SPIDER_SYS_LINK_MON_TABLE_TABLE_NAME_SIZE 64
@@ -236,32 +233,6 @@ void spider_store_link_chk_server_id(
   uint32 server_id
 );
 
-void spider_store_binlog_pos_failed_link_idx(
-  TABLE *table,
-  int failed_link_idx
-);
-
-void spider_store_binlog_pos_source_link_idx(
-  TABLE *table,
-  int source_link_idx
-);
-
-void spider_store_binlog_pos_binlog_file(
-  TABLE *table,
-  const char *file_name,
-  int file_name_length,
-  const char *position,
-  int position_length,
-  CHARSET_INFO *binlog_pos_cs
-);
-
-void spider_store_binlog_pos_gtid(
-  TABLE *table,
-  const char *gtid,
-  int gtid_length,
-  CHARSET_INFO *binlog_pos_cs
-);
-
 int spider_insert_xa(
   TABLE *table,
   XID *xid,
@@ -277,10 +248,6 @@ int spider_insert_xa_member(
 int spider_insert_tables(
   TABLE *table,
   SPIDER_SHARE *share
-);
-
-int spider_insert_sys_table(
-  TABLE *table
 );
 
 int spider_log_tables_link_failed(
@@ -378,22 +345,10 @@ int spider_get_sys_tables_connect_info(
   MEM_ROOT *mem_root
 );
 
-int spider_get_sys_tables_monitoring_binlog_pos_at_failing(
-  TABLE *table,
-  long *monitoring_binlog_pos_at_failing,
-  MEM_ROOT *mem_root
-);
-
 int spider_get_sys_tables_link_status(
   TABLE *table,
   SPIDER_SHARE *share,
   int link_idx,
-  MEM_ROOT *mem_root
-);
-
-int spider_get_sys_tables_link_status(
-  TABLE *table,
-  long *link_status,
   MEM_ROOT *mem_root
 );
 

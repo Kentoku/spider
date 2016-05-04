@@ -2093,22 +2093,6 @@ int spider_db_oracle::set_time_zone(
   DBUG_RETURN(0);
 }
 
-int spider_db_oracle::show_master_status(
-  SPIDER_TRX *trx,
-  SPIDER_SHARE *share,
-  int all_link_idx,
-  int *need_mon,
-  TABLE *table,
-  spider_string *str,
-  int mode,
-  SPIDER_DB_RESULT **res1,
-  SPIDER_DB_RESULT **res2
-) {
-  DBUG_ENTER("spider_db_oracle::show_master_status");
-  DBUG_PRINT("info",("spider this=%p", this));
-  DBUG_RETURN(0);
-}
-
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
 int spider_db_oracle::append_sql(
   char *sql,
@@ -5264,7 +5248,7 @@ void spider_oracle_handler::create_tmp_bka_table_name(
   uint adjust_length, length;
   DBUG_ENTER("spider_oracle_handler::create_tmp_bka_table_name");
   if (spider_param_bka_table_name_type(current_thd,
-    oracle_share->spider_share->
+    mysql_share->spider_share->
       bka_table_name_types[spider->conn_link_idx[link_idx]]) == 1)
   {
     adjust_length =

@@ -13,8 +13,8 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
-#define SPIDER_DETAIL_VERSION "3.3.5"
-#define SPIDER_HEX_VERSION 0x0303
+#define SPIDER_DETAIL_VERSION "3.2.42"
+#define SPIDER_HEX_VERSION 0x0302
 
 #if MYSQL_VERSION_ID < 50500
 #else
@@ -159,10 +159,10 @@
 
 #define SPIDER_TMP_SHARE_CHAR_PTR_COUNT     19
 #define SPIDER_TMP_SHARE_UINT_COUNT         17
-#define SPIDER_TMP_SHARE_LONG_COUNT         19
+#define SPIDER_TMP_SHARE_LONG_COUNT         18
 #define SPIDER_TMP_SHARE_LONGLONG_COUNT      3
 
-#define SPIDER_MEM_CALC_LIST_NUM           248
+#define SPIDER_MEM_CALC_LIST_NUM           247
 
 #define SPIDER_BACKUP_DASTATUS \
   bool da_status; if (thd) da_status = thd->is_error(); else da_status = FALSE;
@@ -232,7 +232,6 @@ typedef struct st_spider_alter_table
   char               **tmp_tgt_default_groups;
   long               *tmp_tgt_ports;
   long               *tmp_tgt_ssl_vscs;
-  long               *tmp_monitoring_binlog_pos_at_failing;
   long               *tmp_link_statuses;
 
   uint               *tmp_server_names_lengths;
@@ -284,7 +283,6 @@ typedef struct st_spider_alter_table
   uint               tmp_tgt_default_groups_length;
   uint               tmp_tgt_ports_length;
   uint               tmp_tgt_ssl_vscs_length;
-  uint               tmp_monitoring_binlog_pos_at_failing_length;
   uint               tmp_link_statuses_length;
 } SPIDER_ALTER_TABLE;
 
@@ -877,7 +875,6 @@ typedef struct st_spider_share
   long               *monitoring_bg_flag;
   long               *monitoring_bg_kind;
 #endif
-  long               *monitoring_binlog_pos_at_failing;
   long               *monitoring_flag;
   long               *monitoring_kind;
 #ifndef WITHOUT_SPIDER_BG_SEARCH
@@ -984,7 +981,6 @@ typedef struct st_spider_share
   uint               monitoring_bg_flag_length;
   uint               monitoring_bg_kind_length;
 #endif
-  uint               monitoring_binlog_pos_at_failing_length;
   uint               monitoring_flag_length;
   uint               monitoring_kind_length;
 #ifndef WITHOUT_SPIDER_BG_SEARCH
