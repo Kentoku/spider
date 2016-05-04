@@ -113,6 +113,11 @@ static const char *name_quote_str = SPIDER_SQL_NAME_QUOTE_STR;
 #define SPIDER_SQL_SHOW_WARNINGS_STR "show warnings"
 #define SPIDER_SQL_SHOW_WARNINGS_LEN sizeof(SPIDER_SQL_SHOW_WARNINGS_STR) - 1
 
+#define SPIDER_SQL_SHOW_MASTER_STATUS_STR "show master status"
+#define SPIDER_SQL_SHOW_MASTER_STATUS_LEN sizeof(SPIDER_SQL_SHOW_MASTER_STATUS_STR) - 1
+#define SPIDER_SQL_BINLOG_GTID_POS_STR "select binlog_gtid_pos"
+#define SPIDER_SQL_BINLOG_GTID_POS_LEN sizeof(SPIDER_SQL_BINLOG_GTID_POS_STR) - 1
+
 #ifdef SPIDER_HAS_DISCOVER_TABLE_STRUCTURE
 #define SPIDER_SQL_SHOW_COLUMNS_STR "show columns from "
 #define SPIDER_SQL_SHOW_COLUMNS_LEN sizeof(SPIDER_SQL_SHOW_COLUMNS_STR) - 1
@@ -3827,12 +3832,15 @@ int spider_db_mysql_util::open_item_func(
           bool has_other_item = FALSE;
           while((item = lif++))
           {
+#ifdef SPIDER_HAS_EXPR_CACHE_ITEM
             if (
               item->type() == Item::EXPR_CACHE_ITEM
             ) {
               DBUG_PRINT("info",("spider EXPR_CACHE_ITEM"));
               has_expr_cache_item = TRUE;
-            } else if (
+            } else
+#endif
+            if (
               item->type() == Item::FUNC_ITEM &&
               ((Item_func *) item)->functype() == Item_func::ISNOTNULL_FUNC
             ) {
