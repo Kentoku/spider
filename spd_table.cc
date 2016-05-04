@@ -26,6 +26,7 @@
 #include "sql_partition.h"
 #include "sql_servers.h"
 #include "sql_select.h"
+#include "tztime.h"
 #endif
 #include "spd_err.h"
 #include "spd_param.h"
@@ -54,6 +55,7 @@ struct charset_info_st *spd_charset_utf8_bin;
 const char **spd_defaults_extra_file;
 const char **spd_defaults_file;
 bool volatile *spd_abort_loop;
+Time_zone *spd_tz_system;
 
 handlerton *spider_hton_ptr;
 SPIDER_DBTON spider_dbton[SPIDER_DBTON_SIZE];
@@ -1867,6 +1869,8 @@ int spider_parse_connect_info(
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   share->sts_sync = -1;
 #endif
+  share->store_last_sts = -1;
+  share->load_sts_at_startup = -1;
 #ifndef WITHOUT_SPIDER_BG_SEARCH
   share->crd_bg_mode = -1;
 #endif
@@ -1875,6 +1879,8 @@ int spider_parse_connect_info(
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   share->crd_sync = -1;
 #endif
+  share->store_last_crd = -1;
+  share->load_crd_at_startup = -1;
   share->crd_type = -1;
   share->crd_weight = -1;
   share->internal_offset = -1;
@@ -2114,6 +2120,8 @@ int spider_parse_connect_info(
           SPIDER_PARAM_INT_WITH_MAX("iom", internal_optimize, 0, 1);
           SPIDER_PARAM_INT_WITH_MAX("iol", internal_optimize_local, 0, 1);
           SPIDER_PARAM_INT_WITH_MAX("lmr", low_mem_read, 0, 1);
+          SPIDER_PARAM_INT_WITH_MAX("lcs", load_crd_at_startup, 0, 1);
+          SPIDER_PARAM_INT_WITH_MAX("lss", load_sts_at_startup, 0, 1);
           SPIDER_PARAM_LONG_LIST_WITH_MAX("lst", link_statuses, 0, 3);
 #ifndef WITHOUT_SPIDER_BG_SEARCH
           SPIDER_PARAM_LONG_LIST_WITH_MAX("mbf", monitoring_bg_flag, 0, 1);
@@ -2155,7 +2163,9 @@ int spider_parse_connect_info(
           SPIDER_PARAM_DOUBLE("siv", sts_interval, 0);
           SPIDER_PARAM_STR_LIST("sky", tgt_ssl_keys);
           SPIDER_PARAM_STR_LIST("sli", static_link_ids);
+          SPIDER_PARAM_INT_WITH_MAX("slc", store_last_crd, 0, 1);
           SPIDER_PARAM_INT_WITH_MAX("slm", selupd_lock_mode, 0, 2);
+          SPIDER_PARAM_INT_WITH_MAX("sls", store_last_sts, 0, 1);
           SPIDER_PARAM_INT_WITH_MAX("smd", sts_mode, 1, 2);
           SPIDER_PARAM_LONGLONG("smr", static_mean_rec_length, 0);
           SPIDER_PARAM_LONGLONG("spr", split_read, 0);
@@ -2319,6 +2329,8 @@ int spider_parse_connect_info(
           SPIDER_PARAM_LONG_LIST_WITH_MAX("access_balance", access_balances, 0,
             2147483647);
           SPIDER_PARAM_STR_LIST("static_link_id", static_link_ids);
+          SPIDER_PARAM_INT_WITH_MAX("store_last_crd", store_last_crd, 0, 1);
+          SPIDER_PARAM_INT_WITH_MAX("store_last_sts", store_last_sts, 0, 1);
           error_num = ER_SPIDER_INVALID_CONNECT_INFO_NUM;
           my_printf_error(error_num, ER_SPIDER_INVALID_CONNECT_INFO_STR,
             MYF(0), tmp_ptr);
@@ -2425,6 +2437,10 @@ int spider_parse_connect_info(
 #endif
           SPIDER_PARAM_LONG_LIST_WITH_MAX("bka_table_name_type",
             bka_table_name_types, 0, 1);
+          SPIDER_PARAM_INT_WITH_MAX(
+            "load_crd_at_startup", load_crd_at_startup, 0, 1);
+          SPIDER_PARAM_INT_WITH_MAX(
+            "load_sts_at_startup", load_sts_at_startup, 0, 1);
           error_num = ER_SPIDER_INVALID_CONNECT_INFO_NUM;
           my_printf_error(error_num, ER_SPIDER_INVALID_CONNECT_INFO_STR,
             MYF(0), tmp_ptr);
@@ -3637,6 +3653,10 @@ int spider_set_connect_info_default(
   if (share->sts_sync == -1)
     share->sts_sync = 0;
 #endif
+  if (share->store_last_sts == -1)
+    share->store_last_sts = 1;
+  if (share->load_sts_at_startup == -1)
+    share->load_sts_at_startup = 1;
 #ifndef WITHOUT_SPIDER_BG_SEARCH
   if (share->crd_bg_mode == -1)
     share->crd_bg_mode = 1;
@@ -3649,6 +3669,10 @@ int spider_set_connect_info_default(
   if (share->crd_sync == -1)
     share->crd_sync = 0;
 #endif
+  if (share->store_last_crd == -1)
+    share->store_last_crd = 1;
+  if (share->load_crd_at_startup == -1)
+    share->load_crd_at_startup = 1;
   if (share->crd_type == -1)
     share->crd_type = 2;
   if (share->crd_weight == -1)
@@ -4483,6 +4507,9 @@ SPIDER_SHARE *spider_get_share(
   MEM_ROOT mem_root;
   TABLE *table_tables = NULL;
   bool init_mem_root = FALSE;
+  bool same_server_link;
+  int load_sts_at_startup;
+  int load_crd_at_startup;
   DBUG_ENTER("spider_get_share");
 
   length = (uint) strlen(table_name);
@@ -4892,12 +4919,21 @@ SPIDER_SHARE *spider_get_share(
     }
     spider->search_link_idx = search_link_idx;
 
+    same_server_link = spider_param_same_server_link(thd);
+    load_sts_at_startup =
+      spider_param_load_sts_at_startup(share->load_sts_at_startup);
+    load_crd_at_startup =
+      spider_param_load_crd_at_startup(share->load_crd_at_startup);
     if (
       sql_command != SQLCOM_DROP_TABLE &&
       sql_command != SQLCOM_ALTER_TABLE &&
       sql_command != SQLCOM_SHOW_CREATE &&
       !spider->error_mode &&
-      !spider_param_same_server_link(thd)
+      (
+        !same_server_link ||
+        load_sts_at_startup ||
+        load_crd_at_startup
+      )
     ) {
       SPIDER_INIT_ERROR_TABLE *spider_init_error_table;
       sts_interval = spider_param_sts_interval(thd, share->sts_interval);
@@ -4941,22 +4977,32 @@ SPIDER_SHARE *spider_get_share(
         }
       }
 
-      if (spider_get_sts(share, spider->search_link_idx, tmp_time,
-        spider, sts_interval, sts_mode,
+      if (
+        (
+          !same_server_link ||
+          load_sts_at_startup
+        ) &&
+        spider_get_sts(share, spider->search_link_idx, tmp_time,
+          spider, sts_interval, sts_mode,
 #ifdef WITH_PARTITION_STORAGE_ENGINE
-        sts_sync,
+          sts_sync,
 #endif
-        1, HA_STATUS_VARIABLE | HA_STATUS_CONST | HA_STATUS_AUTO))
-      {
+          1, HA_STATUS_VARIABLE | HA_STATUS_CONST | HA_STATUS_AUTO)
+      ) {
         thd->clear_error();
       }
-      if (spider_get_crd(share, spider->search_link_idx, tmp_time,
-        spider, table, crd_interval, crd_mode,
+      if (
+        (
+          !same_server_link ||
+          load_crd_at_startup
+        ) &&
+        spider_get_crd(share, spider->search_link_idx, tmp_time,
+          spider, table, crd_interval, crd_mode,
 #ifdef WITH_PARTITION_STORAGE_ENGINE
-        crd_sync,
+          crd_sync,
 #endif
-        1))
-      {
+          1)
+      ) {
         thd->clear_error();
       }
       pthread_mutex_unlock(&share->crd_mutex);
@@ -5317,12 +5363,21 @@ SPIDER_SHARE *spider_get_share(
       pthread_mutex_lock(&share->crd_mutex);
       if (share->init_error)
       {
+        same_server_link = spider_param_same_server_link(thd);
+        load_sts_at_startup =
+          spider_param_load_sts_at_startup(share->load_sts_at_startup);
+        load_crd_at_startup =
+          spider_param_load_crd_at_startup(share->load_crd_at_startup);
         if (
           sql_command != SQLCOM_DROP_TABLE &&
           sql_command != SQLCOM_ALTER_TABLE &&
           sql_command != SQLCOM_SHOW_CREATE &&
           !spider->error_mode &&
-          !spider_param_same_server_link(thd)
+          (
+            !same_server_link ||
+            load_sts_at_startup ||
+            load_crd_at_startup
+          )
         ) {
           SPIDER_INIT_ERROR_TABLE *spider_init_error_table;
           sts_interval = spider_param_sts_interval(thd, share->sts_interval);
@@ -5362,22 +5417,32 @@ SPIDER_SHARE *spider_get_share(
             }
           }
 
-          if (spider_get_sts(share, spider->search_link_idx,
-            tmp_time, spider, sts_interval, sts_mode,
+          if (
+            (
+              !same_server_link ||
+              load_sts_at_startup
+            ) &&
+            spider_get_sts(share, spider->search_link_idx,
+              tmp_time, spider, sts_interval, sts_mode,
 #ifdef WITH_PARTITION_STORAGE_ENGINE
-            sts_sync,
+              sts_sync,
 #endif
-            1, HA_STATUS_VARIABLE | HA_STATUS_CONST | HA_STATUS_AUTO))
-          {
+              1, HA_STATUS_VARIABLE | HA_STATUS_CONST | HA_STATUS_AUTO)
+          ) {
             thd->clear_error();
           }
-          if (spider_get_crd(share, spider->search_link_idx,
-            tmp_time, spider, table, crd_interval, crd_mode,
+          if (
+            (
+              !same_server_link ||
+              load_crd_at_startup
+            ) &&
+            spider_get_crd(share, spider->search_link_idx,
+              tmp_time, spider, table, crd_interval, crd_mode,
 #ifdef WITH_PARTITION_STORAGE_ENGINE
-            crd_sync,
+              crd_sync,
 #endif
-            1))
-          {
+              1)
+          ) {
             thd->clear_error();
           }
         }
@@ -5437,6 +5502,38 @@ int spider_free_share(
     spider_free_crd_thread(share);
     spider_free_mon_threads(share);
 #endif
+    if (
+      share->sts_init &&
+      spider_param_store_last_sts(share->store_last_sts)
+    ) {
+      spider_sys_insert_or_update_table_sts(
+        current_thd,
+        share->lgtm_tblhnd_share->table_name,
+        share->lgtm_tblhnd_share->table_name_length,
+        &share->data_file_length,
+        &share->max_data_file_length,
+        &share->index_file_length,
+        &share->records,
+        &share->mean_rec_length,
+        &share->check_time,
+        &share->create_time,
+        &share->update_time,
+        FALSE
+      );
+    }
+    if (
+      share->crd_init &&
+      spider_param_store_last_crd(share->store_last_crd)
+    ) {
+      spider_sys_insert_or_update_table_crd(
+        current_thd,
+        share->lgtm_tblhnd_share->table_name,
+        share->lgtm_tblhnd_share->table_name_length,
+        share->cardinality,
+        share->table_share->fields,
+        FALSE
+      );
+    }
     spider_free_share_alloc(share);
 #ifdef HASH_UPDATE_WITH_HASH_VALUE
     my_hash_delete_with_hash_value(&spider_open_tables,
@@ -6540,6 +6637,8 @@ int spider_db_init(
     GetProcAddress(current_module, "my_defaults_file");
   spd_abort_loop = (bool volatile *)
     GetProcAddress(current_module, "?abort_loop@@3_NC");
+  spd_tz_system = *(Time_zone **)
+    GetProcAddress(current_module, "my_tz_SYSTEM");
 #else
   spd_db_att_thread_id = &thread_id;
 #ifdef SPIDER_XID_USES_xid_cache_iterate
@@ -6557,6 +6656,7 @@ int spider_db_init(
   spd_defaults_extra_file = &my_defaults_extra_file;
   spd_defaults_file = &my_defaults_file;
   spd_abort_loop = &abort_loop;
+  spd_tz_system = my_tz_SYSTEM;
 #endif
 
 #ifdef HAVE_PSI_INTERFACE
@@ -7205,6 +7305,7 @@ int spider_get_sts(
 ) {
   int get_type;
   int error_num = 0;
+  bool need_to_get = TRUE;
   DBUG_ENTER("spider_get_sts");
 
 #ifdef WITH_PARTITION_STORAGE_ENGINE
@@ -7243,11 +7344,45 @@ int spider_get_sts(
     /* copy */
     get_type = 0;
   }
-  if (get_type == 0)
-    spider_copy_sts_to_share(share, share->partition_share);
-  else
 #endif
-    error_num = spider_db_show_table_status(spider, link_idx, sts_mode, flag);
+  if (
+    !share->sts_init &&
+    spider_param_load_sts_at_startup(share->load_sts_at_startup) &&
+    (!share->init || share->init_error)
+  ) {
+    error_num = spider_sys_get_table_sts(
+      current_thd,
+      share->lgtm_tblhnd_share->table_name,
+      share->lgtm_tblhnd_share->table_name_length,
+      &share->data_file_length,
+      &share->max_data_file_length,
+      &share->index_file_length,
+      &share->records,
+      &share->mean_rec_length,
+      &share->check_time,
+      &share->create_time,
+      &share->update_time,
+      FALSE
+    );
+    if (
+      !error_num ||
+      (error_num != HA_ERR_KEY_NOT_FOUND && error_num != HA_ERR_END_OF_FILE)
+    )
+    need_to_get = FALSE;
+  }
+
+  if (need_to_get)
+  {
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+    if (get_type == 0)
+      spider_copy_sts_to_share(share, share->partition_share);
+    else {
+#endif
+      error_num = spider_db_show_table_status(spider, link_idx, sts_mode, flag);
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+    }
+#endif
+  }
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   if (get_type >= 2)
     pthread_mutex_unlock(&share->partition_share->sts_mutex);
@@ -7327,6 +7462,7 @@ int spider_get_crd(
 ) {
   int get_type;
   int error_num = 0;
+  bool need_to_get = TRUE;
   DBUG_ENTER("spider_get_crd");
 
 #ifdef WITH_PARTITION_STORAGE_ENGINE
@@ -7365,12 +7501,39 @@ int spider_get_crd(
     /* copy */
     get_type = 0;
   }
-  if (get_type == 0)
-    spider_copy_crd_to_share(share, share->partition_share,
-      table->s->fields);
-  else
 #endif
-    error_num = spider_db_show_index(spider, link_idx, table, crd_mode);
+  if (
+    !share->crd_init &&
+    spider_param_load_sts_at_startup(share->load_crd_at_startup)
+  ) {
+    error_num = spider_sys_get_table_crd(
+      current_thd,
+      share->lgtm_tblhnd_share->table_name,
+      share->lgtm_tblhnd_share->table_name_length,
+      share->cardinality,
+      table->s->fields,
+      FALSE
+    );
+    if (
+      !error_num ||
+      (error_num != HA_ERR_KEY_NOT_FOUND && error_num != HA_ERR_END_OF_FILE)
+    )
+    need_to_get = FALSE;
+  }
+
+  if (need_to_get)
+  {
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+    if (get_type == 0)
+      spider_copy_crd_to_share(share, share->partition_share,
+        table->s->fields);
+    else {
+#endif
+      error_num = spider_db_show_index(spider, link_idx, table, crd_mode);
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+    }
+#endif
+  }
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   if (get_type >= 2)
     pthread_mutex_unlock(&share->partition_share->crd_mutex);

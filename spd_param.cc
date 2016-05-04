@@ -3032,6 +3032,114 @@ int spider_param_bka_table_name_type(
     bka_table_name_type : THDVAR(thd, bka_table_name_type));
 }
 
+static int spider_store_last_sts;
+/*
+ -1 : use table parameter
+  0 : do not store
+  1 : do store
+ */
+static MYSQL_SYSVAR_INT(
+  store_last_sts,
+  spider_store_last_sts,
+  PLUGIN_VAR_RQCMDARG,
+  "Store last sts result into system table",
+  NULL,
+  NULL,
+  -1,
+  -1,
+  1,
+  0
+);
+
+int spider_param_store_last_sts(
+  int store_last_sts
+) {
+  DBUG_ENTER("spider_param_store_last_sts");
+  DBUG_RETURN(spider_store_last_sts == -1 ?
+    store_last_sts : spider_store_last_sts);
+}
+
+static int spider_store_last_crd;
+/*
+ -1 : use table parameter
+  0 : do not store
+  1 : do store
+ */
+static MYSQL_SYSVAR_INT(
+  store_last_crd,
+  spider_store_last_crd,
+  PLUGIN_VAR_RQCMDARG,
+  "Store last crd result into system table",
+  NULL,
+  NULL,
+  -1,
+  -1,
+  1,
+  0
+);
+
+int spider_param_store_last_crd(
+  int store_last_crd
+) {
+  DBUG_ENTER("spider_param_store_last_crd");
+  DBUG_RETURN(spider_store_last_crd == -1 ?
+    store_last_crd : spider_store_last_crd);
+}
+
+static int spider_load_sts_at_startup;
+/*
+ -1 : use table parameter
+  0 : do not load
+  1 : do load
+ */
+static MYSQL_SYSVAR_INT(
+  load_sts_at_startup,
+  spider_load_sts_at_startup,
+  PLUGIN_VAR_RQCMDARG,
+  "Load sts from system table at startup",
+  NULL,
+  NULL,
+  -1,
+  -1,
+  1,
+  0
+);
+
+int spider_param_load_sts_at_startup(
+  int load_sts_at_startup
+) {
+  DBUG_ENTER("spider_param_load_sts_at_startup");
+  DBUG_RETURN(spider_load_sts_at_startup == -1 ?
+    load_sts_at_startup : spider_load_sts_at_startup);
+}
+
+static int spider_load_crd_at_startup;
+/*
+ -1 : use table parameter
+  0 : do not load
+  1 : do load
+ */
+static MYSQL_SYSVAR_INT(
+  load_crd_at_startup,
+  spider_load_crd_at_startup,
+  PLUGIN_VAR_RQCMDARG,
+  "Load crd from system table at startup",
+  NULL,
+  NULL,
+  -1,
+  -1,
+  1,
+  0
+);
+
+int spider_param_load_crd_at_startup(
+  int load_crd_at_startup
+) {
+  DBUG_ENTER("spider_param_load_crd_at_startup");
+  DBUG_RETURN(spider_load_crd_at_startup == -1 ?
+    load_crd_at_startup : spider_load_crd_at_startup);
+}
+
 static struct st_mysql_storage_engine spider_storage_engine =
 { MYSQL_HANDLERTON_INTERFACE_VERSION };
 
@@ -3098,6 +3206,8 @@ static struct st_mysql_sys_var* spider_system_variables[] = {
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   MYSQL_SYSVAR(crd_sync),
 #endif
+  MYSQL_SYSVAR(store_last_crd),
+  MYSQL_SYSVAR(load_crd_at_startup),
   MYSQL_SYSVAR(crd_type),
   MYSQL_SYSVAR(crd_weight),
 #ifndef WITHOUT_SPIDER_BG_SEARCH
@@ -3108,6 +3218,8 @@ static struct st_mysql_sys_var* spider_system_variables[] = {
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   MYSQL_SYSVAR(sts_sync),
 #endif
+  MYSQL_SYSVAR(store_last_sts),
+  MYSQL_SYSVAR(load_sts_at_startup),
 #ifndef WITHOUT_SPIDER_BG_SEARCH
   MYSQL_SYSVAR(sts_bg_mode),
 #endif

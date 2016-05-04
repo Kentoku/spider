@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2015 Kentoku Shiba
+/* Copyright (C) 2008-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -11171,6 +11171,12 @@ int ha_spider::delete_table(
     )
       need_lock = TRUE;
 
+    if ((error_num = spider_sys_delete_table_sts(
+      current_thd, name, name_len, need_lock)))
+      goto error;
+    if ((error_num = spider_sys_delete_table_crd(
+      current_thd, name, name_len, need_lock)))
+      goto error;
     if (
       !(table_tables = spider_open_sys_table(
         current_thd, SPIDER_SYS_TABLES_TABLE_NAME_STR,
