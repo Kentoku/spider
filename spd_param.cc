@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2015 Kentoku Shiba
+/* Copyright (C) 2008-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -405,6 +405,29 @@ uint spider_param_force_commit(
 ) {
   DBUG_ENTER("spider_param_force_commit");
   DBUG_RETURN(THDVAR(thd, force_commit));
+}
+
+/*
+  0: register all XA transaction
+  1: register only write XA transaction
+ */
+static MYSQL_THDVAR_UINT(
+  xa_register_mode, /* name */
+  PLUGIN_VAR_RQCMDARG, /* opt */
+  "Mode of XA transaction register into system table", /* comment */
+  NULL, /* check */
+  NULL, /* update */
+  1, /* def */
+  0, /* min */
+  1, /* max */
+  0 /* blk */
+);
+
+uint spider_param_xa_register_mode(
+  THD *thd
+) {
+  DBUG_ENTER("spider_param_xa_register_mode");
+  DBUG_RETURN(THDVAR(thd, xa_register_mode));
 }
 
 /*
@@ -3023,6 +3046,7 @@ static struct st_mysql_sys_var* spider_system_variables[] = {
   MYSQL_SYSVAR(internal_xa),
   MYSQL_SYSVAR(internal_xa_snapshot),
   MYSQL_SYSVAR(force_commit),
+  MYSQL_SYSVAR(xa_register_mode),
   MYSQL_SYSVAR(internal_offset),
   MYSQL_SYSVAR(internal_limit),
   MYSQL_SYSVAR(split_read),
