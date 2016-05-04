@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2015 Kentoku Shiba
+/* Copyright (C) 2012-2014 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -199,13 +199,6 @@ public:
   int fetch_table_mon_status(
     int &status
   );
-  int fetch_show_master_status(
-    const char **binlog_file_name,
-    const char **binlog_pos
-  );
-  int fetch_select_binlog_gtid_pos(
-    const char **gtid_pos
-  );
   longlong num_rows();
   uint num_fields();
   void move_to_pos(
@@ -357,39 +350,6 @@ public:
   int set_time_zone(
     Time_zone *time_zone,
     int *need_mon
-  );
-  int exec_simple_sql_with_result(
-    SPIDER_TRX *trx,
-    SPIDER_SHARE *share,
-    const char *sql,
-    uint sql_length,
-    int all_link_idx,
-    int *need_mon,
-    SPIDER_DB_RESULT **res
-  );
-  int show_master_status(
-    SPIDER_TRX *trx,
-    SPIDER_SHARE *share,
-    int all_link_idx,
-    int *need_mon,
-    TABLE *table,
-    spider_string *str,
-    int mode,
-    SPIDER_DB_RESULT **res1,
-    SPIDER_DB_RESULT **res2
-  );
-  int select_binlog_gtid_pos(
-    SPIDER_TRX *trx,
-    SPIDER_SHARE *share,
-    int all_link_idx,
-    int *need_mon,
-    TABLE *table,
-    spider_string *str,
-    const char *binlog_file_name,
-    uint binlog_file_name_length,
-    const char *binlog_pos,
-    uint binlog_pos_length,
-    SPIDER_DB_RESULT **res
   );
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   int append_sql(

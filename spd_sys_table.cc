@@ -191,22 +191,6 @@ TABLE *spider_open_sys_table(
       *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
       goto error_col_num_chk;
     }
-  } else if (table_name_length == SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_LEN)
-  {
-    if (
-      !memcmp(table_name,
-        SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_STR,
-        SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_LEN) &&
-      table->s->fields != SPIDER_SYS_POS_FOR_RECOVERY_TABLE_COL_CNT
-    ) {
-      spider_close_sys_table(thd, table, open_tables_backup, need_lock);
-      table = NULL;
-      my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
-        ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
-        SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_STR);
-      *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
-      goto error_col_num_chk;
-    }
   }
   DBUG_RETURN(table);
 
@@ -908,57 +892,49 @@ void spider_store_tables_connect_info(
     table->field[16]->set_null();
     table->field[16]->reset();
   }
-  table->field[17]->set_notnull();
-  if (alter_table->tmp_monitoring_binlog_pos_at_failing[link_idx] >= 0)
-  {
-    table->field[17]->store(
-      alter_table->tmp_monitoring_binlog_pos_at_failing[link_idx]);
-  } else {
-    table->field[17]->store(0);
-  }
   if (alter_table->tmp_tgt_default_files[link_idx])
+  {
+    table->field[17]->set_notnull();
+    table->field[17]->store(
+      alter_table->tmp_tgt_default_files[link_idx],
+      (uint) alter_table->tmp_tgt_default_files_lengths[link_idx],
+      system_charset_info);
+  } else {
+    table->field[17]->set_null();
+    table->field[17]->reset();
+  }
+  if (alter_table->tmp_tgt_default_groups[link_idx])
   {
     table->field[18]->set_notnull();
     table->field[18]->store(
-      alter_table->tmp_tgt_default_files[link_idx],
-      (uint) alter_table->tmp_tgt_default_files_lengths[link_idx],
+      alter_table->tmp_tgt_default_groups[link_idx],
+      (uint) alter_table->tmp_tgt_default_groups_lengths[link_idx],
       system_charset_info);
   } else {
     table->field[18]->set_null();
     table->field[18]->reset();
   }
-  if (alter_table->tmp_tgt_default_groups[link_idx])
+  if (alter_table->tmp_tgt_dbs[link_idx])
   {
     table->field[19]->set_notnull();
     table->field[19]->store(
-      alter_table->tmp_tgt_default_groups[link_idx],
-      (uint) alter_table->tmp_tgt_default_groups_lengths[link_idx],
+      alter_table->tmp_tgt_dbs[link_idx],
+      (uint) alter_table->tmp_tgt_dbs_lengths[link_idx],
       system_charset_info);
   } else {
     table->field[19]->set_null();
     table->field[19]->reset();
   }
-  if (alter_table->tmp_tgt_dbs[link_idx])
+  if (alter_table->tmp_tgt_table_names[link_idx])
   {
     table->field[20]->set_notnull();
     table->field[20]->store(
-      alter_table->tmp_tgt_dbs[link_idx],
-      (uint) alter_table->tmp_tgt_dbs_lengths[link_idx],
-      system_charset_info);
-  } else {
-    table->field[20]->set_null();
-    table->field[20]->reset();
-  }
-  if (alter_table->tmp_tgt_table_names[link_idx])
-  {
-    table->field[21]->set_notnull();
-    table->field[21]->store(
       alter_table->tmp_tgt_table_names[link_idx],
       (uint) alter_table->tmp_tgt_table_names_lengths[link_idx],
       system_charset_info);
   } else {
-    table->field[21]->set_null();
-    table->field[21]->reset();
+    table->field[20]->set_null();
+    table->field[20]->reset();
   }
   DBUG_VOID_RETURN;
 }
@@ -970,7 +946,7 @@ void spider_store_tables_link_status(
   DBUG_ENTER("spider_store_tables_link_status");
   DBUG_PRINT("info",("spider link_status = %ld", link_status));
   if (link_status > SPIDER_LINK_STATUS_NO_CHANGE)
-    table->field[22]->store(link_status, FALSE);
+    table->field[21]->store(link_status, FALSE);
   DBUG_VOID_RETURN;
 }
 
@@ -981,72 +957,6 @@ void spider_store_link_chk_server_id(
   DBUG_ENTER("spider_store_link_chk_server_id");
   table->field[3]->set_notnull();
   table->field[3]->store(server_id);
-  DBUG_VOID_RETURN;
-}
-
-void spider_store_binlog_pos_failed_link_idx(
-  TABLE *table,
-  int failed_link_idx
-) {
-  DBUG_ENTER("spider_store_binlog_pos_failed_link_idx");
-  table->field[2]->set_notnull();
-  table->field[2]->store(failed_link_idx);
-  DBUG_VOID_RETURN;
-}
-
-void spider_store_binlog_pos_source_link_idx(
-  TABLE *table,
-  int source_link_idx
-) {
-  DBUG_ENTER("spider_store_binlog_pos_source_link_idx");
-  table->field[3]->set_notnull();
-  table->field[3]->store(source_link_idx);
-  DBUG_VOID_RETURN;
-}
-
-void spider_store_binlog_pos_binlog_file(
-  TABLE *table,
-  const char *file_name,
-  int file_name_length,
-  const char *position,
-  int position_length,
-  CHARSET_INFO *binlog_pos_cs
-) {
-  DBUG_ENTER("spider_store_binlog_pos_binlog_file");
-  if (!file_name)
-  {
-    table->field[4]->set_null();
-    table->field[4]->reset();
-  } else {
-    table->field[4]->set_notnull();
-    table->field[4]->store(file_name, file_name_length, binlog_pos_cs);
-  }
-  if (!position)
-  {
-    table->field[5]->set_null();
-    table->field[5]->reset();
-  } else {
-    table->field[5]->set_notnull();
-    table->field[5]->store(position, position_length, binlog_pos_cs);
-  }
-  DBUG_VOID_RETURN;
-}
-
-void spider_store_binlog_pos_gtid(
-  TABLE *table,
-  const char *gtid,
-  int gtid_length,
-  CHARSET_INFO *binlog_pos_cs
-) {
-  DBUG_ENTER("spider_store_binlog_pos_gtid");
-  if (!gtid)
-  {
-    table->field[6]->set_null();
-    table->field[6]->reset();
-  } else {
-    table->field[6]->set_notnull();
-    table->field[6]->store(gtid, gtid_length, binlog_pos_cs);
-  }
   DBUG_VOID_RETURN;
 }
 
@@ -1147,19 +1057,6 @@ int spider_insert_tables(
     }
   }
 
-  DBUG_RETURN(0);
-}
-
-int spider_insert_sys_table(
-  TABLE *table
-) {
-  int error_num;
-  DBUG_ENTER("spider_insert_sys_table");
-  if ((error_num = table->file->ha_write_row(table->record[0])))
-  {
-    table->file->print_error(error_num, MYF(0));
-    DBUG_RETURN(error_num);
-  }
   DBUG_RETURN(0);
 }
 
@@ -1921,13 +1818,6 @@ int spider_get_sys_tables_connect_info(
     !table->field[17]->is_null() &&
     (ptr = get_field(mem_root, table->field[17]))
   ) {
-    share->monitoring_binlog_pos_at_failing[link_idx] = atol(ptr);
-  } else
-    share->monitoring_binlog_pos_at_failing[link_idx] = 0;
-  if (
-    !table->field[18]->is_null() &&
-    (ptr = get_field(mem_root, table->field[18]))
-  ) {
     share->tgt_default_files_lengths[link_idx] = strlen(ptr);
     share->tgt_default_files[link_idx] =
       spider_create_string(ptr, share->tgt_default_files_lengths[link_idx]);
@@ -1936,8 +1826,8 @@ int spider_get_sys_tables_connect_info(
     share->tgt_default_files[link_idx] = NULL;
   }
   if (
-    !table->field[19]->is_null() &&
-    (ptr = get_field(mem_root, table->field[19]))
+    !table->field[18]->is_null() &&
+    (ptr = get_field(mem_root, table->field[18]))
   ) {
     share->tgt_default_groups_lengths[link_idx] = strlen(ptr);
     share->tgt_default_groups[link_idx] =
@@ -1947,8 +1837,8 @@ int spider_get_sys_tables_connect_info(
     share->tgt_default_groups[link_idx] = NULL;
   }
   if (
-    !table->field[20]->is_null() &&
-    (ptr = get_field(mem_root, table->field[20]))
+    !table->field[19]->is_null() &&
+    (ptr = get_field(mem_root, table->field[19]))
   ) {
     share->tgt_dbs_lengths[link_idx] = strlen(ptr);
     share->tgt_dbs[link_idx] =
@@ -1958,8 +1848,8 @@ int spider_get_sys_tables_connect_info(
     share->tgt_dbs[link_idx] = NULL;
   }
   if (
-    !table->field[21]->is_null() &&
-    (ptr = get_field(mem_root, table->field[21]))
+    !table->field[20]->is_null() &&
+    (ptr = get_field(mem_root, table->field[20]))
   ) {
     share->tgt_table_names_lengths[link_idx] = strlen(ptr);
     share->tgt_table_names[link_idx] =
@@ -1968,24 +1858,6 @@ int spider_get_sys_tables_connect_info(
     share->tgt_table_names_lengths[link_idx] = 0;
     share->tgt_table_names[link_idx] = NULL;
   }
-  DBUG_RETURN(error_num);
-}
-
-int spider_get_sys_tables_monitoring_binlog_pos_at_failing(
-  TABLE *table,
-  long *monitoring_binlog_pos_at_failing,
-  MEM_ROOT *mem_root
-) {
-  char *ptr;
-  int error_num = 0;
-  DBUG_ENTER("spider_get_sys_tables_monitoring_binlog_pos_at_failing");
-  if ((ptr = get_field(mem_root, table->field[17])))
-    *monitoring_binlog_pos_at_failing = (long) my_strtoll10(ptr, (char**) NULL,
-      &error_num);
-  else
-    *monitoring_binlog_pos_at_failing = 1;
-  DBUG_PRINT("info",("spider monitoring_binlog_pos_at_failing=%ld",
-    *monitoring_binlog_pos_at_failing));
   DBUG_RETURN(error_num);
 }
 
@@ -1998,7 +1870,7 @@ int spider_get_sys_tables_link_status(
   char *ptr;
   int error_num = 0;
   DBUG_ENTER("spider_get_sys_tables_link_status");
-  if ((ptr = get_field(mem_root, table->field[22])))
+  if ((ptr = get_field(mem_root, table->field[21])))
   {
     share->link_statuses[link_idx] =
       (long) my_strtoll10(ptr, (char**) NULL, &error_num);
@@ -2009,22 +1881,6 @@ int spider_get_sys_tables_link_status(
   DBUG_RETURN(error_num);
 }
 
-int spider_get_sys_tables_link_status(
-  TABLE *table,
-  long *link_status,
-  MEM_ROOT *mem_root
-) {
-  char *ptr;
-  int error_num = 0;
-  DBUG_ENTER("spider_get_sys_tables_link_status");
-  if ((ptr = get_field(mem_root, table->field[22])))
-    *link_status = (long) my_strtoll10(ptr, (char**) NULL, &error_num);
-  else
-    *link_status = 1;
-  DBUG_PRINT("info",("spider link_statuses=%ld", *link_status));
-  DBUG_RETURN(error_num);
-}
-
 int spider_get_sys_tables_link_idx(
   TABLE *table,
   int *link_idx,
@@ -2032,7 +1888,7 @@ int spider_get_sys_tables_link_idx(
 ) {
   char *ptr;
   int error_num = 0;
-  DBUG_ENTER("spider_get_sys_tables_link_idx");
+  DBUG_ENTER("spider_get_sys_tables_link_status");
   if ((ptr = get_field(mem_root, table->field[2])))
     *link_idx = (int) my_strtoll10(ptr, (char**) NULL, &error_num);
   else
