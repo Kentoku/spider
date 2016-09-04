@@ -8137,7 +8137,7 @@ int spider_oracle_handler::append_key_order_for_direct_order_limit_with_alias(
           DBUG_PRINT("info",("spider error=%d", error_num));
           DBUG_RETURN(error_num);
         }
-        if (order->asc)
+        if (SPIDER_order_direction_is_asc(order))
         {
           if (sql_part.reserve(SPIDER_SQL_COMMA_LEN))
             DBUG_RETURN(HA_ERR_OUT_OF_MEM);
@@ -8228,7 +8228,7 @@ int spider_oracle_handler::append_key_order_for_direct_order_limit_with_alias(
         DBUG_PRINT("info",("spider error=%d", error_num));
         DBUG_RETURN(error_num);
       }
-      if (order->asc)
+      if (SPIDER_order_direction_is_asc(order))
       {
         if (str->reserve(SPIDER_SQL_COMMA_LEN))
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
