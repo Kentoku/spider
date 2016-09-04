@@ -42,7 +42,9 @@
 #include "spd_direct_sql.h"
 #include "spd_malloc.h"
 
+#ifndef SPIDER_HAS_NEXT_THREAD_ID
 ulong *spd_db_att_thread_id;
+#endif
 #ifdef SPIDER_XID_USES_xid_cache_iterate
 #else
 #ifdef XID_CACHE_IS_SPLITTED
@@ -6603,8 +6605,10 @@ int spider_db_init(
 
 #ifdef _WIN32
   HMODULE current_module = GetModuleHandle(NULL);
+#ifndef SPIDER_HAS_NEXT_THREAD_ID
   spd_db_att_thread_id = (ulong *)
     GetProcAddress(current_module, "?thread_id@@3KA");
+#endif
 #ifdef SPIDER_XID_USES_xid_cache_iterate
 #else
 #ifdef XID_CACHE_IS_SPLITTED
@@ -6640,7 +6644,9 @@ int spider_db_init(
   spd_tz_system = *(Time_zone **)
     GetProcAddress(current_module, "my_tz_SYSTEM");
 #else
+#ifndef SPIDER_HAS_NEXT_THREAD_ID
   spd_db_att_thread_id = &thread_id;
+#endif
 #ifdef SPIDER_XID_USES_xid_cache_iterate
 #else
 #ifdef XID_CACHE_IS_SPLITTED
@@ -8924,13 +8930,8 @@ int spider_discover_table_structure(
     {
       DBUG_RETURN(ER_SPIDER_UNKNOWN_NUM);
     }
-#ifdef SPIDER_HAS_DISCOVER_TABLE_STRUCTURE_COMMENT
-    if (!(part_syntax = generate_partition_syntax(part_info, &part_syntax_len,
-      FALSE, TRUE, info, NULL, NULL)))
-#else
-    if (!(part_syntax = generate_partition_syntax(part_info, &part_syntax_len,
-      FALSE, TRUE, info, NULL)))
-#endif
+    if (!(part_syntax = SPIDER_generate_partition_syntax(thd, part_info,
+      &part_syntax_len, FALSE, TRUE, info, NULL, NULL)))
     {
       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
     }
