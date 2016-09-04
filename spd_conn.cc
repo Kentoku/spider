@@ -37,7 +37,9 @@
 #include "spd_ping_table.h"
 #include "spd_malloc.h"
 
+#ifndef SPIDER_HAS_NEXT_THREAD_ID
 extern ulong *spd_db_att_thread_id;
+#endif
 
 extern handlerton *spider_hton_ptr;
 extern SPIDER_DBTON spider_dbton[SPIDER_DBTON_SIZE];
@@ -2292,7 +2294,7 @@ void *spider_bg_conn_action(
     DBUG_RETURN(NULL);
   }
   pthread_mutex_lock(&LOCK_thread_count);
-  thd->thread_id = (*spd_db_att_thread_id)++;
+  thd->thread_id = SPIDER_next_thread_id;
   pthread_mutex_unlock(&LOCK_thread_count);
 #ifdef HAVE_PSI_INTERFACE
   mysql_thread_set_psi_id(thd->thread_id);
@@ -2811,7 +2813,7 @@ void *spider_bg_sts_action(
     DBUG_RETURN(NULL);
   }
   pthread_mutex_lock(&LOCK_thread_count);
-  thd->thread_id = (*spd_db_att_thread_id)++;
+  thd->thread_id = SPIDER_next_thread_id;
   pthread_mutex_unlock(&LOCK_thread_count);
 #ifdef HAVE_PSI_INTERFACE
   mysql_thread_set_psi_id(thd->thread_id);
@@ -3202,7 +3204,7 @@ void *spider_bg_crd_action(
     DBUG_RETURN(NULL);
   }
   pthread_mutex_lock(&LOCK_thread_count);
-  thd->thread_id = (*spd_db_att_thread_id)++;
+  thd->thread_id = SPIDER_next_thread_id;
   pthread_mutex_unlock(&LOCK_thread_count);
 #ifdef HAVE_PSI_INTERFACE
   mysql_thread_set_psi_id(thd->thread_id);
@@ -3709,7 +3711,7 @@ void *spider_bg_mon_action(
     DBUG_RETURN(NULL);
   }
   pthread_mutex_lock(&LOCK_thread_count);
-  thd->thread_id = (*spd_db_att_thread_id)++;
+  thd->thread_id = SPIDER_next_thread_id;
   pthread_mutex_unlock(&LOCK_thread_count);
 #ifdef HAVE_PSI_INTERFACE
   mysql_thread_set_psi_id(thd->thread_id);

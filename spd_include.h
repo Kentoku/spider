@@ -135,6 +135,29 @@
 #define SPIDER_Item_func_conv_charset_conv_charset conv_charset
 #endif
 
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100200
+#define SPIDER_init_read_record(A,B,C,D,E,F,G,H) init_read_record(A,B,C,D,E,F,G,H)
+#define SPIDER_HAS_NEXT_THREAD_ID
+#define SPIDER_next_thread_id next_thread_id()
+#define SPIDER_order_direction_is_asc(A) (A->direction == ORDER::ORDER_ASC)
+#else
+#define SPIDER_init_read_record(A,B,C,D,E,F,G,H) init_read_record(A,B,C,D,F,G,H)
+#define SPIDER_next_thread_id (*spd_db_att_thread_id)++
+#define SPIDER_order_direction_is_asc(A) (A->asc)
+#endif
+
+#if defined(MARIADB_BASE_VERSION)
+#if MYSQL_VERSION_ID >= 100200
+#define SPIDER_generate_partition_syntax(A,B,C,D,E,F,G,H) generate_partition_syntax(A,B,C,D,E,F,G,H)
+#elif MYSQL_VERSION_ID >= 100007
+#define SPIDER_generate_partition_syntax(A,B,C,D,E,F,G,H) generate_partition_syntax(B,C,D,E,F,G,H)
+#else
+#define SPIDER_generate_partition_syntax(A,B,C,D,E,F,G,H) generate_partition_syntax(B,C,D,E,F,G)
+#endif
+#else
+#define SPIDER_generate_partition_syntax(A,B,C,D,E,F,G,H)
+#endif
+
 #if MYSQL_VERSION_ID >= 50500
 #define SPIDER_HAS_HASH_VALUE_TYPE
 #endif
