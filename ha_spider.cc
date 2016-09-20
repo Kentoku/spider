@@ -12871,8 +12871,17 @@ int ha_spider::check_error_mode_eof(
 void ha_spider::check_pre_call(
   bool use_parallel
 ) {
+  THD* thd = ha_thd();
+  st_select_lex *select_lex = spider_get_select_lex(this);
   DBUG_ENTER("ha_spider::check_pre_call");
   DBUG_PRINT("info",("spider this=%p", this));
+  if (thd->lex && thd->lex->sql_command != SQLCOM_SELECT || // such like insert .. select ..
+    select_lex && select_lex->sql_cache == SELECT_LEX::SQL_NO_CACHE //  for mysqldump 
+    )
+  {
+    use_pre_call = FALSE;
+    DBUG_VOID_RETURN;
+  }
   use_pre_call = use_parallel;
   if (!use_pre_call)
   {
