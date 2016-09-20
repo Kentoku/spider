@@ -389,6 +389,9 @@ void spider_free_tmp_dbton_handler(
 TABLE_LIST *spider_get_parent_table_list(
   ha_spider *spider
 );
+List<Index_hint> *spider_get_index_hints(
+  ha_spider *spider
+  );
 
 st_select_lex *spider_get_select_lex(
   ha_spider *spider

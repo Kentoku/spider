@@ -8108,6 +8108,19 @@ TABLE_LIST *spider_get_parent_table_list(
   DBUG_RETURN(NULL);
 }
 
+List<Index_hint> *spider_get_index_hints(
+  ha_spider *spider
+  ) {
+    TABLE_LIST *table_list = spider_get_parent_table_list(spider);
+    DBUG_ENTER("spider_get_index_hint");
+    if (table_list)
+    {
+      DBUG_RETURN(table_list->index_hints);
+    }
+    DBUG_RETURN(NULL);
+}
+
+
 st_select_lex *spider_get_select_lex(
   ha_spider *spider
 ) {

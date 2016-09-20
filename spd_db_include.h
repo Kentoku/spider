@@ -1058,6 +1058,11 @@ public:
     spider(spider), db_share(db_share), first_link_idx(-1) {}
   virtual ~spider_db_handler() {}
   virtual int init() = 0;
+  virtual int append_index_hint(
+    spider_string *str,
+    int link_idx,
+    ulong sql_type
+    ) = 0;
   virtual int append_table_name_with_adjusting(
     spider_string *str,
     int link_idx,

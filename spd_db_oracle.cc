@@ -5232,6 +5232,15 @@ int spider_oracle_handler::init()
   DBUG_RETURN(0);
 }
 
+int spider_oracle_handler::append_index_hint(
+  spider_string *str,
+  int link_idx,
+  ulong sql_type
+  ) 
+{
+  return 0;
+}
+
 int spider_oracle_handler::append_table_name_with_adjusting(
   spider_string *str,
   int link_idx,

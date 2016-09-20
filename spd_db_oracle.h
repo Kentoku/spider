@@ -645,6 +645,11 @@ public:
   );
   ~spider_oracle_handler();
   int init();
+  int spider_oracle_handler::append_index_hint(
+    spider_string *str,
+    int link_idx,
+    ulong sql_type
+    );
   int append_table_name_with_adjusting(
     spider_string *str,
     int link_idx,
