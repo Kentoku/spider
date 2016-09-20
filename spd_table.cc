@@ -5016,9 +5016,18 @@ SPIDER_SHARE *spider_get_share(
     share->use_count++;
     pthread_mutex_unlock(&spider_tbl_mutex);
 
+    int sleep_cnt = 0;
     while (!share->init)
     {
-      my_sleep(10);
+      // avoid for dead loop
+      if (sleep_cnt++ > 1000)
+      {
+        fprintf(stderr, " [WARN SPIDER RESULT] "
+          "Wait share->init too long, table_name %s %s %ld\n",
+          share->table_name, share->tgt_hosts[0], share->tgt_ports[0]);
+        goto error_but_no_delete;
+      }
+      my_sleep(10000); // wait 10 ms
     }
 
     if (!share->link_status_init)
