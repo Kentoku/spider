@@ -424,6 +424,10 @@ bool spider_check_direct_order_limit(
   ha_spider *spider
 );
 
+int spider_set_direct_limit_offset(
+                                   ha_spider*		spider
+                                   );
+
 bool spider_check_index_merge(
   TABLE *table,
   st_select_lex *select_lex
