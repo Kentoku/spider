@@ -186,6 +186,7 @@
 #define SPIDER_TMP_SHARE_LONGLONG_COUNT      3
 
 #define SPIDER_MEM_CALC_LIST_NUM           249
+#define SPIDER_CONN_META_BUF_LEN           64
 
 #define SPIDER_BACKUP_DASTATUS \
   bool da_status; if (thd) da_status = thd->is_error(); else da_status = FALSE;
@@ -1325,3 +1326,17 @@ char *spider_create_string(
   const char *str,
   uint length
 );
+
+
+typedef struct st_spider_ip_port_conn {
+    char *key;
+	size_t key_len;
+#ifdef SPIDER_HAS_HASH_VALUE_TYPE
+	my_hash_value_type key_hash_value;
+#endif
+    char remote_ip_str[SPIDER_CONN_META_BUF_LEN];
+    long remote_port;
+		long ip_port_count;
+		long conn_mutex_num;
+	ulonglong conn_id; /* each conn has it's own conn_id */
+} SPIDER_IP_PORT_CONN;

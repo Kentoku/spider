@@ -373,6 +373,8 @@ int spider_param_udf_ds_use_real_table(
 );
 #endif
 my_bool spider_param_general_log();
+uint spider_param_max_connections();
+uint spider_param_conn_wait_timeout();
 uint spider_param_log_result_errors();
 uint spider_param_log_result_error_with_sql();
 uint spider_param_internal_xa_id_type(

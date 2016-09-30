@@ -1835,6 +1835,7 @@ int ha_spider::reset()
   prev_index_rnd_init = SPD_NONE;
   result_list.have_sql_kind_backup = FALSE;
   result_list.direct_order_limit = FALSE;
+  result_list.direct_limit_offset = FALSE;
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   if ((error_num2 = reset_hs_strs(SPIDER_SQL_TYPE_UPDATE_HS)))
     error_num = error_num2;
@@ -10674,6 +10675,12 @@ bool ha_spider::get_error_message(
         DBUG_RETURN(TRUE);
       buf->q_append(ER_SPIDER_REMOTE_SERVER_GONE_AWAY_STR,
         ER_SPIDER_REMOTE_SERVER_GONE_AWAY_LEN);
+      break;
+    case ER_SPIDER_CON_COUNT_ERROR:
+      if (buf->reserve(ER_SPIDER_CON_COUNT_ERROR_LEN))
+        DBUG_RETURN(TRUE);
+      buf->q_append(ER_SPIDER_CON_COUNT_ERROR_STR,
+        ER_SPIDER_CON_COUNT_ERROR_LEN);
       break;
     default:
       if (buf->reserve(ER_SPIDER_UNKNOWN_LEN))

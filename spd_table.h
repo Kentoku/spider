@@ -461,3 +461,5 @@ int spider_discover_table_structure(
   HA_CREATE_INFO *info
 );
 #endif
+
+int spider_db_init_for_conn_mutexs_conds();

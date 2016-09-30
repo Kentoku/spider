@@ -57,6 +57,7 @@ extern PSI_cond_key spd_key_cond_bg_direct_sql;
 #endif
 
 extern HASH spider_open_connections;
+extern HASH spider_ipport_conns;
 extern pthread_mutex_t spider_conn_mutex;
 
 uint spider_udf_calc_hash(

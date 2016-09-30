@@ -2849,6 +2849,48 @@ my_bool spider_param_general_log()
   DBUG_RETURN(spider_general_log);
 }
 
+
+static uint spider_max_connections;
+static MYSQL_SYSVAR_UINT(
+  max_connections,
+  spider_max_connections,
+  PLUGIN_VAR_RQCMDARG,
+  "the values, as the max conncetion from spider to remote mysql. Default 0, mean unlimit the connections",
+  NULL,
+  NULL,
+  0, /* def */
+  0, /* min */
+  99999, /* max */
+  0 /* blk */
+);
+
+uint spider_param_max_connections()
+{
+  DBUG_ENTER("spider_param_max_connections");
+  DBUG_RETURN(spider_max_connections);
+}
+
+static uint spider_conn_wait_timeout;
+static MYSQL_SYSVAR_UINT(
+  conn_wait_timeout,
+  spider_conn_wait_timeout,
+  PLUGIN_VAR_RQCMDARG,
+  "the values, as the max waiting time when spider get a remote conn",
+  NULL,
+  NULL,
+  10, /* def */
+  0, /* min */
+  1000, /* max */
+  0 /* blk */
+);
+
+uint spider_param_conn_wait_timeout()
+{
+  DBUG_ENTER("spider_param_conn_wait_timeout");
+  DBUG_RETURN(spider_conn_wait_timeout);
+}
+
+
 static uint spider_log_result_errors;
 /*
   0: no log
@@ -3271,6 +3313,8 @@ static struct st_mysql_sys_var* spider_system_variables[] = {
   MYSQL_SYSVAR(udf_ds_use_real_table),
 #endif
   MYSQL_SYSVAR(general_log),
+  MYSQL_SYSVAR(max_connections),
+  MYSQL_SYSVAR(conn_wait_timeout),
   MYSQL_SYSVAR(log_result_errors),
   MYSQL_SYSVAR(log_result_error_with_sql),
   MYSQL_SYSVAR(version),

@@ -38,6 +38,7 @@
 
 extern handlerton *spider_hton_ptr;
 extern HASH spider_open_connections;
+extern HASH spider_ipport_conns;
 extern SPIDER_DBTON spider_dbton[SPIDER_DBTON_SIZE];
 extern const char spider_dig_upper[];
 
