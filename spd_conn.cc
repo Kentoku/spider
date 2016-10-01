@@ -25,6 +25,7 @@
 #include "sql_partition.h"
 #include "tztime.h"
 #endif
+#include "spd_err.h"
 #include "spd_param.h"
 #include "spd_db_include.h"
 #include "spd_include.h"
@@ -628,6 +629,28 @@ SPIDER_CONN *spider_create_conn(
     conn->dbton_id = share->hs_dbton_ids[link_idx];
   }
 #endif
+  if (conn->dbton_id == SPIDER_DBTON_SIZE)
+  {
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
+    if (conn->conn_kind == SPIDER_CONN_KIND_MYSQL)
+    {
+#endif
+      my_printf_error(
+        ER_SPIDER_SQL_WRAPPER_IS_INVALID_NUM,
+        ER_SPIDER_SQL_WRAPPER_IS_INVALID_STR,
+        MYF(0), conn->tgt_wrapper);
+      *error_num = ER_SPIDER_SQL_WRAPPER_IS_INVALID_NUM;
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
+    } else {
+      my_printf_error(
+        ER_SPIDER_NOSQL_WRAPPER_IS_INVALID_NUM,
+        ER_SPIDER_NOSQL_WRAPPER_IS_INVALID_STR,
+        MYF(0), conn->tgt_wrapper);
+      *error_num = ER_SPIDER_NOSQL_WRAPPER_IS_INVALID_NUM;
+    }
+#endif
+    goto error_invalid_wrapper;
+  }
   if (!(conn->db_conn = spider_dbton[conn->dbton_id].create_db_conn(conn)))
   {
     *error_num = HA_ERR_OUT_OF_MEM;
@@ -681,6 +704,7 @@ error_mta_conn_mutex_init:
 error_db_conn_init:
   delete conn->db_conn;
 error_db_conn_create:
+error_invalid_wrapper:
   spider_free(spider_current_trx, conn, MYF(0));
 error_alloc_conn:
   DBUG_RETURN(NULL);
@@ -1618,7 +1642,6 @@ int spider_set_conn_bg_param(
     if (spider->use_fields)
     {
       SPIDER_LINK_IDX_CHAIN *link_idx_chain;
-      SPIDER_LINK_IDX_HOLDER *link_idx_holder;
       spider_fields *fields = spider->fields;
       fields->set_pos_to_first_link_idx_chain();
       while ((link_idx_chain = fields->get_next_link_idx_chain()))
