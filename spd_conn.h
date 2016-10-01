@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2014 Kentoku Shiba
+/* Copyright (C) 2008-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -313,6 +313,12 @@ int spider_conn_link_idx_next(
   int link_idx,
   int link_count,
   int link_status
+);
+
+int spider_conn_get_link_status(
+  long *link_statuses,
+  uint *conn_link_idx,
+  int link_idx
 );
 
 int spider_conn_lock_mode(
