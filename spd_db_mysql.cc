@@ -1097,7 +1097,9 @@ int spider_db_mysql_result::fetch_show_master_status(
   }
 
   *binlog_file_name = mysql_row[0];
+  DBUG_PRINT("info",("spider binlog_file_name=%s", *binlog_file_name));
   *binlog_pos = mysql_row[1];
+  DBUG_PRINT("info",("spider binlog_pos=%s", *binlog_pos));
   DBUG_RETURN(0);
 }
 
@@ -1125,6 +1127,7 @@ int spider_db_mysql_result::fetch_select_binlog_gtid_pos(
   }
 
   *gtid_pos = mysql_row[0];
+  DBUG_PRINT("info",("spider gtid_pos=%s", *gtid_pos));
   DBUG_RETURN(0);
 }
 
