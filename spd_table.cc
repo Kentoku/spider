@@ -41,6 +41,7 @@
 #include "spd_ping_table.h"
 #include "spd_direct_sql.h"
 #include "spd_malloc.h"
+#include "spd_group_by_handler.h"
 
 #ifndef SPIDER_HAS_NEXT_THREAD_ID
 ulong *spd_db_att_thread_id;
@@ -6594,6 +6595,9 @@ int spider_db_init(
   spider_hton->create = spider_create_handler;
   spider_hton->drop_database = spider_drop_database;
   spider_hton->show_status = spider_show_status;
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  spider_hton->create_group_by = spider_create_group_by_handler;
+#endif
 
   memset(&spider_alloc_func_name, 0, sizeof(spider_alloc_func_name));
   memset(&spider_alloc_file_name, 0, sizeof(spider_alloc_file_name));
@@ -8181,6 +8185,16 @@ longlong spider_split_read_param(
     DBUG_PRINT("info",("spider bulk_update_mode=%d", bulk_update_mode));
     DBUG_PRINT("info",("spider support_bulk_update_sql=%s",
       spider->support_bulk_update_sql() ? "TRUE" : "FALSE"));
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+    bool inserting =
+      (
+#ifdef HS_HAS_SQLCOM
+        spider->sql_command == SQLCOM_HS_INSERT ||
+#endif
+        spider->sql_command == SQLCOM_INSERT ||
+        spider->sql_command == SQLCOM_INSERT_SELECT
+      );
+#endif
     bool updating =
       (
 #ifdef HS_HAS_SQLCOM
@@ -8207,6 +8221,12 @@ longlong spider_split_read_param(
     DBUG_PRINT("info",("spider replacing=%s", replacing ? "TRUE" : "FALSE"));
     TABLE *table = spider->get_table();
     if (
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+      (
+        inserting &&
+        spider->use_fields
+      ) ||
+#endif
       replacing ||
       (
         (

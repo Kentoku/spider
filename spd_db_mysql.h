@@ -99,7 +99,9 @@ public:
     ha_spider *spider,
     spider_string *str,
     const char *alias,
-    uint alias_length
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields
   );
 #ifdef HANDLER_HAS_DIRECT_AGGREGATE
   int open_item_sum_func(
@@ -107,13 +109,32 @@ public:
     ha_spider *spider,
     spider_string *str,
     const char *alias,
-    uint alias_length
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields
   );
 #endif
   int append_escaped_util(
     spider_string *to,
     String *from
   );
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  int append_from_and_tables(
+    spider_fields *fields,
+    spider_string *str
+  );
+  int reappend_tables(
+    spider_fields *fields,
+    SPIDER_LINK_IDX_CHAIN *link_idx_chain,
+    spider_string *str
+  );
+  int append_where(
+    spider_string *str
+  );
+  int append_having(
+    spider_string *str
+  );
+#endif
 };
 
 class spider_db_mysql_row: public spider_db_row
@@ -552,7 +573,9 @@ class spider_mysql_handler: public spider_db_handler
   int                     where_pos;
   int                     order_pos;
   int                     limit_pos;
+public:
   int                     table_name_pos;
+private:
   int                     ha_read_pos;
   int                     ha_next_pos;
   int                     ha_where_pos;
@@ -1236,6 +1259,13 @@ public:
   bool need_lock_before_set_sql_for_exec(
     ulong sql_type
   );
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  int set_sql_for_exec(
+    ulong sql_type,
+    int link_idx,
+    SPIDER_LINK_IDX_CHAIN *link_idx_chain
+  );
+#endif
   int set_sql_for_exec(
     ulong sql_type,
     int link_idx
@@ -1347,6 +1377,78 @@ public:
     int link_idx,
     ulong sql_type
   );
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  int append_from_and_tables_part(
+    spider_fields *fields,
+    ulong sql_type
+  );
+  int reappend_tables_part(
+    spider_fields *fields,
+    ulong sql_type
+  );
+  int append_where_part(
+    ulong sql_type
+  );
+  int append_having_part(
+    ulong sql_type
+  );
+  int append_item_type_part(
+    Item *item,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  );
+  int append_list_item_select_part(
+    List<Item> *select,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  );
+  int append_list_item_select(
+    List<Item> *select,
+    spider_string *str,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields
+  );
+  int append_group_by_part(
+    ORDER *order,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  );
+  int append_group_by(
+    ORDER *order,
+    spider_string *str,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields
+  );
+  int append_order_by_part(
+    ORDER *order,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  );
+  int append_order_by(
+    ORDER *order,
+    spider_string *str,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields
+  );
+#endif
 };
 
 class spider_mysql_copy_table: public spider_db_copy_table

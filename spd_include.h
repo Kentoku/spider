@@ -13,7 +13,7 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
-#define SPIDER_DETAIL_VERSION "3.3.8"
+#define SPIDER_DETAIL_VERSION "3.3.9"
 #define SPIDER_HEX_VERSION 0x0303
 
 #if MYSQL_VERSION_ID < 50500
@@ -185,7 +185,7 @@
 #define SPIDER_TMP_SHARE_LONG_COUNT         19
 #define SPIDER_TMP_SHARE_LONGLONG_COUNT      3
 
-#define SPIDER_MEM_CALC_LIST_NUM           249
+#define SPIDER_MEM_CALC_LIST_NUM           255
 
 #define SPIDER_BACKUP_DASTATUS \
   bool da_status; if (thd) da_status = thd->is_error(); else da_status = FALSE;
@@ -491,6 +491,11 @@ typedef struct st_spider_conn
   THD                *connect_error_thd;
   query_id_t         connect_error_query_id;
   time_t             connect_error_time;
+
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  SPIDER_CONN_HOLDER    *conn_holder_for_direct_join;
+  SPIDER_LINK_IDX_CHAIN *link_idx_chain;
+#endif
 } SPIDER_CONN;
 
 typedef struct st_spider_lgtm_tblhnd_share

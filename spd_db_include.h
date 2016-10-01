@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2015 Kentoku Shiba
+/* Copyright (C) 2008-2016 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
 #include "hstcpcli.hpp"
 #endif
+
+#define SPIDER_DBTON_SIZE 15
 
 #define SPIDER_DB_WRAPPER_MYSQL "mysql"
 
@@ -44,6 +46,10 @@
 #if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100100
 #define SPIDER_ITEM_STRING_WITHOUT_SET_STR_WITH_COPY_AND_THDPTR
 #endif
+#endif
+
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100108
+#define SPIDER_HAS_GROUP_BY_HANDLER
 #endif
 
 #if defined(MARIADB_BASE_VERSION)
@@ -530,6 +536,169 @@ public:
   bool is_ascii() const;
 };
 
+typedef struct spider_table_link_idx_holder SPIDER_TABLE_LINK_IDX_HOLDER;
+typedef struct spider_table_holder SPIDER_TABLE_HOLDER;
+
+typedef struct spider_link_idx_holder
+{
+  spider_table_link_idx_holder *table_link_idx_holder;
+  int link_idx;
+  int link_status;
+  spider_link_idx_holder *next_table;
+  spider_link_idx_holder *next;
+} SPIDER_LINK_IDX_HOLDER;
+
+typedef struct spider_link_idx_chain
+{
+  SPIDER_CONN *conn;
+  spider_link_idx_holder *link_idx_holder;
+  spider_link_idx_holder *current_link_idx_holder;
+  int link_status;
+  spider_link_idx_chain *next;
+} SPIDER_LINK_IDX_CHAIN;
+
+typedef struct spider_table_link_idx_holder
+{
+  spider_table_holder *table_holder;
+  spider_link_idx_holder *first_link_idx_holder;
+  spider_link_idx_holder *last_link_idx_holder;
+  spider_link_idx_holder *current_link_idx_holder;
+  uint link_idx_holder_count;
+} SPIDER_TABLE_LINK_IDX_HOLDER;
+
+typedef struct spider_conn_holder
+{
+  SPIDER_CONN *conn;
+  spider_table_link_idx_holder *table_link_idx_holder;
+  uint link_idx_holder_count_max;
+  bool checked_for_same_conn;
+  long access_balance;
+  spider_conn_holder *prev;
+  spider_conn_holder *next;
+} SPIDER_CONN_HOLDER;
+
+typedef struct spider_table_holder
+{
+  TABLE *table;
+  ha_spider *spider;
+  spider_string *alias;
+} SPIDER_TABLE_HOLDER;
+
+typedef struct spider_field_holder
+{
+  Field *field;
+  ha_spider *spider;
+  spider_string *alias;
+  spider_field_holder *next;
+} SPIDER_FIELD_HOLDER;
+
+typedef struct spider_field_chain
+{
+  spider_field_holder *field_holder;
+  spider_field_chain *next;
+} SPIDER_FIELD_CHAIN;
+
+class spider_fields
+{
+  uint dbton_count;
+  uint current_dbton_num;
+  uint dbton_ids[SPIDER_DBTON_SIZE];
+  uint table_count;
+  uint current_table_num;
+  SPIDER_TABLE_HOLDER *table_holder;
+  SPIDER_LINK_IDX_CHAIN *first_link_idx_chain;
+  SPIDER_LINK_IDX_CHAIN *last_link_idx_chain;
+  SPIDER_LINK_IDX_CHAIN *current_link_idx_chain;
+  SPIDER_LINK_IDX_CHAIN *first_ok_link_idx_chain;
+  SPIDER_CONN_HOLDER *first_conn_holder;
+  SPIDER_CONN_HOLDER *last_conn_holder;
+  SPIDER_CONN_HOLDER *current_conn_holder;
+  SPIDER_FIELD_HOLDER *first_field_holder;
+  SPIDER_FIELD_HOLDER *last_field_holder;
+  SPIDER_FIELD_HOLDER *current_field_holder;
+  SPIDER_FIELD_CHAIN *first_field_chain;
+  SPIDER_FIELD_CHAIN *last_field_chain;
+  SPIDER_FIELD_CHAIN *current_field_chain;
+  Field **first_field_ptr;
+  Field **current_field_ptr;
+public:
+  spider_fields();
+  virtual ~spider_fields();
+  void add_dbton_id(
+    uint dbton_id_arg
+  );
+  void set_pos_to_first_dbton_id();
+  uint get_next_dbton_id();
+  int make_link_idx_chain(
+    int link_status
+  );
+  SPIDER_LINK_IDX_CHAIN *create_link_idx_chain();
+  void set_pos_to_first_link_idx_chain();
+  SPIDER_LINK_IDX_CHAIN *get_next_link_idx_chain();
+  SPIDER_LINK_IDX_HOLDER *get_dup_link_idx_holder(
+    SPIDER_TABLE_LINK_IDX_HOLDER *table_link_idx_holder,
+    SPIDER_LINK_IDX_HOLDER *current
+  );
+  bool check_link_ok_chain();
+  bool is_first_link_ok_chain(
+    SPIDER_LINK_IDX_CHAIN *link_idx_chain_arg
+  );
+  int get_ok_link_idx();
+  void set_first_link_idx();
+  int add_link_idx(
+    SPIDER_CONN_HOLDER *conn_holder_arg,
+    ha_spider *spider_arg,
+    int link_idx
+  );
+  SPIDER_LINK_IDX_HOLDER *create_link_idx_holder();
+  void set_pos_to_first_table_on_link_idx_chain(
+    SPIDER_LINK_IDX_CHAIN *link_idx_chain_arg
+  );
+  SPIDER_LINK_IDX_HOLDER *get_next_table_on_link_idx_chain(
+    SPIDER_LINK_IDX_CHAIN *link_idx_chain_arg
+  );
+  SPIDER_CONN_HOLDER *add_conn(
+    SPIDER_CONN *conn_arg,
+    long access_balance
+  );
+  SPIDER_CONN_HOLDER *create_conn_holder();
+  void set_pos_to_first_conn_holder();
+  SPIDER_CONN_HOLDER *get_next_conn_holder();
+  bool has_conn_holder();
+  void clear_conn_holder_from_conn();
+  bool check_conn_same_conn(
+    SPIDER_CONN *conn_arg
+  );
+  bool remove_conn_if_not_checked();
+  void check_support_dbton(
+    uchar *dbton_bitmap
+  );
+  void choose_a_conn();
+  void free_conn_holder(
+    SPIDER_CONN_HOLDER *conn_holder_arg
+  );
+  SPIDER_TABLE_HOLDER *add_table(
+    ha_spider *spider_arg
+  );
+  int create_table_holder(
+    uint table_count_arg
+  );
+  void set_pos_to_first_table_holder();
+  SPIDER_TABLE_HOLDER *get_next_table_holder();
+  int add_field(Field *field_arg);
+  SPIDER_FIELD_HOLDER *create_field_holder();
+  void set_pos_to_first_field_holder();
+  SPIDER_FIELD_HOLDER *get_next_field_holder();
+  SPIDER_FIELD_CHAIN *create_field_chain();
+  void set_pos_to_first_field_chain();
+  SPIDER_FIELD_CHAIN *get_next_field_chain();
+  void set_field_ptr(Field **field_arg);
+  Field **get_next_field_ptr();
+  int ping_table_mon_from_table(
+    SPIDER_LINK_IDX_CHAIN *link_idx_chain
+  );
+};
+
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
 #define SPIDER_HS_UINT32_INFO dena::uint32_info
 #define SPIDER_HS_STRING_REF dena::string_ref
@@ -680,7 +849,9 @@ public:
     ha_spider *spider,
     spider_string *str,
     const char *alias,
-    uint alias_length
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields
   ) = 0;
 #ifdef HANDLER_HAS_DIRECT_AGGREGATE
   virtual int open_item_sum_func(
@@ -688,13 +859,32 @@ public:
     ha_spider *spider,
     spider_string *str,
     const char *alias,
-    uint alias_length
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields
   ) = 0;
 #endif
   virtual int append_escaped_util(
     spider_string *to,
     String *from
   ) = 0;
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  virtual int append_from_and_tables(
+    spider_fields *fields,
+    spider_string *str
+  ) = 0;
+  virtual int reappend_tables(
+    spider_fields *fields,
+    SPIDER_LINK_IDX_CHAIN *link_idx_chain,
+    spider_string *str
+  ) = 0;
+  virtual int append_where(
+    spider_string *str
+  ) = 0;
+  virtual int append_having(
+    spider_string *str
+  ) = 0;
+#endif
 };
 
 class spider_db_row
@@ -1054,6 +1244,9 @@ public:
   ha_spider *spider;
   spider_db_share *db_share;
   int first_link_idx;
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  SPIDER_LINK_IDX_CHAIN *link_idx_chain;
+#endif
   spider_db_handler(ha_spider *spider, spider_db_share *db_share) :
     spider(spider), db_share(db_share), first_link_idx(-1) {}
   virtual ~spider_db_handler() {}
@@ -1115,6 +1308,10 @@ public:
   virtual int check_update_columns_part() = 0;
 #endif
   virtual int append_select_part(
+    ulong sql_type
+  ) = 0;
+  virtual int append_select(
+    spider_string *str,
     ulong sql_type
   ) = 0;
   virtual int append_table_select_part(
@@ -1352,6 +1549,13 @@ public:
   virtual bool need_lock_before_set_sql_for_exec(
     ulong sql_type
   ) = 0;
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  virtual int set_sql_for_exec(
+    ulong sql_type,
+    int link_idx,
+    SPIDER_LINK_IDX_CHAIN *link_idx_chain
+  ) = 0;
+#endif
   virtual int set_sql_for_exec(
     ulong sql_type,
     int link_idx
@@ -1462,6 +1666,54 @@ public:
     int link_idx,
     ulong sql_type
   ) = 0;
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  virtual int append_from_and_tables_part(
+    spider_fields *fields,
+    ulong sql_type
+  ) = 0;
+  virtual int reappend_tables_part(
+    spider_fields *fields,
+    ulong sql_type
+  ) = 0;
+  virtual int append_where_part(
+    ulong sql_type
+  ) = 0;
+  virtual int append_having_part(
+    ulong sql_type
+  ) = 0;
+  virtual int append_item_type_part(
+    Item *item,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  ) = 0;
+  virtual int append_list_item_select_part(
+    List<Item> *select,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  ) = 0;
+  virtual int append_group_by_part(
+    ORDER *order,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  ) = 0;
+  virtual int append_order_by_part(
+    ORDER *order,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  ) = 0;
+#endif
 };
 
 class spider_db_copy_table
@@ -1549,9 +1801,9 @@ typedef struct st_spider_dbton
   spider_db_copy_table *(*create_db_copy_table)(
     spider_db_share *db_share);
   SPIDER_DB_CONN *(*create_db_conn)(SPIDER_CONN *conn);
+  bool (*support_direct_join)();
   spider_db_util *db_util;
 } SPIDER_DBTON;
-#define SPIDER_DBTON_SIZE 15
 
 typedef struct st_spider_position
 {

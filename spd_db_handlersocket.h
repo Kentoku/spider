@@ -94,7 +94,9 @@ public:
     ha_spider *spider,
     spider_string *str,
     const char *alias,
-    uint alias_length
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields
   );
 #ifdef HANDLER_HAS_DIRECT_AGGREGATE
   int open_item_sum_func(
@@ -102,13 +104,36 @@ public:
     ha_spider *spider,
     spider_string *str,
     const char *alias,
-    uint alias_length
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields
   );
 #endif
   int append_escaped_util(
     spider_string *to,
     String *from
   );
+  int append_escaped_util(
+    spider_string *to,
+    String *from
+  );
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  int append_from_and_tables(
+    spider_fields *fields,
+    spider_string *str
+  );
+  int reappend_tables(
+    spider_fields *fields,
+    SPIDER_LINK_IDX_CHAIN *link_idx_chain,
+    spider_string *str
+  );
+  int append_where(
+    spider_string *str
+  );
+  int append_having(
+    spider_string *str
+  );
+#endif
 };
 
 class spider_db_handlersocket_row: public spider_db_row
@@ -857,6 +882,13 @@ public:
   bool need_lock_before_set_sql_for_exec(
     ulong sql_type
   );
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  int set_sql_for_exec(
+    ulong sql_type,
+    int link_idx,
+    SPIDER_LINK_IDX_CHAIN *link_idx_chain
+  );
+#endif
   int set_sql_for_exec(
     ulong sql_type,
     int link_idx
@@ -968,4 +1000,52 @@ public:
     int link_idx,
     ulong sql_type
   );
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  int append_from_and_tables_part(
+    spider_fields *fields,
+    ulong sql_type
+  );
+  int reappend_tables_part(
+    spider_fields *fields,
+    ulong sql_type
+  );
+  int append_where_part(
+    ulong sql_type
+  );
+  int append_having_part(
+    ulong sql_type
+  );
+  int append_item_type_part(
+    Item *item,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  );
+  int append_list_item_select_part(
+    List<Item> *select,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  );
+  int append_group_by_part(
+    ORDER *order,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  );
+  int append_order_by_part(
+    ORDER *order,
+    const char *alias,
+    uint alias_length,
+    bool use_fields,
+    spider_fields *fields,
+    ulong sql_type
+  );
+#endif
 };
