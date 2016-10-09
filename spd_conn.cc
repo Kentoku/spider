@@ -4429,12 +4429,13 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
   uint spider_max_connections = spider_param_max_connections();
   struct timespec abstime;
   ulonglong start, inter_val = 0;
+  longlong last_ntime = 0;
   ulonglong wait_time = (ulonglong)spider_param_conn_wait_timeout()*1000*1000*1000; // default 10s
 
   unsigned long ip_port_count = 0; // init 0
   long mutex_num=0;
 
-  set_timespec(abstime, 10);
+  set_timespec(abstime, 0);
 
   pthread_mutex_lock(&spider_ipport_count_mutex);
   if(ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search_using_hash_value(&spider_ipport_conns, share->conn_keys_hash_value[link_idx], (uchar*) share->conn_keys[link_idx], share->conn_keys_lengths[link_idx]))
@@ -4446,17 +4447,18 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
   if(ip_port_count >= spider_max_connections && spider_max_connections > 0)
   {/* no idle conn && enable connection pool, wait */ 
     pthread_mutex_unlock(&spider_ipport_count_mutex);
-    start = my_hrtime().val;
+    start = my_hrtime().val; 
     while(1)
     {
       int error;
-      inter_val = my_hrtime().val - start;
-      if(wait_time - inter_val*100 <= 0)
+      inter_val = my_hrtime().val - start; // us
+      last_ntime = wait_time - inter_val*1000; // *1000, to ns
+      if(last_ntime <= 0)
       {/* wait timeout */
         *error_num = ER_SPIDER_CON_COUNT_ERROR;
         DBUG_RETURN(NULL);
       }
-      set_timespec_nsec(abstime, wait_time - inter_val*100);
+      set_timespec_nsec(abstime, last_ntime);
       pthread_mutex_lock(&spider_conn_i_mutexs[mutex_num]);
       error = pthread_cond_timedwait(&spider_conn_i_conds[mutex_num], &spider_conn_i_mutexs[mutex_num], &abstime);
       if (error == ETIMEDOUT || error == ETIME || error!=0 )
