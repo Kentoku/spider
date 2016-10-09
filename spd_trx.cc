@@ -2030,7 +2030,7 @@ int spider_internal_xa_commit(
   TABLE *table_xa,
   TABLE *table_xa_member
 ) {
-  int error_num, tmp_error_num;
+  int error_num = 0, tmp_error_num;
   char xa_key[MAX_KEY_LENGTH];
   SPIDER_CONN *conn;
   uint force_commit = spider_param_force_commit(thd);

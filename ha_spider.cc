@@ -107,6 +107,9 @@ ha_spider::ha_spider(
   sql_kinds = 0;
   error_mode = 0;
   use_spatial_index = FALSE;
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  use_fields = FALSE;
+#endif
   use_pre_call = FALSE;
   use_pre_records = FALSE;
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
@@ -216,6 +219,9 @@ ha_spider::ha_spider(
   sql_kinds = 0;
   error_mode = 0;
   use_spatial_index = FALSE;
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  use_fields = FALSE;
+#endif
   use_pre_call = FALSE;
   use_pre_records = FALSE;
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
@@ -1843,6 +1849,9 @@ int ha_spider::reset()
   result_list.set_split_read = FALSE;
   result_list.insert_dup_update_pushdown = FALSE;
   use_spatial_index = FALSE;
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+  use_fields = FALSE;
+#endif
   error_mode = 0;
 #ifdef HA_CAN_BULK_ACCESS
 #ifndef DBUG_OFF
@@ -15156,7 +15165,7 @@ int ha_spider::print_item_type(
     if (
       dbton_hdl->first_link_idx >= 0 &&
       (error_num = spider_db_print_item_type(item, this, str,
-        alias, alias_length, dbton_id))
+        alias, alias_length, dbton_id, FALSE, NULL))
     ) {
       DBUG_RETURN(error_num);
     }

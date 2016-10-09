@@ -1075,17 +1075,21 @@ void spider_store_binlog_pos_binlog_file(
   DBUG_ENTER("spider_store_binlog_pos_binlog_file");
   if (!file_name)
   {
+    DBUG_PRINT("info",("spider file_name is NULL"));
     table->field[4]->set_null();
     table->field[4]->reset();
   } else {
+    DBUG_PRINT("info",("spider file_name = %s", file_name));
     table->field[4]->set_notnull();
     table->field[4]->store(file_name, file_name_length, binlog_pos_cs);
   }
   if (!position)
   {
+    DBUG_PRINT("info",("spider position is NULL"));
     table->field[5]->set_null();
     table->field[5]->reset();
   } else {
+    DBUG_PRINT("info",("spider position = %s", position));
     table->field[5]->set_notnull();
     table->field[5]->store(position, position_length, binlog_pos_cs);
   }
@@ -1101,9 +1105,11 @@ void spider_store_binlog_pos_gtid(
   DBUG_ENTER("spider_store_binlog_pos_gtid");
   if (!gtid)
   {
+    DBUG_PRINT("info",("spider gtid is NULL"));
     table->field[6]->set_null();
     table->field[6]->reset();
   } else {
+    DBUG_PRINT("info",("spider gtid = %s", gtid));
     table->field[6]->set_notnull();
     table->field[6]->store(gtid, gtid_length, binlog_pos_cs);
   }

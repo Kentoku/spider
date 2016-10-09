@@ -106,6 +106,12 @@ SPIDER_DB_CONN *spider_handlersocket_create_conn(
   DBUG_RETURN(new spider_db_handlersocket(conn));
 }
 
+bool spider_handlersocket_support_direct_join(
+) {
+  DBUG_ENTER("spider_handlersocket_support_direct_join");
+  DBUG_RETURN(FALSE);
+}
+
 spider_db_handlersocket_util spider_db_handlersocket_utility;
 
 SPIDER_DBTON spider_dbton_handlersocket = {
@@ -118,6 +124,7 @@ SPIDER_DBTON spider_dbton_handlersocket = {
   spider_handlersocket_create_handler,
   NULL,
   spider_handlersocket_create_conn,
+  spider_handlersocket_support_direct_join,
   &spider_db_handlersocket_utility
 };
 
@@ -2737,7 +2744,9 @@ int spider_db_handlersocket_util::open_item_func(
   ha_spider *spider,
   spider_string *str,
   const char *alias,
-  uint alias_length
+  uint alias_length,
+  bool use_fields,
+  spider_fields *fields
 ) {
   uint dbton_id = spider_dbton_handlersocket.dbton_id;
   int error_num;
@@ -2814,7 +2823,7 @@ int spider_db_handlersocket_util::open_item_func(
           if (str)
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
           DBUG_RETURN(spider_db_open_item_int(item_func, spider, str,
-            alias, alias_length, dbton_id));
+            alias, alias_length, dbton_id, use_fields, fields));
         } else if (
           !strncasecmp("case", func_name, func_name_length)
         ) {
@@ -2830,7 +2839,7 @@ int spider_db_handlersocket_util::open_item_func(
           {
             if ((error_num = spider_db_print_item_type(
               item_list[item_func_case->first_expr_num], spider, str,
-              alias, alias_length, dbton_id)))
+              alias, alias_length, dbton_id, use_fields, fields)))
               DBUG_RETURN(error_num);
           }
           for (roop_count = 0; roop_count < item_func_case->ncases;
@@ -2844,7 +2853,7 @@ int spider_db_handlersocket_util::open_item_func(
             }
             if ((error_num = spider_db_print_item_type(
               item_list[roop_count], spider, str,
-              alias, alias_length, dbton_id)))
+              alias, alias_length, dbton_id, use_fields, fields)))
               DBUG_RETURN(error_num);
             if (str)
             {
@@ -2854,7 +2863,7 @@ int spider_db_handlersocket_util::open_item_func(
             }
             if ((error_num = spider_db_print_item_type(
               item_list[roop_count + 1], spider, str,
-              alias, alias_length, dbton_id)))
+              alias, alias_length, dbton_id, use_fields, fields)))
               DBUG_RETURN(error_num);
           }
           if (item_func_case->else_expr_num != -1)
@@ -2867,7 +2876,7 @@ int spider_db_handlersocket_util::open_item_func(
             }
             if ((error_num = spider_db_print_item_type(
               item_list[item_func_case->else_expr_num], spider, str,
-              alias, alias_length, dbton_id)))
+              alias, alias_length, dbton_id, use_fields, fields)))
               DBUG_RETURN(error_num);
           }
           if (str)
@@ -2904,7 +2913,7 @@ int spider_db_handlersocket_util::open_item_func(
           if (str)
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
           DBUG_RETURN(spider_db_open_item_string(item_func, spider, str,
-            alias, alias_length, dbton_id));
+            alias, alias_length, dbton_id, use_fields, fields));
         } else if (
           !strncasecmp("convert", func_name, func_name_length)
         ) {
@@ -2929,7 +2938,7 @@ int spider_db_handlersocket_util::open_item_func(
         if (str)
           str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
         DBUG_RETURN(spider_db_open_item_string(item_func, spider, str,
-          alias, alias_length, dbton_id));
+          alias, alias_length, dbton_id, use_fields, fields));
       } else if (func_name_length == 9 &&
         !strncasecmp("isnottrue", func_name, func_name_length)
       ) {
@@ -3045,7 +3054,7 @@ int spider_db_handlersocket_util::open_item_func(
           if (str)
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
           DBUG_RETURN(spider_db_open_item_string(item_func, spider, str,
-            alias, alias_length, dbton_id));
+            alias, alias_length, dbton_id, use_fields, fields));
         } else if (!strncasecmp("timestampdiff", func_name, func_name_length))
         {
 #ifdef ITEM_FUNC_TIMESTAMPDIFF_ARE_PUBLIC
@@ -3108,7 +3117,7 @@ int spider_db_handlersocket_util::open_item_func(
             str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
           }
           if ((error_num = spider_db_print_item_type(item_list[0], spider,
-            str, alias, alias_length, dbton_id)))
+            str, alias, alias_length, dbton_id, use_fields, fields)))
             DBUG_RETURN(error_num);
           if (str)
           {
@@ -3117,7 +3126,7 @@ int spider_db_handlersocket_util::open_item_func(
             str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
           }
           if ((error_num = spider_db_print_item_type(item_list[1], spider,
-            str, alias, alias_length, dbton_id)))
+            str, alias, alias_length, dbton_id, use_fields, fields)))
             DBUG_RETURN(error_num);
           if (str)
           {
@@ -3371,7 +3380,7 @@ int spider_db_handlersocket_util::open_item_func(
             item_date_add_interval->int_type];
           func_name_length = strlen(func_name);
           if ((error_num = spider_db_print_item_type(item_list[0], spider, str,
-            alias, alias_length, dbton_id)))
+            alias, alias_length, dbton_id, use_fields, fields)))
             DBUG_RETURN(error_num);
           if (str)
           {
@@ -3388,7 +3397,7 @@ int spider_db_handlersocket_util::open_item_func(
             }
           }
           if ((error_num = spider_db_print_item_type(item_list[1], spider, str,
-            alias, alias_length, dbton_id)))
+            alias, alias_length, dbton_id, use_fields, fields)))
             DBUG_RETURN(error_num);
           if (str)
           {
@@ -3419,7 +3428,7 @@ int spider_db_handlersocket_util::open_item_func(
       if (str)
         str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
       DBUG_RETURN(spider_db_open_item_string(item_func, spider, str,
-        alias, alias_length, dbton_id));
+        alias, alias_length, dbton_id, use_fields, fields));
     case Item_func::CHAR_TYPECAST_FUNC:
       DBUG_PRINT("info",("spider CHAR_TYPECAST_FUNC"));
       {
@@ -3603,7 +3612,7 @@ int spider_db_handlersocket_util::open_item_func(
         str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
       DBUG_RETURN(
         spider_db_open_item_cond((Item_cond *) item_func, spider, str,
-          alias, alias_length, dbton_id));
+          alias, alias_length, dbton_id, use_fields, fields));
     case Item_func::TRIG_COND_FUNC:
       DBUG_RETURN(ER_SPIDER_COND_SKIP_NUM);
     case Item_func::GUSERVAR_FUNC:
@@ -3611,10 +3620,10 @@ int spider_db_handlersocket_util::open_item_func(
         str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
       if (item_func->result_type() == STRING_RESULT)
         DBUG_RETURN(spider_db_open_item_string(item_func, spider, str,
-          alias, alias_length, dbton_id));
+          alias, alias_length, dbton_id, use_fields, fields));
       else
         DBUG_RETURN(spider_db_open_item_int(item_func, spider, str,
-          alias, alias_length, dbton_id));
+          alias, alias_length, dbton_id, use_fields, fields));
     case Item_func::FT_FUNC:
       if (spider_db_check_ft_idx(item_func, spider) == MAX_KEY)
         DBUG_RETURN(ER_SPIDER_COND_SKIP_NUM);
@@ -3720,7 +3729,7 @@ int spider_db_handlersocket_util::open_item_func(
     {
       item = item_list[roop_count];
       if ((error_num = spider_db_print_item_type(item, spider, str,
-        alias, alias_length, dbton_id)))
+        alias, alias_length, dbton_id, use_fields, fields)))
         DBUG_RETURN(error_num);
       if (roop_count == 1)
       {
@@ -3738,7 +3747,7 @@ int spider_db_handlersocket_util::open_item_func(
     }
     item = item_list[roop_count];
     if ((error_num = spider_db_print_item_type(item, spider, str,
-      alias, alias_length, dbton_id)))
+      alias, alias_length, dbton_id, use_fields, fields)))
       DBUG_RETURN(error_num);
   }
   if (item_func->functype() == Item_func::FT_FUNC)
@@ -3752,7 +3761,7 @@ int spider_db_handlersocket_util::open_item_func(
     }
     item = item_list[0];
     if ((error_num = spider_db_print_item_type(item, spider, str,
-      alias, alias_length, dbton_id)))
+      alias, alias_length, dbton_id, use_fields, fields)))
       DBUG_RETURN(error_num);
     if (str)
     {
@@ -3808,7 +3817,9 @@ int spider_db_handlersocket_util::open_item_sum_func(
   ha_spider *spider,
   spider_string *str,
   const char *alias,
-  uint alias_length
+  uint alias_length,
+  bool use_fields,
+  spider_fields *fields
 ) {
   uint dbton_id = spider_dbton_handlersocket.dbton_id;
   uint roop_count, item_count = item_sum->get_arg_count();
@@ -3838,7 +3849,7 @@ int spider_db_handlersocket_util::open_item_sum_func(
           {
             item = args[roop_count];
             if ((error_num = spider_db_print_item_type(item, spider, str,
-              alias, alias_length, dbton_id)))
+              alias, alias_length, dbton_id, use_fields, fields)))
               DBUG_RETURN(error_num);
             if (str)
             {
@@ -3849,7 +3860,7 @@ int spider_db_handlersocket_util::open_item_sum_func(
           }
           item = args[roop_count];
           if ((error_num = spider_db_print_item_type(item, spider, str,
-            alias, alias_length, dbton_id)))
+            alias, alias_length, dbton_id, use_fields, fields)))
             DBUG_RETURN(error_num);
         }
         if (str)
@@ -3886,6 +3897,47 @@ int spider_db_handlersocket_util::append_escaped_util(
   to->append_escape_string(from->ptr(), from->length());
   DBUG_RETURN(0);
 }
+
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+int spider_db_handlersocket_util::append_from_and_tables(
+  spider_fields *fields,
+  spider_string *str
+) {
+  DBUG_ENTER("spider_db_handlersocket_util::append_from_and_tables");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+
+int spider_db_handlersocket_util::reappend_tables(
+  spider_fields *fields,
+  SPIDER_LINK_IDX_CHAIN *link_idx_chain,
+  spider_string *str
+) {
+  DBUG_ENTER("spider_db_handlersocket_util::reappend_tables");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+
+int spider_db_handlersocket_util::append_where(
+  spider_string *str
+) {
+  DBUG_ENTER("spider_db_handlersocket_util::append_where");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+
+int spider_db_handlersocket_util::append_having(
+  spider_string *str
+) {
+  DBUG_ENTER("spider_db_handlersocket_util::append_having");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+#endif
 
 spider_handlersocket_share::spider_handlersocket_share(
   st_spider_share *share
@@ -5607,6 +5659,19 @@ bool spider_handlersocket_handler::need_lock_before_set_sql_for_exec(
   DBUG_RETURN(TRUE);
 }
 
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+int spider_handlersocket_handler::set_sql_for_exec(
+  ulong sql_type,
+  int link_idx,
+  SPIDER_LINK_IDX_CHAIN *link_idx_chain
+) {
+  DBUG_ENTER("spider_handlersocket_handler::set_sql_for_exec");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+#endif
+
 int spider_handlersocket_handler::set_sql_for_exec(
   ulong sql_type,
   int link_idx
@@ -6032,4 +6097,100 @@ int spider_handlersocket_handler::reset_union_table_name(
   DBUG_ASSERT(0);
   DBUG_RETURN(0);
 }
+
+#ifdef SPIDER_HAS_GROUP_BY_HANDLER
+int spider_handlersocket_handler::append_list_item_select_part(
+  List<Item> *select,
+  const char *alias,
+  uint alias_length,
+  bool use_fields,
+  spider_fields *fields,
+  ulong sql_type
+) {
+  DBUG_ENTER("spider_handlersocket_handler::append_list_item_select_part");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+
+int spider_handlersocket_handler::append_from_and_tables_part(
+  spider_fields *fields,
+  ulong sql_type
+) {
+  DBUG_ENTER("spider_handlersocket_handler::append_from_and_tables_part");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+
+int spider_handlersocket_handler::reappend_tables_part(
+  spider_fields *fields,
+  ulong sql_type
+) {
+  DBUG_ENTER("spider_handlersocket_handler::reappend_tables_part");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+
+int spider_handlersocket_handler::append_where_part(
+  ulong sql_type
+) {
+  DBUG_ENTER("spider_handlersocket_handler::append_where_part");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+
+int spider_handlersocket_handler::append_having_part(
+  ulong sql_type
+) {
+  DBUG_ENTER("spider_handlersocket_handler::append_having_part");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+
+int spider_handlersocket_handler::append_item_type_part(
+  Item *item,
+  const char *alias,
+  uint alias_length,
+  bool use_fields,
+  spider_fields *fields,
+  ulong sql_type
+) {
+  DBUG_ENTER("spider_handlersocket_handler::append_item_type_part");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+
+int spider_handlersocket_handler::append_group_by_part(
+  ORDER *order,
+  const char *alias,
+  uint alias_length,
+  bool use_fields,
+  spider_fields *fields,
+  ulong sql_type
+) {
+  DBUG_ENTER("spider_handlersocket_handler::append_group_by_part");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+
+int spider_handlersocket_handler::append_order_by_part(
+  ORDER *order,
+  const char *alias,
+  uint alias_length,
+  bool use_fields,
+  spider_fields *fields,
+  ulong sql_type
+) {
+  DBUG_ENTER("spider_handlersocket_handler::append_order_by_part");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+#endif
 #endif
