@@ -73,7 +73,7 @@ create table if not exists mysql.spider_xa_failed_log(
 ) engine=MyISAM default charset=utf8 collate=utf8_bin;
 create table if not exists mysql.spider_tables(
   db_name char(64) not null default '',
-  table_name char(64) not null default '',
+  table_name char(256) not null default '',
   link_id int not null default 0,
   priority bigint not null default 0,
   server char(64) default null,
