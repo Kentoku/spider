@@ -5367,7 +5367,8 @@ int spider_oracle_handler::append_index_hint(
   ulong sql_type
   ) 
 {
-  return 0;
+  DBUG_ENTER("spider_oracle_handler::append_index_hint");
+  DBUG_RETURN(0);
 }
 
 int spider_oracle_handler::append_table_name_with_adjusting(

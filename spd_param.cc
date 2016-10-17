@@ -2849,6 +2849,22 @@ my_bool spider_param_general_log()
   DBUG_RETURN(spider_general_log);
 }
 
+static my_bool spider_index_hint_pushdown;
+static MYSQL_SYSVAR_BOOL(
+  index_hint_pushdown,
+  spider_index_hint_pushdown,
+  PLUGIN_VAR_OPCMDARG,
+  "switch to control if push down index hint, like force_index",
+  NULL,
+  NULL,
+  FALSE
+);
+
+my_bool spider_param_index_hint_pushdown()
+{
+  DBUG_ENTER("spider_param_index_hint_pushdown");
+  DBUG_RETURN(spider_index_hint_pushdown);
+}
 
 static uint spider_max_connections;
 static MYSQL_SYSVAR_UINT(
@@ -3313,6 +3329,7 @@ static struct st_mysql_sys_var* spider_system_variables[] = {
   MYSQL_SYSVAR(udf_ds_use_real_table),
 #endif
   MYSQL_SYSVAR(general_log),
+  MYSQL_SYSVAR(index_hint_pushdown),
   MYSQL_SYSVAR(max_connections),
   MYSQL_SYSVAR(conn_wait_timeout),
   MYSQL_SYSVAR(log_result_errors),

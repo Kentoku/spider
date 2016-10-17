@@ -373,6 +373,7 @@ int spider_param_udf_ds_use_real_table(
 );
 #endif
 my_bool spider_param_general_log();
+my_bool spider_param_index_hint_pushdown();
 uint spider_param_max_connections();
 uint spider_param_conn_wait_timeout();
 uint spider_param_log_result_errors();

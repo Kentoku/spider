@@ -4354,6 +4354,16 @@ int spider_handlersocket_handler::init()
   DBUG_RETURN(0);
 }
 
+int spider_handlersocket_handler::append_index_hint(
+  spider_string *str,
+  int link_idx,
+  ulong sql_type
+  ) 
+{
+  DBUG_ENTER("spider_handlersocket_handler::append_index_hint");
+  DBUG_RETURN(0);
+}
+
 int spider_handlersocket_handler::append_table_name_with_adjusting(
   spider_string *str,
   int link_idx,
