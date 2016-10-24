@@ -6543,7 +6543,7 @@ int spider_db_done(
   pthread_attr_destroy(&spider_pt_attr);
 #endif
 
-  uint max_con = spider_param_max_connections();
+  uint max_con = spider_param_max_partitions();
   uint conn_i_count = (max_con > spider_conn_mutex_id)? max_con:spider_conn_mutex_id;
   for(roop_count=0; roop_count < conn_i_count; roop_count++)
   {
@@ -9102,14 +9102,14 @@ int spider_db_init_for_conn_mutexs_conds()
 {
   uint mutex_i,  j;
   DBUG_ENTER("spider_db_init_for_conn_i");
-  for(mutex_i=0; mutex_i < spider_param_max_connections(); mutex_i++)
+  for(mutex_i=0; mutex_i < spider_param_max_partitions(); mutex_i++)
   {
     if (pthread_mutex_init(&(spider_conn_i_mutexs[mutex_i].m_mutex), MY_MUTEX_INIT_FAST))
     {
       break;
     }
   }
-  if(mutex_i < spider_param_max_connections())
+  if(mutex_i < spider_param_max_partitions())
   {
     for (j=0; j<mutex_i-1; j++)
     {
@@ -9119,14 +9119,14 @@ int spider_db_init_for_conn_mutexs_conds()
   }
 
 
-  for(mutex_i=0; mutex_i < spider_param_max_connections(); mutex_i++)
+  for(mutex_i=0; mutex_i < spider_param_max_partitions(); mutex_i++)
   {
     if (pthread_cond_init(&(spider_conn_i_conds[mutex_i].m_cond), NULL))
     {
       break;
     }
   }
-  if(mutex_i < spider_param_max_connections())
+  if(mutex_i < spider_param_max_partitions())
   {
     for (j=0; j<mutex_i-1; j++)
     {
