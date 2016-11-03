@@ -4616,6 +4616,9 @@ SPIDER_SHARE *spider_get_share(
                 pthread_mutex_unlock(&spider_udf_table_mon_mutexes[roop_count]);
             }
             pthread_mutex_unlock(&share->mutex);
+            share->init_error = TRUE;
+            share->init_error_time = (time_t) time((time_t*) 0);
+            share->init = TRUE;
             spider_free_share(share);
             goto error_open_sys_table;
           }
@@ -4635,6 +4638,9 @@ SPIDER_SHARE *spider_get_share(
                   pthread_mutex_unlock(&spider_udf_table_mon_mutexes[roop_count]);
               }
               pthread_mutex_unlock(&share->mutex);
+              share->init_error = TRUE;
+              share->init_error_time = (time_t) time((time_t*) 0);
+              share->init = TRUE;
               spider_free_share(share);
               goto error_get_link_statuses;
             }
@@ -4838,6 +4844,10 @@ SPIDER_SHARE *spider_get_share(
           spider->dbton_handler[dbton_id] = NULL;
         }
       }
+      share->init_error = TRUE;
+      share->init_error_time = (time_t) time((time_t*) 0);
+      share->init = TRUE;
+      spider_free_share(share);
       goto error_but_no_delete;
     }
 
@@ -5038,6 +5048,10 @@ SPIDER_SHARE *spider_get_share(
         fprintf(stderr, " [WARN SPIDER RESULT] "
           "Wait share->init too long, table_name %s %s %ld\n",
           share->table_name, share->tgt_hosts[0], share->tgt_ports[0]);
+        *error_num = ER_SPIDER_TABLE_OPEN_TIMEOUT_NUM;
+        my_printf_error(ER_SPIDER_TABLE_OPEN_TIMEOUT_NUM,
+          ER_SPIDER_TABLE_OPEN_TIMEOUT_STR, MYF(0),
+          table_share->db.str, table_share->table_name.str);
         goto error_but_no_delete;
       }
       my_sleep(10000); // wait 10 ms
