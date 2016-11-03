@@ -852,6 +852,7 @@ typedef struct st_spider_share
   int                use_table_charset;
   int                use_pushdown_udf;
   int                skip_default_condition;
+  int                skip_parallel_search;
   int                direct_dup_insert;
   longlong           direct_order_limit;
   int                read_only_mode;

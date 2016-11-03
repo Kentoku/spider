@@ -12920,12 +12920,20 @@ void ha_spider::check_pre_call(
 ) {
   THD* thd = ha_thd();
   st_select_lex *select_lex = spider_get_select_lex(this);
+  int skip_parallel_search =
+    spider_param_skip_parallel_search(thd, share->skip_parallel_search);
   DBUG_ENTER("ha_spider::check_pre_call");
   DBUG_PRINT("info",("spider this=%p", this));
-  if (thd->lex && thd->lex->sql_command != SQLCOM_SELECT || // such like insert .. select ..
-    select_lex && select_lex->sql_cache == SELECT_LEX::SQL_NO_CACHE //  for mysqldump 
+  if (
+    (
+      (skip_parallel_search & 1) &&
+      thd->lex && thd->lex->sql_command != SQLCOM_SELECT // such like insert .. select ..
+    ) ||
+    (
+      (skip_parallel_search & 2) &&
+      select_lex && select_lex->sql_cache == SELECT_LEX::SQL_NO_CACHE //  for mysqldump 
     )
-  {
+  ) {
     use_pre_call = FALSE;
     DBUG_VOID_RETURN;
   }

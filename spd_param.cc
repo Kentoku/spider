@@ -2724,6 +2724,34 @@ int spider_param_skip_default_condition(
 
 /*
  -1 :use table parameter
+  0 :not skip
+  1 :skip parallel search if query is not SELECT statement
+  2 :skip parallel search if query has SQL_NO_CACHE
+  3 :1+2
+ */
+static MYSQL_THDVAR_INT(
+  skip_parallel_search, /* name */
+  PLUGIN_VAR_RQCMDARG, /* opt */
+  "Skip parallel search by specific conditions", /* comment */
+  NULL, /* check */
+  NULL, /* update */
+  -1, /* def */
+  -1, /* min */
+  3, /* max */
+  0 /* blk */
+);
+
+int spider_param_skip_parallel_search(
+  THD *thd,
+  int skip_parallel_search
+) {
+  DBUG_ENTER("spider_param_skip_parallel_search");
+  DBUG_RETURN(THDVAR(thd, skip_parallel_search) == -1 ?
+    skip_parallel_search : THDVAR(thd, skip_parallel_search));
+}
+
+/*
+ -1 :use table parameter
   0 :not send directly
   1-:send directly
  */
@@ -3338,6 +3366,7 @@ static struct st_mysql_sys_var* spider_system_variables[] = {
   MYSQL_SYSVAR(error_read_mode),
   MYSQL_SYSVAR(error_write_mode),
   MYSQL_SYSVAR(skip_default_condition),
+  MYSQL_SYSVAR(skip_parallel_search),
   MYSQL_SYSVAR(direct_order_limit),
   MYSQL_SYSVAR(read_only_mode),
 #ifdef HA_CAN_BULK_ACCESS

@@ -1931,6 +1931,7 @@ int spider_parse_connect_info(
   share->use_table_charset = -1;
   share->use_pushdown_udf = -1;
   share->skip_default_condition = -1;
+  share->skip_parallel_search = -1;
   share->direct_dup_insert = -1;
   share->direct_order_limit = -1;
   share->bka_mode = -1;
@@ -2178,6 +2179,7 @@ int spider_parse_connect_info(
           SPIDER_PARAM_INT_WITH_MAX("smd", sts_mode, 1, 2);
           SPIDER_PARAM_LONGLONG("smr", static_mean_rec_length, 0);
           SPIDER_PARAM_LONGLONG("spr", split_read, 0);
+          SPIDER_PARAM_INT_WITH_MAX("sps", skip_parallel_search, 0, 3);
           SPIDER_PARAM_STR_LIST("sqn", tgt_sequence_names);
           SPIDER_PARAM_LONGLONG("srd", second_read, 0);
           SPIDER_PARAM_DOUBLE("srt", scan_rate, 0);
@@ -2459,6 +2461,8 @@ int spider_parse_connect_info(
             "monitoring_server_id", monitoring_sid, 0, 4294967295LL);
           SPIDER_PARAM_INT_WITH_MAX(
             "delete_all_rows_type", delete_all_rows_type, 0, 1);
+          SPIDER_PARAM_INT_WITH_MAX(
+            "skip_parallel_search", skip_parallel_search, 0, 3);
           error_num = ER_SPIDER_INVALID_CONNECT_INFO_NUM;
           my_printf_error(error_num, ER_SPIDER_INVALID_CONNECT_INFO_STR,
             MYF(0), tmp_ptr);
@@ -3762,6 +3766,8 @@ int spider_set_connect_info_default(
     share->use_pushdown_udf = 1;
   if (share->skip_default_condition == -1)
     share->skip_default_condition = 0;
+  if (share->skip_parallel_search == -1)
+    share->skip_parallel_search = 0;
   if (share->direct_dup_insert == -1)
     share->direct_dup_insert = 0;
   if (share->direct_order_limit == -1)

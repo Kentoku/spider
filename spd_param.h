@@ -352,6 +352,10 @@ int spider_param_skip_default_condition(
   THD *thd,
   int skip_default_condition
 );
+int spider_param_skip_parallel_search(
+  THD *thd,
+  int skip_parallel_search
+);
 longlong spider_param_direct_order_limit(
   THD *thd,
   longlong direct_order_limit
