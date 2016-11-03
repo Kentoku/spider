@@ -8194,14 +8194,12 @@ st_select_lex *spider_get_select_lex(
   DBUG_RETURN(NULL);
 }
 
-void spider_get_select_limit(
-  ha_spider *spider,
-  st_select_lex **select_lex,
+void spider_get_select_limit_from_select_lex(
+  st_select_lex *select_lex,
   longlong *select_limit,
   longlong *offset_limit
 ) {
-  DBUG_ENTER("spider_get_select_limit");
-  *select_lex = spider_get_select_lex(spider);
+  DBUG_ENTER("spider_get_select_limit_from_select_lex");
   *select_limit = 9223372036854775807LL;
   *offset_limit = 0;
   if (*select_lex && (*select_lex)->explicit_limit)
@@ -8211,6 +8209,19 @@ void spider_get_select_limit(
     *offset_limit = (*select_lex)->offset_limit ?
       (*select_lex)->offset_limit->val_int() : 0;
   }
+  DBUG_VOID_RETURN;
+}
+
+void spider_get_select_limit(
+  ha_spider *spider,
+  st_select_lex **select_lex,
+  longlong *select_limit,
+  longlong *offset_limit
+) {
+  DBUG_ENTER("spider_get_select_limit");
+  *select_lex = spider_get_select_lex(spider);
+  spider_get_select_limit_from_select_lex(
+    *select_lex, select_limit, offset_limit);
   DBUG_VOID_RETURN;
 }
 

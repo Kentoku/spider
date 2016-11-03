@@ -12940,10 +12940,10 @@ void ha_spider::check_pre_call(
   use_pre_call = use_parallel;
   if (!use_pre_call)
   {
-    st_select_lex *select_lex;
     longlong select_limit;
     longlong offset_limit;
-    spider_get_select_limit(this, &select_lex, &select_limit, &offset_limit);
+    spider_get_select_limit_from_select_lex(
+      select_lex, &select_limit, &offset_limit);
     if (
       select_lex &&
       (!select_lex->explicit_limit || !select_limit)

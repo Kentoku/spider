@@ -397,6 +397,12 @@ st_select_lex *spider_get_select_lex(
   ha_spider *spider
 );
 
+void spider_get_select_limit_from_select_lex(
+  st_select_lex *select_lex,
+  longlong *select_limit,
+  longlong *offset_limit
+);
+
 void spider_get_select_limit(
   ha_spider *spider,
   st_select_lex **select_lex,
