@@ -487,6 +487,8 @@ int ha_spider::open(
     }
   }
 #endif
+  memset(ft_discard_bitmap, 0xFF, no_bytes_in_map(table->read_set));
+  memset(searched_bitmap, 0, no_bytes_in_map(table->read_set));
 
   init_sql_alloc_size =
     spider_param_init_sql_alloc_size(thd, share->init_sql_alloc_size);
@@ -1669,6 +1671,7 @@ int ha_spider::reset()
   }
 #endif
   memset(ft_discard_bitmap, 0xFF, no_bytes_in_map(table->read_set));
+  memset(searched_bitmap, 0, no_bytes_in_map(table->read_set));
   if (!(tmp_trx = spider_get_trx(thd, TRUE, &error_num2)))
   {
     DBUG_PRINT("info",("spider get trx error"));
