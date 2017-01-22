@@ -5999,11 +5999,10 @@ int spider_mysql_handler::append_index_hint(
   ulong sql_type
   )
 {
-  st_select_lex *select_lex = spider_get_select_lex(spider);;
   List<Index_hint> *index_hints = spider_get_index_hints(spider);
   List_iterator <Index_hint> iter(*index_hints);
   Index_hint *hint;
-  THD *thd = current_thd;
+//  THD *thd = current_thd;
   int error_num = 0;
   DBUG_ENTER("spider_mysql_handler::append_index_hint");
   DBUG_PRINT("info",("spider this=%p", this));
@@ -9851,7 +9850,7 @@ int spider_mysql_handler::append_from(
     append_table_name_with_adjusting(str, link_idx, sql_type);
     if(spider_param_index_hint_pushdown())
     {
-      if(error_num = append_index_hint(str, link_idx, sql_type))
+      if((error_num = append_index_hint(str, link_idx, sql_type)))
       {
         DBUG_RETURN(error_num);
       }

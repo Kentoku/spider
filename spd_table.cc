@@ -116,6 +116,7 @@ PSI_mutex_key spd_key_mutex_mem_calc;
 PSI_mutex_key spd_key_thread_id;
 PSI_mutex_key spd_key_conn_id;
 PSI_mutex_key spd_key_mutex_ipport_count;
+PSI_mutex_key spd_key_mutex_conn_i;
 
 static PSI_mutex_info all_spider_mutexes[]=
 {
@@ -141,6 +142,7 @@ static PSI_mutex_info all_spider_mutexes[]=
   { &spd_key_thread_id, "thread_id", PSI_FLAG_GLOBAL},
   { &spd_key_conn_id, "conn_id", PSI_FLAG_GLOBAL},
   { &spd_key_mutex_ipport_count, "ipport_count", PSI_FLAG_GLOBAL},
+  { &spd_key_mutex_conn_i, "conn_i", PSI_FLAG_GLOBAL},
   { &spd_key_mutex_mta_conn, "mta_conn", 0},
 #ifndef WITHOUT_SPIDER_BG_SEARCH
   { &spd_key_mutex_bg_conn_chain, "bg_conn_chain", 0},
@@ -178,6 +180,7 @@ PSI_cond_key spd_key_cond_bg_mon_sleep;
 PSI_cond_key spd_key_cond_bg_direct_sql;
 #endif
 PSI_cond_key spd_key_cond_udf_table_mon;
+PSI_cond_key spd_key_cond_conn_i;
 
 static PSI_cond_info all_spider_conds[] = {
 #ifndef WITHOUT_SPIDER_BG_SEARCH
@@ -192,6 +195,7 @@ static PSI_cond_info all_spider_conds[] = {
   {&spd_key_cond_bg_direct_sql, "bg_direct_sql", 0},
 #endif
   {&spd_key_cond_udf_table_mon, "udf_table_mon", 0},
+  {&spd_key_cond_conn_i, "conn_i", 0},
 };
 
 #ifndef WITHOUT_SPIDER_BG_SEARCH
@@ -6564,7 +6568,7 @@ int spider_db_done(
 #endif
 
   uint max_con = spider_param_max_partitions();
-  uint conn_i_count = (max_con > spider_conn_mutex_id)? max_con:spider_conn_mutex_id;
+  int conn_i_count = (max_con > spider_conn_mutex_id)? max_con:spider_conn_mutex_id;
   for(roop_count=0; roop_count < conn_i_count; roop_count++)
   {
     pthread_mutex_destroy(&spider_conn_i_mutexs[roop_count]);
@@ -9164,7 +9168,13 @@ int spider_db_init_for_conn_mutexs_conds()
   DBUG_ENTER("spider_db_init_for_conn_i");
   for(mutex_i=0; mutex_i < spider_param_max_partitions(); mutex_i++)
   {
-    if (pthread_mutex_init(&(spider_conn_i_mutexs[mutex_i].m_mutex), MY_MUTEX_INIT_FAST))
+#if MYSQL_VERSION_ID < 50500
+    if (pthread_mutex_init(
+      &spider_conn_i_mutexs[mutex_i], MY_MUTEX_INIT_FAST))
+#else
+    if (mysql_mutex_init(spd_key_mutex_conn_i,
+      &spider_conn_i_mutexs[mutex_i], MY_MUTEX_INIT_FAST))
+#endif
     {
       break;
     }
@@ -9181,7 +9191,13 @@ int spider_db_init_for_conn_mutexs_conds()
 
   for(mutex_i=0; mutex_i < spider_param_max_partitions(); mutex_i++)
   {
-    if (pthread_cond_init(&(spider_conn_i_conds[mutex_i].m_cond), NULL))
+#if MYSQL_VERSION_ID < 50500
+    if (pthread_cond_init(
+      &spider_conn_i_conds[mutex_i], NULL))
+#else
+    if (mysql_cond_init(spd_key_cond_conn_i,
+      &spider_conn_i_conds[mutex_i], NULL))
+#endif
     {
       break;
     }
