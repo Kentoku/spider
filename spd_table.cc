@@ -8216,12 +8216,12 @@ void spider_get_select_limit_from_select_lex(
   DBUG_ENTER("spider_get_select_limit_from_select_lex");
   *select_limit = 9223372036854775807LL;
   *offset_limit = 0;
-  if (*select_lex && (*select_lex)->explicit_limit)
+  if (select_lex && select_lex->explicit_limit)
   {
-    *select_limit = (*select_lex)->select_limit ?
-      (*select_lex)->select_limit->val_int() : 0;
-    *offset_limit = (*select_lex)->offset_limit ?
-      (*select_lex)->offset_limit->val_int() : 0;
+    *select_limit = select_lex->select_limit ?
+      select_lex->select_limit->val_int() : 0;
+    *offset_limit = select_lex->offset_limit ?
+      select_lex->offset_limit->val_int() : 0;
   }
   DBUG_VOID_RETURN;
 }
