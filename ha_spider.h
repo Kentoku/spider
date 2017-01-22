@@ -259,6 +259,11 @@ public:
   /* for dbton */
   spider_db_handler  **dbton_handler;
 
+  /* for direct limit offset */
+  longlong direct_select_offset;
+  longlong direct_current_offset;
+  longlong direct_select_limit;
+
   ha_spider();
   ha_spider(
     handlerton *hton,

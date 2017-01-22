@@ -1928,7 +1928,8 @@ typedef struct st_spider_result_list
   spider_bulk_upd_start   bulk_update_start;
   bool                    check_direct_order_limit;
   bool                    direct_order_limit;
-  bool					  direct_limit_offset;			/* the limit_offeset, without where condition */
+  /* the limit_offeset, without where condition */
+  bool                    direct_limit_offset;
   bool                    direct_distinct;
 #ifdef HANDLER_HAS_DIRECT_AGGREGATE
   bool                    direct_aggregate;

@@ -7453,6 +7453,7 @@ int ha_spider::rnd_next_internal(
   uchar *buf
 ) {
   int error_num;
+  ha_spider *direct_limit_offset_spider;
   backup_error_status();
   DBUG_ENTER("ha_spider::rnd_next_internal");
   DBUG_PRINT("info",("spider this=%p", this));
@@ -7467,6 +7468,16 @@ int ha_spider::rnd_next_internal(
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
   do_direct_update = FALSE;
 #endif
+
+  if (this->result_list.direct_limit_offset)
+  {
+    if (pt_handler_share_creator)
+    {
+      direct_limit_offset_spider = pt_handler_share_creator;
+    } else {
+      direct_limit_offset_spider = this;
+    }
+  }
 
   if (rnd_scan_and_first)
   {
@@ -7486,25 +7497,28 @@ int ha_spider::rnd_next_internal(
 #endif
     if (this->result_list.direct_limit_offset)
     {
-      if (this->trx->thd->select_limit == 0)
+      if (direct_limit_offset_spider->direct_select_limit == 0)
       { // mean has got all result
         DBUG_RETURN(check_error_mode_eof(HA_ERR_END_OF_FILE));
       }
-      longlong table_count = this->records();
-      if (table_count <= this->trx->thd->select_offset)
+      if (direct_limit_offset_spider->direct_current_offset > 0)
       {
-        // skip this spider(partition)
-        this->trx->thd->select_offset -= table_count;
-        DBUG_RETURN(check_error_mode_eof(HA_ERR_END_OF_FILE));
+        longlong table_count = this->records();
+        if (table_count <= direct_limit_offset_spider->direct_current_offset)
+        {
+          // skip this spider(partition)
+          direct_limit_offset_spider->direct_current_offset -= table_count;
+          DBUG_RETURN(check_error_mode_eof(HA_ERR_END_OF_FILE));
+        }
       }
 
       // make the offset/limit statement
-      result_list.internal_offset = this->trx->thd->select_offset;
-      result_list.internal_limit = this->trx->thd->select_limit;
-      result_list.split_read = this->trx->thd->select_limit;
+      result_list.internal_offset = direct_limit_offset_spider->direct_current_offset;
+      result_list.internal_limit = direct_limit_offset_spider->direct_select_limit;
+      result_list.split_read = direct_limit_offset_spider->direct_select_limit;
 
       // start with this spider(partition)
-      this->trx->thd->select_offset = 0;
+      direct_limit_offset_spider->direct_current_offset = 0;
     }
 
     DBUG_PRINT("info",("spider result_list.finish_flg = FALSE"));
@@ -7761,14 +7775,28 @@ int ha_spider::rnd_next_internal(
 #endif
     }
     rnd_scan_and_first = FALSE;
+
+    if (this->result_list.direct_limit_offset)
+    {
+      if (buf && (error_num = spider_db_seek_next(buf, this, search_link_idx,
+        table)))
+        DBUG_RETURN(check_error_mode_eof(error_num));
+      DBUG_RETURN(0);
+    }
   }
+
+  if (
+    result_list.direct_limit_offset &&
+    direct_limit_offset_spider->direct_select_offset > 0
+  ) {
+    // limit-- for each got row
+    direct_limit_offset_spider->direct_select_offset--;
+    DBUG_RETURN(0);
+  }
+
   if (buf && (error_num = spider_db_seek_next(buf, this, search_link_idx,
     table)))
     DBUG_RETURN(check_error_mode_eof(error_num));
-
-  // limit-- for each got row
-  if (result_list.direct_limit_offset && trx->thd->select_limit > 0)
-    trx->thd->select_limit--;
   DBUG_RETURN(0);
 }
 
