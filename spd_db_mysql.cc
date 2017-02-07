@@ -12809,7 +12809,11 @@ int spider_mysql_handler::append_order_by(
       {
         DBUG_RETURN(error_num);
       }
+#ifdef SPIDER_ORDER_HAS_ENUM_ORDER
       if (order->direction == ORDER::ORDER_DESC)
+#else
+      if (!order->asc)
+#endif
       {
         if (str->reserve(SPIDER_SQL_COMMA_LEN + SPIDER_SQL_DESC_LEN))
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
