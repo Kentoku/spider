@@ -207,6 +207,7 @@
 class ha_spider;
 typedef struct st_spider_share SPIDER_SHARE;
 typedef struct st_spider_table_mon_list SPIDER_TABLE_MON_LIST;
+typedef struct st_spider_ip_port_conn SPIDER_IP_PORT_CONN;
 
 typedef struct st_spider_file_pos
 {
@@ -497,6 +498,7 @@ typedef struct st_spider_conn
   SPIDER_CONN_HOLDER    *conn_holder_for_direct_join;
   SPIDER_LINK_IDX_CHAIN *link_idx_chain;
 #endif
+  SPIDER_IP_PORT_CONN *ip_port_conn;
 } SPIDER_CONN;
 
 typedef struct st_spider_lgtm_tblhnd_share
@@ -1335,14 +1337,16 @@ char *spider_create_string(
 
 
 typedef struct st_spider_ip_port_conn {
-    char *key;
-	size_t key_len;
+  char               *key;
+  size_t             key_len;
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
-	my_hash_value_type key_hash_value;
+  my_hash_value_type key_hash_value;
 #endif
-    char remote_ip_str[SPIDER_CONN_META_BUF_LEN];
-    long remote_port;
-    long ip_port_count;
-    long conn_mutex_num;
-    ulonglong conn_id; /* each conn has it's own conn_id */
+  char               remote_ip_str[SPIDER_CONN_META_BUF_LEN];
+  long               remote_port;
+  ulong              ip_port_count;
+  volatile ulong     waiting_count;
+  pthread_mutex_t    mutex;
+  pthread_cond_t     cond;
+  ulonglong          conn_id; /* each conn has it's own conn_id */
 } SPIDER_IP_PORT_CONN;

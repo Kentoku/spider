@@ -46,9 +46,7 @@ extern ulong *spd_db_att_thread_id;
 extern handlerton *spider_hton_ptr;
 extern SPIDER_DBTON spider_dbton[SPIDER_DBTON_SIZE];
 pthread_mutex_t spider_conn_id_mutex;
-pthread_mutex_t spider_ipport_count_mutex;
-pthread_mutex_t spider_conn_i_mutexs[SPIDER_MAX_PARTITION_NUM];
-pthread_cond_t  spider_conn_i_conds[SPIDER_MAX_PARTITION_NUM];
+pthread_mutex_t spider_ipport_conn_mutex;
 ulonglong spider_conn_id = 1;
 
 #ifndef WITHOUT_SPIDER_BG_SEARCH
@@ -199,7 +197,7 @@ void spider_free_conn_from_trx(
   int *roop_count
 ) {
   ha_spider *spider;
-  SPIDER_IP_PORT_CONN *ip_port_conn = NULL;
+  SPIDER_IP_PORT_CONN *ip_port_conn = conn->ip_port_conn;
   DBUG_ENTER("spider_free_conn_from_trx");
   spider_conn_clear_queue(conn);
   conn->use_for_active_standby = FALSE;
@@ -277,24 +275,13 @@ void spider_free_conn_from_trx(
             pthread_mutex_unlock(&spider_conn_mutex);
             spider_free_conn(conn);
           } else {
-            long mutex_num=0;
-#ifdef SPIDER_HAS_HASH_VALUE_TYPE
-            if((ip_port_conn =
-              (SPIDER_IP_PORT_CONN*) my_hash_search_using_hash_value(
-                &spider_ipport_conns, conn->conn_key_hash_value,
-                (uchar*) conn->conn_key, conn->conn_key_length)))
-#else
-            if((ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search(
-              &spider_ipport_conns,
-              (uchar*) conn->conn_key, conn->conn_key_length)))
-#endif
-            {/* exists */
-              if(spider_param_max_connections())
+            if (ip_port_conn)
+            { /* exists */
+              if (ip_port_conn->waiting_count)
               {
-                mutex_num = ip_port_conn->conn_mutex_num;
-                pthread_mutex_lock(&spider_conn_i_mutexs[mutex_num]);
-                pthread_cond_signal(&spider_conn_i_conds[mutex_num]);
-                pthread_mutex_unlock(&spider_conn_i_mutexs[mutex_num]);
+                pthread_mutex_lock(&ip_port_conn->mutex);
+                pthread_cond_signal(&ip_port_conn->cond);
+                pthread_mutex_unlock(&ip_port_conn->mutex);
               }
             }
             if (spider_open_connections.array.max_element > old_elements)
@@ -735,7 +722,7 @@ SPIDER_CONN *spider_create_conn(
   ++spider_conn_id;
   pthread_mutex_unlock(&spider_conn_id_mutex);
 
-  pthread_mutex_lock(&spider_ipport_count_mutex);
+  pthread_mutex_lock(&spider_ipport_conn_mutex);
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
   if ((ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search_using_hash_value(
     &spider_ipport_conns, conn->conn_key_hash_value,
@@ -744,33 +731,36 @@ SPIDER_CONN *spider_create_conn(
   if ((ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search(
     &spider_ipport_conns, (uchar*)conn->conn_key, conn->conn_key_length)))
 #endif
-  {/* exists, +1 */
-    if(spider_param_max_connections())
-    {/* enable conncetion pool */
-      if((unsigned long)(ip_port_conn->ip_port_count) >= spider_param_max_connections())
-      {/* bigger than the max num of conn£¬ free conn and return NULL */
-        pthread_mutex_unlock(&spider_ipport_count_mutex);
+  { /* exists, +1 */
+    pthread_mutex_unlock(&spider_ipport_conn_mutex);
+    pthread_mutex_lock(&ip_port_conn->mutex);
+    if (spider_param_max_connections())
+    { /* enable conncetion pool */
+      if (ip_port_conn->ip_port_count >= spider_param_max_connections())
+      { /* bigger than the max num of conn£¬ free conn and return NULL */
+        pthread_mutex_unlock(&ip_port_conn->mutex);
         goto error_too_many_ipport_count;
       }
     }
     ip_port_conn->ip_port_count++;
+    pthread_mutex_unlock(&ip_port_conn->mutex);
   }
   else
   {// do not exist 
     ip_port_conn = spider_create_ipport_conn(conn);
     if (!ip_port_conn) {
       /* failed, always do not effect 'create conn' */
-      pthread_mutex_unlock(&spider_ipport_count_mutex);
+      pthread_mutex_unlock(&spider_ipport_conn_mutex);
       DBUG_RETURN(conn);
     }
     if (my_hash_insert(&spider_ipport_conns, (uchar *)ip_port_conn)) {
       /* insert failed, always do not effect 'create conn' */
-      pthread_mutex_unlock(&spider_ipport_count_mutex);
+      pthread_mutex_unlock(&spider_ipport_conn_mutex);
       DBUG_RETURN(conn);
     }
+    pthread_mutex_unlock(&spider_ipport_conn_mutex);
   }
-  pthread_mutex_unlock(&spider_ipport_count_mutex);
-
+  conn->ip_port_conn = ip_port_conn;
 
   DBUG_RETURN(conn);
 
@@ -934,11 +924,11 @@ SPIDER_CONN *spider_get_conn(
 #endif
         {
           pthread_mutex_unlock(&spider_conn_mutex);
-          if(spider_param_max_connections())
+          if (spider_param_max_connections())
           { /* enable connection pool */
             conn = spider_get_conn_from_idle_connection(share, link_idx, conn_key, spider, conn_kind, base_link_idx, error_num);
             /* failed get conn, goto error */
-            if(!conn)
+            if (!conn)
               goto error;
 
           }
@@ -1226,21 +1216,14 @@ int spider_free_conn(
 ) {
   DBUG_ENTER("spider_free_conn");
   DBUG_PRINT("info", ("spider conn=%p", conn));
-  SPIDER_IP_PORT_CONN* ip_port_conn;
-  pthread_mutex_lock(&spider_ipport_count_mutex);
-#ifdef SPIDER_HAS_HASH_VALUE_TYPE
-  if ((ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search_using_hash_value(
-    &spider_ipport_conns, conn->conn_key_hash_value,
-    (uchar*)conn->conn_key, conn->conn_key_length)))
-#else
-  if ((ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search(
-    &spider_ipport_conns, (uchar*)conn->conn_key, conn->conn_key_length)))
-#endif
-  {/* free conn, ip_port_count-- */
+  SPIDER_IP_PORT_CONN* ip_port_conn = conn->ip_port_conn;
+  if (ip_port_conn)
+  { /* free conn, ip_port_count-- */
+    pthread_mutex_lock(&ip_port_conn->mutex);
     if (ip_port_conn->ip_port_count > 0)
       ip_port_conn->ip_port_count--;
+    pthread_mutex_unlock(&ip_port_conn->mutex);
   }
-  pthread_mutex_unlock(&spider_ipport_count_mutex);
   spider_free_conn_alloc(conn);
   spider_free(spider_current_trx, conn, MYF(0));
   DBUG_RETURN(0);
@@ -4448,7 +4431,7 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
   int *error_num
   )
 {	
-  DBUG_ENTER("spider_wait_idle_connection");
+  DBUG_ENTER("spider_get_conn_from_idle_connection");
   SPIDER_IP_PORT_CONN *ip_port_conn;
   SPIDER_CONN *conn = NULL;
   uint spider_max_connections = spider_param_max_connections();
@@ -4458,28 +4441,33 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
   ulonglong wait_time = (ulonglong)spider_param_conn_wait_timeout()*1000*1000*1000; // default 10s
 
   unsigned long ip_port_count = 0; // init 0
-  long mutex_num=0;
 
   set_timespec(abstime, 0);
 
-  pthread_mutex_lock(&spider_ipport_count_mutex);
+  pthread_mutex_lock(&spider_ipport_conn_mutex);
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
-  if((ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search_using_hash_value(
+  if ((ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search_using_hash_value(
     &spider_ipport_conns, share->conn_keys_hash_value[link_idx],
     (uchar*) share->conn_keys[link_idx], share->conn_keys_lengths[link_idx])))
 #else
-  if((ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search(
+  if ((ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search(
     &spider_ipport_conns,
     (uchar*) share->conn_keys[link_idx], share->conn_keys_lengths[link_idx])))
 #endif
-  {/* exists */
+  { /* exists */
+    pthread_mutex_unlock(&spider_ipport_conn_mutex);
+    pthread_mutex_lock(&ip_port_conn->mutex);
     ip_port_count = ip_port_conn->ip_port_count;
-    mutex_num = ip_port_conn->conn_mutex_num;
+  } else {
+    pthread_mutex_unlock(&spider_ipport_conn_mutex);
   }
 
-  if(ip_port_count >= spider_max_connections && spider_max_connections > 0)
-  {/* no idle conn && enable connection pool, wait */ 
-    pthread_mutex_unlock(&spider_ipport_count_mutex);
+  if (
+    ip_port_conn &&
+    ip_port_count >= spider_max_connections &&
+    spider_max_connections > 0
+  ) { /* no idle conn && enable connection pool, wait */ 
+    pthread_mutex_unlock(&ip_port_conn->mutex);
     start = my_hrtime().val; 
     while(1)
     {
@@ -4492,15 +4480,16 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
         DBUG_RETURN(NULL);
       }
       set_timespec_nsec(abstime, last_ntime);
-      pthread_mutex_lock(&spider_conn_i_mutexs[mutex_num]);
-      error = pthread_cond_timedwait(&spider_conn_i_conds[mutex_num], &spider_conn_i_mutexs[mutex_num], &abstime);
-      if (error == ETIMEDOUT || error == ETIME || error!=0 )
+      pthread_mutex_lock(&ip_port_conn->mutex);
+      ++ip_port_conn->waiting_count;
+      error = pthread_cond_timedwait(&ip_port_conn->cond, &ip_port_conn->mutex, &abstime);
+      --ip_port_conn->waiting_count;
+      pthread_mutex_unlock(&ip_port_conn->mutex);
+      if (error == ETIMEDOUT || error == ETIME || error != 0 )
       {
-        pthread_mutex_unlock(&spider_conn_i_mutexs[mutex_num]); /* timeout */
         *error_num = ER_SPIDER_CON_COUNT_ERROR;
         DBUG_RETURN(NULL);
       }
-      pthread_mutex_unlock(&spider_conn_i_mutexs[mutex_num]);
 
       pthread_mutex_lock(&spider_conn_mutex);
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
@@ -4514,7 +4503,7 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
         share->conn_keys_lengths[link_idx])))
 #endif
       {
-        /* get conn from spider_open_connections, then delete conn in spider_open_connections*/
+        /* get conn from spider_open_connections, then delete conn in spider_open_connections */
 #ifdef HASH_UPDATE_WITH_HASH_VALUE
         my_hash_delete_with_hash_value(&spider_open_connections,
           conn->conn_key_hash_value, (uchar*) conn);
@@ -4538,8 +4527,9 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
     }
   }
   else
-  {/* create conn */
-    pthread_mutex_unlock(&spider_ipport_count_mutex); 
+  { /* create conn */
+    if (ip_port_conn)
+      pthread_mutex_unlock(&ip_port_conn->mutex);
     DBUG_PRINT("info",("spider create new conn"));
     if (!(conn = spider_create_conn(share, spider, link_idx, base_link_idx, conn_kind, error_num)))
       DBUG_RETURN(conn);  
@@ -4558,7 +4548,6 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
 
 SPIDER_IP_PORT_CONN* spider_create_ipport_conn(SPIDER_CONN *conn) 
 {
-  uint next_spider_conn_mutex_id;
   DBUG_ENTER("spider_create_ipport_conn");
   if (conn)
   {
@@ -4567,57 +4556,39 @@ SPIDER_IP_PORT_CONN* spider_create_ipport_conn(SPIDER_CONN *conn)
     {
       goto err_return_direct;
     }
-    next_spider_conn_mutex_id = spider_conn_mutex_id;
-    if (next_spider_conn_mutex_id >= SPIDER_MAX_PARTITION_NUM) 
-    { /* RETURN ERROR and output error log*/
-      time_t cur_time = (time_t) time((time_t*) 0);
-      struct tm lt;
-      struct tm *l_time = localtime_r(&cur_time, &lt);
-      fprintf(stderr, "%04d%02d%02d %02d:%02d:%02d [WARN SPIDER RESULT] "
-                      "error to spider_create_ipport_conn, next_spider_conn_mutex_id is %d\n",
-        l_time->tm_year + 1900, l_time->tm_mon + 1, l_time->tm_mday,
-        l_time->tm_hour, l_time->tm_min, l_time->tm_sec, next_spider_conn_mutex_id);
+
+#if MYSQL_VERSION_ID < 50500
+    if (pthread_mutex_init(&ret->mutex, MY_MUTEX_INIT_FAST))
+#else
+    if (mysql_mutex_init(spd_key_mutex_conn_i, &ret->mutex, MY_MUTEX_INIT_FAST))
+#endif
+    {
+      //error
       goto err_malloc_key;
     }
 
-    if (next_spider_conn_mutex_id >= spider_param_max_connections()) 
+#if MYSQL_VERSION_ID < 50500
+    if (pthread_cond_init(&ret->cond, NULL))
+#else
+    if (mysql_cond_init(spd_key_cond_conn_i, &ret->cond, NULL))
+#endif
     {
-      //to do dynamic alloc
-#if MYSQL_VERSION_ID < 50500
-      if (pthread_mutex_init(
-        &spider_conn_i_mutexs[next_spider_conn_mutex_id], MY_MUTEX_INIT_FAST))
-#else
-      if (mysql_mutex_init(spd_key_mutex_conn_i,
-        &spider_conn_i_mutexs[next_spider_conn_mutex_id], MY_MUTEX_INIT_FAST))
-#endif
-      {
-        //error
-        goto err_malloc_key;
-      }
-
-#if MYSQL_VERSION_ID < 50500
-      if (pthread_cond_init(
-        &spider_conn_i_conds[next_spider_conn_mutex_id], NULL))
-#else
-      if (mysql_cond_init(spd_key_cond_conn_i,
-        &spider_conn_i_conds[next_spider_conn_mutex_id], NULL))
-#endif
-      {
-        pthread_mutex_destroy(&(spider_conn_i_mutexs[next_spider_conn_mutex_id]));
-        goto err_malloc_key;
-        //error
-      }
+      pthread_mutex_destroy(&ret->mutex);
+      goto err_malloc_key;
+      //error
     }
-
-    ret->conn_mutex_num = spider_conn_mutex_id++;
 
     ret->key_len = conn->conn_key_length;
     if (ret->key_len <= 0) {
+      pthread_cond_destroy(&ret->cond);
+      pthread_mutex_destroy(&ret->mutex);
       goto err_malloc_key;
     }
 
     ret->key = (char *) my_malloc(ret->key_len, MY_ZEROFILL | MY_WME);
     if (!ret->key) {
+      pthread_cond_destroy(&ret->cond);
+      pthread_mutex_destroy(&ret->mutex);
       goto err_malloc_key;
     }
 
@@ -4647,6 +4618,8 @@ void spider_free_ipport_conn(void *info)
   if (info) 
   {
     SPIDER_IP_PORT_CONN *p = (SPIDER_IP_PORT_CONN *)info;
+    pthread_cond_destroy(&p->cond);
+    pthread_mutex_destroy(&p->mutex);
     my_free(p->key, MYF(0));
     my_free(p, MYF(0));
   }

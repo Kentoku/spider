@@ -2934,26 +2934,6 @@ uint spider_param_conn_wait_timeout()
   DBUG_RETURN(spider_conn_wait_timeout);
 }
 
-static uint spider_max_partitions;
-static MYSQL_SYSVAR_UINT(
-  max_partitions,
-  spider_max_partitions,
-  PLUGIN_VAR_READONLY,
-  "the values is the max spider partitions, main for connection pool",
-  NULL,
-  NULL,
-  128, /* def */
-  32, /* min */
-  4096, /* max */
-  0 /* blk */
-);
-
-uint spider_param_max_partitions()
-{
-  DBUG_ENTER("spider_param_conn_wait_timeout");
-  DBUG_RETURN(spider_max_partitions);
-}
-
 static uint spider_log_result_errors;
 /*
   0: no log
@@ -3379,7 +3359,6 @@ static struct st_mysql_sys_var* spider_system_variables[] = {
   MYSQL_SYSVAR(general_log),
   MYSQL_SYSVAR(index_hint_pushdown),
   MYSQL_SYSVAR(max_connections),
-  MYSQL_SYSVAR(max_partitions),
   MYSQL_SYSVAR(conn_wait_timeout),
   MYSQL_SYSVAR(log_result_errors),
   MYSQL_SYSVAR(log_result_error_with_sql),

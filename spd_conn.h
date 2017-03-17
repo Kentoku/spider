@@ -22,8 +22,6 @@
 #define SPIDER_BG_SIMPLE_DISCONNECT          2
 #define SPIDER_BG_SIMPLE_RECORDS             3
 
-#define SPIDER_MAX_PARTITION_NUM             1024
-
 uchar *spider_conn_get_key(
   SPIDER_CONN *conn,
   size_t *length,
