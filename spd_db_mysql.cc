@@ -12873,19 +12873,17 @@ int spider_mysql_handler::append_order_by(
       {
         DBUG_RETURN(error_num);
       }
-/*
-if (order->direction == ORDER::ORDER_DESC)
+      if (SPIDER_order_direction_is_asc(order))
       {
+        if (str->reserve(SPIDER_SQL_COMMA_LEN))
+          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+        str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
+      } else {
         if (str->reserve(SPIDER_SQL_COMMA_LEN + SPIDER_SQL_DESC_LEN))
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         str->q_append(SPIDER_SQL_DESC_STR, SPIDER_SQL_DESC_LEN);
         str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
-      } else {
-        if (str->reserve(SPIDER_SQL_COMMA_LEN))
-          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-        str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
       }
-*/
     }
     str->length(str->length() - SPIDER_SQL_COMMA_LEN);
   }
