@@ -12965,6 +12965,13 @@ void ha_spider::check_pre_call(
     use_pre_call = FALSE;
     DBUG_VOID_RETURN;
   }
+  if (
+    use_parallel &&
+    thd->query_id != partition_handler_share->parallel_search_query_id
+  ) {
+    partition_handler_share->parallel_search_query_id = thd->query_id;
+    ++trx->parallel_search_count;
+  }
   use_pre_call = use_parallel;
   if (!use_pre_call)
   {

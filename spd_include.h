@@ -533,6 +533,7 @@ typedef struct st_spider_patition_handler_share
   bool               between_flg;
   bool               idx_bitmap_is_set;
   bool               rnd_bitmap_is_set;
+  query_id_t         parallel_search_query_id;
 } SPIDER_PARTITION_HANDLER_SHARE;
 
 typedef struct st_spider_patition_share
@@ -654,6 +655,7 @@ typedef struct st_spider_transaction
   ulonglong          direct_delete_count;
   ulonglong          direct_order_limit_count;
   ulonglong          direct_aggregate_count;
+  ulonglong          parallel_search_count;
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   ulonglong          hs_result_free_count;
 #endif

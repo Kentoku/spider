@@ -86,6 +86,17 @@ static int spider_direct_aggregate(THD *thd, SHOW_VAR *var, char *buff)
   DBUG_RETURN(error_num);
 }
 
+static int spider_parallel_search(THD *thd, SHOW_VAR *var, char *buff)
+{
+  int error_num = 0;
+  SPIDER_TRX *trx;
+  DBUG_ENTER("spider_parallel_search");
+  var->type = SHOW_LONGLONG;
+  if ((trx = spider_get_trx(thd, TRUE, &error_num)))
+    var->value = (char *) &trx->parallel_search_count;
+  DBUG_RETURN(error_num);
+}
+
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
 static int spider_hs_result_free(THD *thd, SHOW_VAR *var, char *buff)
 {
@@ -119,11 +130,15 @@ struct st_mysql_show_var spider_status_variables[] =
     (char *) &spider_direct_order_limit, SHOW_SIMPLE_FUNC},
   {"Spider_direct_aggregate",
     (char *) &spider_direct_aggregate, SHOW_SIMPLE_FUNC},
+  {"Spider_parallel_search",
+    (char *) &spider_parallel_search, SHOW_SIMPLE_FUNC},
 #else
   {"Spider_direct_order_limit",
     (char *) &spider_direct_order_limit, SHOW_FUNC},
   {"Spider_direct_aggregate",
     (char *) &spider_direct_aggregate, SHOW_FUNC},
+  {"Spider_parallel_search",
+    (char *) &spider_parallel_search, SHOW_FUNC},
 #endif
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
 #ifdef SPIDER_HAS_SHOW_SIMPLE_FUNC
