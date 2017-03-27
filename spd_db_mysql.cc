@@ -9848,7 +9848,7 @@ int spider_mysql_handler::append_from(
     str->q_append(SPIDER_SQL_FROM_STR, SPIDER_SQL_FROM_LEN);
     table_name_pos = str->length();
     append_table_name_with_adjusting(str, link_idx, sql_type);
-    if(spider_param_index_hint_pushdown())
+    if(spider_param_index_hint_pushdown(spider->trx->thd))
     {
       if((error_num = append_index_hint(str, link_idx, sql_type)))
       {

@@ -2892,21 +2892,24 @@ my_bool spider_param_general_log()
   DBUG_RETURN(spider_general_log);
 }
 
-static my_bool spider_index_hint_pushdown;
-static MYSQL_SYSVAR_BOOL(
-  index_hint_pushdown,
-  spider_index_hint_pushdown,
-  PLUGIN_VAR_OPCMDARG,
-  "switch to control if push down index hint, like force_index",
-  NULL,
-  NULL,
-  FALSE
+/*
+  FALSE: no pushdown hints
+  TRUE:  pushdown hints
+ */
+static MYSQL_THDVAR_BOOL(
+  index_hint_pushdown, /* name */
+  PLUGIN_VAR_OPCMDARG, /* opt */
+  "switch to control if push down index hint, like force_index", /* comment */
+  NULL, /* check */
+  NULL, /* update */
+  FALSE /* def */
 );
 
-my_bool spider_param_index_hint_pushdown()
-{
+my_bool spider_param_index_hint_pushdown(
+  THD *thd
+) {
   DBUG_ENTER("spider_param_index_hint_pushdown");
-  DBUG_RETURN(spider_index_hint_pushdown);
+  DBUG_RETURN(THDVAR(thd, index_hint_pushdown));
 }
 
 static uint spider_max_connections;
