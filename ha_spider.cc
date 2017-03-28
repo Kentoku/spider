@@ -7453,7 +7453,8 @@ int ha_spider::rnd_next_internal(
   uchar *buf
 ) {
   int error_num;
-  ha_spider *direct_limit_offset_spider;
+  ha_spider *direct_limit_offset_spider =
+    (ha_spider *) partition_handler_share->creator;
   backup_error_status();
   DBUG_ENTER("ha_spider::rnd_next_internal");
   DBUG_PRINT("info",("spider this=%p", this));
@@ -7468,16 +7469,6 @@ int ha_spider::rnd_next_internal(
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
   do_direct_update = FALSE;
 #endif
-
-  if (this->result_list.direct_limit_offset)
-  {
-    if (pt_handler_share_creator)
-    {
-      direct_limit_offset_spider = pt_handler_share_creator;
-    } else {
-      direct_limit_offset_spider = this;
-    }
-  }
 
   if (rnd_scan_and_first)
   {
@@ -7495,25 +7486,35 @@ int ha_spider::rnd_next_internal(
 #ifdef WITH_PARTITION_STORAGE_ENGINE
     check_select_column(TRUE);
 #endif
+
     if (this->result_list.direct_limit_offset)
     {
       if (direct_limit_offset_spider->direct_select_limit == 0)
       { // mean has got all result
         DBUG_RETURN(check_error_mode_eof(HA_ERR_END_OF_FILE));
       }
-      if (direct_limit_offset_spider->direct_current_offset > 0)
-      {
+      if (
+        partition_handler_share->handlers &&
+        direct_limit_offset_spider->direct_current_offset > 0
+      ) {
         longlong table_count = this->records();
+        DBUG_PRINT("info",("spider table_count=%lld", table_count));
         if (table_count <= direct_limit_offset_spider->direct_current_offset)
         {
           // skip this spider(partition)
           direct_limit_offset_spider->direct_current_offset -= table_count;
+          DBUG_PRINT("info",("spider direct_current_offset=%lld",
+            direct_limit_offset_spider->direct_current_offset));
           DBUG_RETURN(check_error_mode_eof(HA_ERR_END_OF_FILE));
         }
       }
 
       // make the offset/limit statement
+      DBUG_PRINT("info",("spider direct_current_offset=%lld",
+        direct_limit_offset_spider->direct_current_offset));
       result_list.internal_offset = direct_limit_offset_spider->direct_current_offset;
+      DBUG_PRINT("info",("spider direct_select_limit=%lld",
+        direct_limit_offset_spider->direct_select_limit));
       result_list.internal_limit = direct_limit_offset_spider->direct_select_limit;
       result_list.split_read = direct_limit_offset_spider->direct_select_limit;
 

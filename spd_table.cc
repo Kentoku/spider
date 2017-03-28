@@ -8717,8 +8717,14 @@ int spider_set_direct_limit_offset(
     DBUG_RETURN(FALSE);
 
   table_list = (TABLE_LIST *) select_lex->table_list.first;
-  if (table_list->table->file->ht != spider_hton_ptr)
+  if (table_list->table->file->partition_ht() != spider_hton_ptr)
+  {
+    DBUG_PRINT("info",("spider ht1=%s ht2=%s",
+      hton_name(table_list->table->file->partition_ht())->str,
+      hton_name(spider_hton_ptr)->str
+    ));
     DBUG_RETURN(FALSE);
+  }
 
   // contain where
   if (
