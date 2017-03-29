@@ -10696,7 +10696,17 @@ void ha_spider::print_error(
   DBUG_ENTER("ha_spider::print_error");
   DBUG_PRINT("info",("spider this=%p", this));
   if (!current_thd->is_error())
-    handler::print_error(error, errflag);
+  {
+    switch (error)
+    {
+      case ER_SPIDER_CON_COUNT_ERROR:
+        my_message(error, ER_SPIDER_CON_COUNT_ERROR_STR, MYF(0));
+        break;
+      default:
+        handler::print_error(error, errflag);
+        break;
+    }
+  }
   DBUG_VOID_RETURN;
 }
 
@@ -10713,12 +10723,6 @@ bool ha_spider::get_error_message(
         DBUG_RETURN(TRUE);
       buf->q_append(ER_SPIDER_REMOTE_SERVER_GONE_AWAY_STR,
         ER_SPIDER_REMOTE_SERVER_GONE_AWAY_LEN);
-      break;
-    case ER_SPIDER_CON_COUNT_ERROR:
-      if (buf->reserve(ER_SPIDER_CON_COUNT_ERROR_LEN))
-        DBUG_RETURN(TRUE);
-      buf->q_append(ER_SPIDER_CON_COUNT_ERROR_STR,
-        ER_SPIDER_CON_COUNT_ERROR_LEN);
       break;
     default:
       if (buf->reserve(ER_SPIDER_UNKNOWN_LEN))

@@ -739,6 +739,7 @@ SPIDER_CONN *spider_create_conn(
       if (ip_port_conn->ip_port_count >= spider_param_max_connections())
       { /* bigger than the max num of conn£¬ free conn and return NULL */
         pthread_mutex_unlock(&ip_port_conn->mutex);
+        *error_num = ER_SPIDER_CON_COUNT_ERROR;
         goto error_too_many_ipport_count;
       }
     }
