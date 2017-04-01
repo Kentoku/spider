@@ -1138,7 +1138,6 @@ int spider_group_by_handler::init_scan()
 {
   int error_num, link_idx;
   uint dbton_id;
-  spider_db_util *db_util;
   spider_db_handler *dbton_hdl;
   st_select_lex *select_lex;
   longlong select_limit;
@@ -1245,7 +1244,6 @@ int spider_group_by_handler::init_scan()
   while ((dbton_id = fields->get_next_dbton_id()) < SPIDER_DBTON_SIZE)
   {
     dbton_hdl = spider->dbton_handler[dbton_id];
-    db_util = spider_dbton[dbton_id].db_util;
     result_list->direct_distinct = query.distinct;
     fields->set_pos_to_first_field_chain();
     if ((error_num = dbton_hdl->reset_sql(SPIDER_SQL_TYPE_SELECT_SQL)))
@@ -1550,7 +1548,7 @@ group_by_handler *spider_create_group_by_handler(
   SPIDER_CONN *conn;
   ha_spider *spider;
   SPIDER_SHARE *share;
-  int roop_count, skip_default_condition = 0, lock_mode;
+  int roop_count, lock_mode;
   List_iterator_fast<Item> it(*query->select);
   uchar dbton_bitmap[spider_bitmap_size(SPIDER_DBTON_SIZE)];
   uchar dbton_bitmap_tmp[spider_bitmap_size(SPIDER_DBTON_SIZE)];
@@ -1621,7 +1619,7 @@ group_by_handler *spider_create_group_by_handler(
     if (spider_param_skip_default_condition(thd,
       share->skip_default_condition))
     {
-      skip_default_condition = 1;
+      /* find skip_default_condition = 1 */
       break;
     }
   } while ((from = from->next_local));
