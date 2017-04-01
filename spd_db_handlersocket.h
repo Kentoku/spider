@@ -541,6 +541,11 @@ public:
   );
   ~spider_handlersocket_handler();
   int init();
+  int append_index_hint(
+    spider_string *str,
+    int link_idx,
+    ulong sql_type
+  );
   int append_table_name_with_adjusting(
     spider_string *str,
     int link_idx,

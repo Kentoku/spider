@@ -352,6 +352,10 @@ int spider_param_skip_default_condition(
   THD *thd,
   int skip_default_condition
 );
+int spider_param_skip_parallel_search(
+  THD *thd,
+  int skip_parallel_search
+);
 longlong spider_param_direct_order_limit(
   THD *thd,
   longlong direct_order_limit
@@ -373,6 +377,11 @@ int spider_param_udf_ds_use_real_table(
 );
 #endif
 my_bool spider_param_general_log();
+my_bool spider_param_index_hint_pushdown(
+  THD *thd
+);
+uint spider_param_max_connections();
+uint spider_param_conn_wait_timeout();
 uint spider_param_log_result_errors();
 uint spider_param_log_result_error_with_sql();
 uint spider_param_internal_xa_id_type(

@@ -47,6 +47,7 @@ extern struct charset_info_st *spd_charset_utf8_bin;
 extern handlerton *spider_hton_ptr;
 extern pthread_mutex_t spider_open_conn_mutex;
 extern HASH spider_open_connections;
+extern HASH spider_ipport_conns;
 extern SPIDER_DBTON spider_dbton[SPIDER_DBTON_SIZE];
 extern const char spider_dig_upper[];
 
@@ -5357,6 +5358,16 @@ int spider_oracle_handler::init()
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   hs_upds.init();
 #endif
+  DBUG_RETURN(0);
+}
+
+int spider_oracle_handler::append_index_hint(
+  spider_string *str,
+  int link_idx,
+  ulong sql_type
+  ) 
+{
+  DBUG_ENTER("spider_oracle_handler::append_index_hint");
   DBUG_RETURN(0);
 }
 

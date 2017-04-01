@@ -13,7 +13,7 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
-#define SPIDER_DETAIL_VERSION "3.3.9"
+#define SPIDER_DETAIL_VERSION "3.3.10"
 #define SPIDER_HEX_VERSION 0x0303
 
 #if MYSQL_VERSION_ID < 50500
@@ -186,6 +186,7 @@
 #define SPIDER_TMP_SHARE_LONGLONG_COUNT      3
 
 #define SPIDER_MEM_CALC_LIST_NUM           255
+#define SPIDER_CONN_META_BUF_LEN           64
 
 #define SPIDER_BACKUP_DASTATUS \
   bool da_status; if (thd) da_status = thd->is_error(); else da_status = FALSE;
@@ -206,6 +207,7 @@
 class ha_spider;
 typedef struct st_spider_share SPIDER_SHARE;
 typedef struct st_spider_table_mon_list SPIDER_TABLE_MON_LIST;
+typedef struct st_spider_ip_port_conn SPIDER_IP_PORT_CONN;
 
 typedef struct st_spider_file_pos
 {
@@ -496,6 +498,7 @@ typedef struct st_spider_conn
   SPIDER_CONN_HOLDER    *conn_holder_for_direct_join;
   SPIDER_LINK_IDX_CHAIN *link_idx_chain;
 #endif
+  SPIDER_IP_PORT_CONN *ip_port_conn;
 } SPIDER_CONN;
 
 typedef struct st_spider_lgtm_tblhnd_share
@@ -530,6 +533,7 @@ typedef struct st_spider_patition_handler_share
   bool               between_flg;
   bool               idx_bitmap_is_set;
   bool               rnd_bitmap_is_set;
+  query_id_t         parallel_search_query_id;
 } SPIDER_PARTITION_HANDLER_SHARE;
 
 typedef struct st_spider_patition_share
@@ -651,6 +655,7 @@ typedef struct st_spider_transaction
   ulonglong          direct_delete_count;
   ulonglong          direct_order_limit_count;
   ulonglong          direct_aggregate_count;
+  ulonglong          parallel_search_count;
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   ulonglong          hs_result_free_count;
 #endif
@@ -851,6 +856,7 @@ typedef struct st_spider_share
   int                use_table_charset;
   int                use_pushdown_udf;
   int                skip_default_condition;
+  int                skip_parallel_search;
   int                direct_dup_insert;
   longlong           direct_order_limit;
   int                read_only_mode;
@@ -1330,3 +1336,19 @@ char *spider_create_string(
   const char *str,
   uint length
 );
+
+
+typedef struct st_spider_ip_port_conn {
+  char               *key;
+  size_t             key_len;
+#ifdef SPIDER_HAS_HASH_VALUE_TYPE
+  my_hash_value_type key_hash_value;
+#endif
+  char               remote_ip_str[SPIDER_CONN_META_BUF_LEN];
+  long               remote_port;
+  ulong              ip_port_count;
+  volatile ulong     waiting_count;
+  pthread_mutex_t    mutex;
+  pthread_cond_t     cond;
+  ulonglong          conn_id; /* each conn has it's own conn_id */
+} SPIDER_IP_PORT_CONN;

@@ -57,7 +57,11 @@ extern PSI_cond_key spd_key_cond_bg_direct_sql;
 #endif
 
 extern HASH spider_open_connections;
+extern HASH spider_ipport_conns;
 extern pthread_mutex_t spider_conn_mutex;
+extern pthread_mutex_t spider_conn_id_mutex;
+extern pthread_mutex_t spider_ipport_conn_mutex;
+extern ulonglong spider_conn_id;
 
 uint spider_udf_calc_hash(
   char *key,
@@ -361,6 +365,7 @@ SPIDER_CONN *spider_udf_direct_sql_create_conn(
   int *error_num
 ) {
   SPIDER_CONN *conn;
+  SPIDER_IP_PORT_CONN *ip_port_conn;
   char *tmp_name, *tmp_host, *tmp_username, *tmp_password, *tmp_socket;
   char *tmp_wrapper, *tmp_ssl_ca, *tmp_ssl_capath, *tmp_ssl_cert;
   char *tmp_ssl_cipher, *tmp_ssl_key, *tmp_default_file, *tmp_default_group;
@@ -558,12 +563,57 @@ SPIDER_CONN *spider_udf_direct_sql_create_conn(
     goto error;
   conn->ping_time = (time_t) time((time_t*) 0);
   conn->connect_error_time = conn->ping_time;
+  pthread_mutex_lock(&spider_conn_id_mutex);
+  conn->conn_id = spider_conn_id;
+  ++spider_conn_id;
+  pthread_mutex_unlock(&spider_conn_id_mutex);
+
+  pthread_mutex_lock(&spider_ipport_conn_mutex);
+#ifdef SPIDER_HAS_HASH_VALUE_TYPE
+  if ((ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search_using_hash_value(
+    &spider_ipport_conns, conn->conn_key_hash_value,
+    (uchar*)conn->conn_key, conn->conn_key_length)))
+#else
+  if ((ip_port_conn = (SPIDER_IP_PORT_CONN*) my_hash_search(
+    &spider_ipport_conns, (uchar*)conn->conn_key, conn->conn_key_length)))
+#endif
+  { /* exists, +1 */
+    pthread_mutex_unlock(&spider_ipport_conn_mutex);
+    pthread_mutex_lock(&ip_port_conn->mutex);
+    if (spider_param_max_connections())
+    { /* enable conncetion pool */
+      if (ip_port_conn->ip_port_count >= spider_param_max_connections())
+      { /* bigger than the max num of connE free conn and return NULL */
+        pthread_mutex_unlock(&ip_port_conn->mutex);
+        goto error_too_many_ipport_count;
+      }
+    }
+    ip_port_conn->ip_port_count++;
+    pthread_mutex_unlock(&ip_port_conn->mutex);
+  }
+  else
+  {// do not exist 
+    ip_port_conn = spider_create_ipport_conn(conn);
+    if (!ip_port_conn) {
+      /* failed, always do not effect 'create conn' */
+      pthread_mutex_unlock(&spider_ipport_conn_mutex);
+      DBUG_RETURN(conn);
+    }
+    if (my_hash_insert(&spider_ipport_conns, (uchar *)ip_port_conn)) {
+      /* insert failed, always do not effect 'create conn' */
+      pthread_mutex_unlock(&spider_ipport_conn_mutex);
+      DBUG_RETURN(conn);
+    }
+    pthread_mutex_unlock(&spider_ipport_conn_mutex);
+  }
+  conn->ip_port_conn = ip_port_conn;
 
   DBUG_RETURN(conn);
 
 error:
   DBUG_ASSERT(!conn->mta_conn_mutex_file_pos.file_name);
   pthread_mutex_destroy(&conn->mta_conn_mutex);
+error_too_many_ipport_count:
 error_mta_conn_mutex_init:
 error_db_conn_init:
   delete conn->db_conn;

@@ -58,3 +58,10 @@ IF(ORACLE_INCLUDE_DIR AND ORACLE_OCI_LIBRARY)
     TARGET_LINK_LIBRARIES (spider ${ORACLE_OCI_LIBRARY})
   ENDIF()
 ENDIF()
+
+IF(MSVC)
+  ADD_CUSTOM_COMMAND(TARGET spider
+                     POST_BUILD 
+                     COMMAND if not exist ..\\..\\sql\\lib mkdir ..\\..\\sql\\lib\\plugin
+                     COMMAND copy Debug\\ha_spider.dll ..\\..\\sql\\lib\\plugin\\ha_spider.dll)
+ENDIF()

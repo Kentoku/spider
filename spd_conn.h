@@ -28,6 +28,12 @@ uchar *spider_conn_get_key(
   my_bool not_used __attribute__ ((unused))
 );
 
+uchar *spider_ipport_conn_get_key(
+  SPIDER_IP_PORT_CONN *ip_port,
+  size_t *length,
+  my_bool not_used __attribute__ ((unused))
+);
+
 int spider_reset_conn_setted_parameter(
   SPIDER_CONN *conn,
   THD *thd
@@ -340,3 +346,16 @@ bool spider_conn_need_open_handler(
   uint idx,
   int link_idx
 );
+
+SPIDER_IP_PORT_CONN *spider_create_ipport_conn(SPIDER_CONN *conn) ;
+SPIDER_CONN* spider_get_conn_from_idle_connection
+(
+ SPIDER_SHARE *share, 
+ int link_idx, 
+ char *conn_key, 
+ ha_spider *spider, 
+ uint conn_kind, 
+ int base_link_idx, 
+ int *error_num
+ );
+void spider_free_ipport_conn(void *info);

@@ -154,6 +154,7 @@ ha_spider::ha_spider(
   result_list.tmp_tables_created = FALSE;
   result_list.bgs_working = FALSE;
   result_list.direct_order_limit = FALSE;
+  result_list.direct_limit_offset = FALSE;
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   result_list.hs_has_result = FALSE;
 #endif
@@ -265,6 +266,7 @@ ha_spider::ha_spider(
   result_list.tmp_tables_created = FALSE;
   result_list.bgs_working = FALSE;
   result_list.direct_order_limit = FALSE;
+  result_list.direct_limit_offset = FALSE;
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   result_list.hs_has_result = FALSE;
 #endif
@@ -1839,6 +1841,7 @@ int ha_spider::reset()
   prev_index_rnd_init = SPD_NONE;
   result_list.have_sql_kind_backup = FALSE;
   result_list.direct_order_limit = FALSE;
+  result_list.direct_limit_offset = FALSE;
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   if ((error_num2 = reset_hs_strs(SPIDER_SQL_TYPE_UPDATE_HS)))
     error_num = error_num2;
@@ -7455,6 +7458,8 @@ int ha_spider::rnd_next_internal(
   uchar *buf
 ) {
   int error_num;
+  ha_spider *direct_limit_offset_spider =
+    (ha_spider *) partition_handler_share->creator;
   backup_error_status();
   DBUG_ENTER("ha_spider::rnd_next_internal");
   DBUG_PRINT("info",("spider this=%p", this));
@@ -7486,6 +7491,42 @@ int ha_spider::rnd_next_internal(
 #ifdef WITH_PARTITION_STORAGE_ENGINE
     check_select_column(TRUE);
 #endif
+
+    if (this->result_list.direct_limit_offset)
+    {
+      if (direct_limit_offset_spider->direct_select_limit == 0)
+      { // mean has got all result
+        DBUG_RETURN(check_error_mode_eof(HA_ERR_END_OF_FILE));
+      }
+      if (
+        partition_handler_share->handlers &&
+        direct_limit_offset_spider->direct_current_offset > 0
+      ) {
+        longlong table_count = this->records();
+        DBUG_PRINT("info",("spider table_count=%lld", table_count));
+        if (table_count <= direct_limit_offset_spider->direct_current_offset)
+        {
+          // skip this spider(partition)
+          direct_limit_offset_spider->direct_current_offset -= table_count;
+          DBUG_PRINT("info",("spider direct_current_offset=%lld",
+            direct_limit_offset_spider->direct_current_offset));
+          DBUG_RETURN(check_error_mode_eof(HA_ERR_END_OF_FILE));
+        }
+      }
+
+      // make the offset/limit statement
+      DBUG_PRINT("info",("spider direct_current_offset=%lld",
+        direct_limit_offset_spider->direct_current_offset));
+      result_list.internal_offset = direct_limit_offset_spider->direct_current_offset;
+      DBUG_PRINT("info",("spider direct_select_limit=%lld",
+        direct_limit_offset_spider->direct_select_limit));
+      result_list.internal_limit = direct_limit_offset_spider->direct_select_limit;
+      result_list.split_read = direct_limit_offset_spider->direct_select_limit;
+
+      // start with this spider(partition)
+      direct_limit_offset_spider->direct_current_offset = 0;
+    }
+
     DBUG_PRINT("info",("spider result_list.finish_flg = FALSE"));
     result_list.finish_flg = FALSE;
     result_list.record_num = 0;
@@ -7740,7 +7781,25 @@ int ha_spider::rnd_next_internal(
 #endif
     }
     rnd_scan_and_first = FALSE;
+
+    if (this->result_list.direct_limit_offset)
+    {
+      if (buf && (error_num = spider_db_seek_next(buf, this, search_link_idx,
+        table)))
+        DBUG_RETURN(check_error_mode_eof(error_num));
+      DBUG_RETURN(0);
+    }
   }
+
+  if (
+    result_list.direct_limit_offset &&
+    direct_limit_offset_spider->direct_select_offset > 0
+  ) {
+    // limit-- for each got row
+    direct_limit_offset_spider->direct_select_offset--;
+    DBUG_RETURN(0);
+  }
+
   if (buf && (error_num = spider_db_seek_next(buf, this, search_link_idx,
     table)))
     DBUG_RETURN(check_error_mode_eof(error_num));
@@ -9238,11 +9297,11 @@ ha_rows ha_spider::records()
     use_pre_records = FALSE;
     DBUG_RETURN(0);
   }
-  if (!(share->additional_table_flags & HA_HAS_RECORDS))
+  if (!(share->additional_table_flags & HA_HAS_RECORDS) && !this->result_list.direct_limit_offset)
   {
     DBUG_RETURN(handler::records());
   }
-  if (!use_pre_records)
+  if (!use_pre_records && !this->result_list.direct_limit_offset)
   {
     THD *thd = trx->thd;
     if (
@@ -10642,7 +10701,17 @@ void ha_spider::print_error(
   DBUG_ENTER("ha_spider::print_error");
   DBUG_PRINT("info",("spider this=%p", this));
   if (!current_thd->is_error())
-    handler::print_error(error, errflag);
+  {
+    switch (error)
+    {
+      case ER_SPIDER_CON_COUNT_ERROR:
+        my_message(error, ER_SPIDER_CON_COUNT_ERROR_STR, MYF(0));
+        break;
+      default:
+        handler::print_error(error, errflag);
+        break;
+    }
+  }
   DBUG_VOID_RETURN;
 }
 
@@ -12187,6 +12256,8 @@ void ha_spider::check_direct_order_limit()
         sql_kind[roop_count] = SPIDER_SQL_KIND_SQL;
     } else
       result_list.direct_order_limit = FALSE;
+
+    spider_set_direct_limit_offset(this);
     result_list.check_direct_order_limit = TRUE;
   }
   DBUG_VOID_RETURN;
@@ -12961,15 +13032,39 @@ int ha_spider::check_error_mode_eof(
 void ha_spider::check_pre_call(
   bool use_parallel
 ) {
+  THD* thd = ha_thd();
+  st_select_lex *select_lex = spider_get_select_lex(this);
+  int skip_parallel_search =
+    spider_param_skip_parallel_search(thd, share->skip_parallel_search);
   DBUG_ENTER("ha_spider::check_pre_call");
   DBUG_PRINT("info",("spider this=%p", this));
+  if (
+    (
+      (skip_parallel_search & 1) &&
+      thd->lex && thd->lex->sql_command != SQLCOM_SELECT // such like insert .. select ..
+    ) ||
+    (
+      (skip_parallel_search & 2) &&
+      select_lex && select_lex->sql_cache == SELECT_LEX::SQL_NO_CACHE //  for mysqldump 
+    )
+  ) {
+    use_pre_call = FALSE;
+    DBUG_VOID_RETURN;
+  }
+  if (
+    use_parallel &&
+    thd->query_id != partition_handler_share->parallel_search_query_id
+  ) {
+    partition_handler_share->parallel_search_query_id = thd->query_id;
+    ++trx->parallel_search_count;
+  }
   use_pre_call = use_parallel;
   if (!use_pre_call)
   {
-    st_select_lex *select_lex;
     longlong select_limit;
     longlong offset_limit;
-    spider_get_select_limit(this, &select_lex, &select_limit, &offset_limit);
+    spider_get_select_limit_from_select_lex(
+      select_lex, &select_limit, &offset_limit);
     if (
       select_lex &&
       (!select_lex->explicit_limit || !select_limit)

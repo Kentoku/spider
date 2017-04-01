@@ -51,6 +51,7 @@ extern bool volatile *spd_abort_loop;
 extern handlerton *spider_hton_ptr;
 extern pthread_mutex_t spider_open_conn_mutex;
 extern HASH spider_open_connections;
+extern HASH spider_ipport_conns;
 extern SPIDER_DBTON spider_dbton[SPIDER_DBTON_SIZE];
 extern const char spider_dig_upper[];
 
@@ -5991,6 +5992,61 @@ int spider_mysql_handler::init()
   DBUG_RETURN(0);
 }
 
+
+int spider_mysql_handler::append_index_hint(
+  spider_string *str,
+  int link_idx,
+  ulong sql_type
+  )
+{
+  List<Index_hint> *index_hints = spider_get_index_hints(spider);
+  List_iterator <Index_hint> iter(*index_hints);
+  Index_hint *hint;
+//  THD *thd = current_thd;
+  int error_num = 0;
+  DBUG_ENTER("spider_mysql_handler::append_index_hint");
+  DBUG_PRINT("info",("spider this=%p", this));
+
+  while(index_hints && (hint = iter++))
+  {
+//    hint->print(thd, str);
+    if (sql_type != SPIDER_SQL_TYPE_HANDLER)
+    {
+      switch(hint->type)
+      {
+      case INDEX_HINT_IGNORE:
+        if (str->reserve(hint->key_name.length+ SPIDER_SQL_INDEX_IGNORE_LEN + SPIDER_SQL_OPEN_PAREN_LEN + SPIDER_SQL_CLOSE_PAREN_LEN))
+          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+        str->q_append(SPIDER_SQL_INDEX_IGNORE_STR,SPIDER_SQL_INDEX_IGNORE_LEN);
+        str->q_append(SPIDER_SQL_OPEN_PAREN_STR,SPIDER_SQL_OPEN_PAREN_LEN);
+        str->q_append(hint->key_name.str, hint->key_name.length);
+        str->q_append(SPIDER_SQL_CLOSE_PAREN_STR,SPIDER_SQL_CLOSE_PAREN_LEN);
+        break;
+      case INDEX_HINT_USE:
+        if (str->reserve(hint->key_name.length+ SPIDER_SQL_INDEX_USE_LEN + SPIDER_SQL_OPEN_PAREN_LEN + SPIDER_SQL_CLOSE_PAREN_LEN))
+          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+        str->q_append(SPIDER_SQL_INDEX_USE_STR,SPIDER_SQL_INDEX_USE_LEN);
+        str->q_append(SPIDER_SQL_OPEN_PAREN_STR,SPIDER_SQL_OPEN_PAREN_LEN);
+        str->q_append(hint->key_name.str, hint->key_name.length);
+        str->q_append(SPIDER_SQL_CLOSE_PAREN_STR,SPIDER_SQL_CLOSE_PAREN_LEN);
+        break;
+      case INDEX_HINT_FORCE:
+        if (str->reserve(hint->key_name.length+ SPIDER_SQL_INDEX_FORCE_LEN + SPIDER_SQL_OPEN_PAREN_LEN + SPIDER_SQL_CLOSE_PAREN_LEN))
+          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+        str->q_append(SPIDER_SQL_INDEX_FORCE_STR,SPIDER_SQL_INDEX_FORCE_LEN);
+        str->q_append(SPIDER_SQL_OPEN_PAREN_STR,SPIDER_SQL_OPEN_PAREN_LEN);
+        str->q_append(hint->key_name.str, hint->key_name.length);
+        str->q_append(SPIDER_SQL_CLOSE_PAREN_STR,SPIDER_SQL_CLOSE_PAREN_LEN);
+        break;
+      default:
+        //    SPIDER_SQL_COMMA_STR
+        break;
+      }
+    }
+  }
+  DBUG_RETURN(error_num);
+}
+
 int spider_mysql_handler::append_table_name_with_adjusting(
   spider_string *str,
   int link_idx,
@@ -9772,6 +9828,7 @@ int spider_mysql_handler::append_from(
   DBUG_ENTER("spider_mysql_handler::append_from");
   DBUG_PRINT("info",("spider this=%p", this));
   DBUG_PRINT("info",("spider link_idx=%d", link_idx));
+  int error_num = 0;
   if (sql_type == SPIDER_SQL_TYPE_HANDLER)
   {
     ha_table_name_pos = str->length();
@@ -9791,6 +9848,13 @@ int spider_mysql_handler::append_from(
     str->q_append(SPIDER_SQL_FROM_STR, SPIDER_SQL_FROM_LEN);
     table_name_pos = str->length();
     append_table_name_with_adjusting(str, link_idx, sql_type);
+    if(spider_param_index_hint_pushdown(spider->trx->thd))
+    {
+      if((error_num = append_index_hint(str, link_idx, sql_type)))
+      {
+        DBUG_RETURN(error_num);
+      }
+    }
   }
   DBUG_RETURN(0);
 }
@@ -12869,19 +12933,15 @@ int spider_mysql_handler::append_order_by(
       {
         DBUG_RETURN(error_num);
       }
-#ifdef SPIDER_ORDER_HAS_ENUM_ORDER
-      if (order->direction == ORDER::ORDER_DESC)
-#else
-      if (!order->asc)
-#endif
+      if (SPIDER_order_direction_is_asc(order))
       {
+        if (str->reserve(SPIDER_SQL_COMMA_LEN))
+          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+        str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
+      } else {
         if (str->reserve(SPIDER_SQL_COMMA_LEN + SPIDER_SQL_DESC_LEN))
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         str->q_append(SPIDER_SQL_DESC_STR, SPIDER_SQL_DESC_LEN);
-        str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
-      } else {
-        if (str->reserve(SPIDER_SQL_COMMA_LEN))
-          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
       }
     }

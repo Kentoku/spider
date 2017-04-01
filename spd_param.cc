@@ -86,6 +86,17 @@ static int spider_direct_aggregate(THD *thd, SHOW_VAR *var, char *buff)
   DBUG_RETURN(error_num);
 }
 
+static int spider_parallel_search(THD *thd, SHOW_VAR *var, char *buff)
+{
+  int error_num = 0;
+  SPIDER_TRX *trx;
+  DBUG_ENTER("spider_parallel_search");
+  var->type = SHOW_LONGLONG;
+  if ((trx = spider_get_trx(thd, TRUE, &error_num)))
+    var->value = (char *) &trx->parallel_search_count;
+  DBUG_RETURN(error_num);
+}
+
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
 static int spider_hs_result_free(THD *thd, SHOW_VAR *var, char *buff)
 {
@@ -119,11 +130,15 @@ struct st_mysql_show_var spider_status_variables[] =
     (char *) &spider_direct_order_limit, SHOW_SIMPLE_FUNC},
   {"Spider_direct_aggregate",
     (char *) &spider_direct_aggregate, SHOW_SIMPLE_FUNC},
+  {"Spider_parallel_search",
+    (char *) &spider_parallel_search, SHOW_SIMPLE_FUNC},
 #else
   {"Spider_direct_order_limit",
     (char *) &spider_direct_order_limit, SHOW_FUNC},
   {"Spider_direct_aggregate",
     (char *) &spider_direct_aggregate, SHOW_FUNC},
+  {"Spider_parallel_search",
+    (char *) &spider_parallel_search, SHOW_FUNC},
 #endif
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
 #ifdef SPIDER_HAS_SHOW_SIMPLE_FUNC
@@ -2724,6 +2739,34 @@ int spider_param_skip_default_condition(
 
 /*
  -1 :use table parameter
+  0 :not skip
+  1 :skip parallel search if query is not SELECT statement
+  2 :skip parallel search if query has SQL_NO_CACHE
+  3 :1+2
+ */
+static MYSQL_THDVAR_INT(
+  skip_parallel_search, /* name */
+  PLUGIN_VAR_RQCMDARG, /* opt */
+  "Skip parallel search by specific conditions", /* comment */
+  NULL, /* check */
+  NULL, /* update */
+  -1, /* def */
+  -1, /* min */
+  3, /* max */
+  0 /* blk */
+);
+
+int spider_param_skip_parallel_search(
+  THD *thd,
+  int skip_parallel_search
+) {
+  DBUG_ENTER("spider_param_skip_parallel_search");
+  DBUG_RETURN(THDVAR(thd, skip_parallel_search) == -1 ?
+    skip_parallel_search : THDVAR(thd, skip_parallel_search));
+}
+
+/*
+ -1 :use table parameter
   0 :not send directly
   1-:send directly
  */
@@ -2847,6 +2890,66 @@ my_bool spider_param_general_log()
 {
   DBUG_ENTER("spider_param_general_log");
   DBUG_RETURN(spider_general_log);
+}
+
+/*
+  FALSE: no pushdown hints
+  TRUE:  pushdown hints
+ */
+static MYSQL_THDVAR_BOOL(
+  index_hint_pushdown, /* name */
+  PLUGIN_VAR_OPCMDARG, /* opt */
+  "switch to control if push down index hint, like force_index", /* comment */
+  NULL, /* check */
+  NULL, /* update */
+  FALSE /* def */
+);
+
+my_bool spider_param_index_hint_pushdown(
+  THD *thd
+) {
+  DBUG_ENTER("spider_param_index_hint_pushdown");
+  DBUG_RETURN(THDVAR(thd, index_hint_pushdown));
+}
+
+static uint spider_max_connections;
+static MYSQL_SYSVAR_UINT(
+  max_connections,
+  spider_max_connections,
+  PLUGIN_VAR_RQCMDARG,
+  "the values, as the max conncetion from spider to remote mysql. Default 0, mean unlimit the connections",
+  NULL,
+  NULL,
+  0, /* def */
+  0, /* min */
+  99999, /* max */
+  0 /* blk */
+);
+
+uint spider_param_max_connections()
+{
+  DBUG_ENTER("spider_param_max_connections");
+  DBUG_RETURN(spider_max_connections);
+}
+
+static uint spider_conn_wait_timeout;
+static MYSQL_SYSVAR_UINT(
+  conn_wait_timeout,
+  spider_conn_wait_timeout,
+  PLUGIN_VAR_RQCMDARG,
+  "the values, as the max waiting time when spider get a remote conn",
+  NULL,
+  NULL,
+  10, /* def */
+  0, /* min */
+  1000, /* max */
+  0 /* blk */
+);
+
+uint spider_param_conn_wait_timeout()
+{
+  DBUG_ENTER("spider_param_conn_wait_timeout");
+  DBUG_RETURN(spider_conn_wait_timeout);
 }
 
 static uint spider_log_result_errors;
@@ -3261,6 +3364,7 @@ static struct st_mysql_sys_var* spider_system_variables[] = {
   MYSQL_SYSVAR(error_read_mode),
   MYSQL_SYSVAR(error_write_mode),
   MYSQL_SYSVAR(skip_default_condition),
+  MYSQL_SYSVAR(skip_parallel_search),
   MYSQL_SYSVAR(direct_order_limit),
   MYSQL_SYSVAR(read_only_mode),
 #ifdef HA_CAN_BULK_ACCESS
@@ -3271,6 +3375,9 @@ static struct st_mysql_sys_var* spider_system_variables[] = {
   MYSQL_SYSVAR(udf_ds_use_real_table),
 #endif
   MYSQL_SYSVAR(general_log),
+  MYSQL_SYSVAR(index_hint_pushdown),
+  MYSQL_SYSVAR(max_connections),
+  MYSQL_SYSVAR(conn_wait_timeout),
   MYSQL_SYSVAR(log_result_errors),
   MYSQL_SYSVAR(log_result_error_with_sql),
   MYSQL_SYSVAR(version),

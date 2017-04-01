@@ -73,7 +73,7 @@ create table if not exists mysql.spider_xa_failed_log(
 ) engine=MyISAM default charset=utf8 collate=utf8_bin;
 create table if not exists mysql.spider_tables(
   db_name char(64) not null default '',
-  table_name char(64) not null default '',
+  table_name char(199) not null default '',
   link_id int not null default 0,
   priority bigint not null default 0,
   server char(64) default null,
@@ -103,7 +103,7 @@ create table if not exists mysql.spider_tables(
 ) engine=MyISAM default charset=utf8 collate=utf8_bin;
 create table if not exists mysql.spider_link_mon_servers(
   db_name char(64) not null default '',
-  table_name char(64) not null default '',
+  table_name char(199) not null default '',
   link_id char(64) not null default '',
   sid int unsigned not null default 0,
   server char(64) default null,
@@ -125,13 +125,13 @@ create table if not exists mysql.spider_link_mon_servers(
 ) engine=MyISAM default charset=utf8 collate=utf8_bin;
 create table if not exists mysql.spider_link_failed_log(
   db_name char(64) not null default '',
-  table_name char(64) not null default '',
+  table_name char(199) not null default '',
   link_id char(64) not null default '',
   failed_time timestamp not null default current_timestamp
 ) engine=MyISAM default charset=utf8 collate=utf8_bin;
 create table if not exists mysql.spider_table_position_for_recovery(
   db_name char(64) not null default '',
-  table_name char(64) not null default '',
+  table_name char(199) not null default '',
   failed_link_id int not null default 0,
   source_link_id int not null default 0,
   file text,
@@ -141,7 +141,7 @@ create table if not exists mysql.spider_table_position_for_recovery(
 ) engine=MyISAM default charset=utf8 collate=utf8_bin;
 create table if not exists mysql.spider_table_sts(
   db_name char(64) not null default '',
-  table_name char(64) not null default '',
+  table_name char(199) not null default '',
   data_file_length bigint unsigned not null default 0,
   max_data_file_length bigint unsigned not null default 0,
   index_file_length bigint unsigned not null default 0,
@@ -154,7 +154,7 @@ create table if not exists mysql.spider_table_sts(
 ) engine=MyISAM default charset=utf8 collate=utf8_bin;
 create table if not exists mysql.spider_table_crd(
   db_name char(64) not null default '',
-  table_name char(64) not null default '',
+  table_name char(199) not null default '',
   key_seq int unsigned not null default 0,
   cardinality bigint not null default 0,
   primary key (db_name, table_name, key_seq)
@@ -347,6 +347,56 @@ begin
   if @col_type != 'char(64)' then
     alter table mysql.spider_link_failed_log
     modify link_id char(64) not null default '';
+  end if;
+
+  -- Fix for version 3.3.10
+  select COLUMN_TYPE INTO @col_type from INFORMATION_SCHEMA.COLUMNS
+    where TABLE_SCHEMA = 'mysql'
+      AND TABLE_NAME = 'spider_tables'
+      AND COLUMN_NAME = 'table_name';
+  if @col_type != 'char(199)' then
+    alter table mysql.spider_tables
+    modify table_name char(199) not null default '';
+  end if;
+  select COLUMN_TYPE INTO @col_type from INFORMATION_SCHEMA.COLUMNS
+    where TABLE_SCHEMA = 'mysql'
+      AND TABLE_NAME = 'spider_link_mon_servers'
+      AND COLUMN_NAME = 'table_name';
+  if @col_type != 'char(199)' then
+    alter table mysql.spider_link_mon_servers
+    modify table_name char(199) not null default '';
+  end if;
+  select COLUMN_TYPE INTO @col_type from INFORMATION_SCHEMA.COLUMNS
+    where TABLE_SCHEMA = 'mysql'
+      AND TABLE_NAME = 'spider_link_failed_log'
+      AND COLUMN_NAME = 'table_name';
+  if @col_type != 'char(199)' then
+    alter table mysql.spider_link_failed_log
+    modify table_name char(199) not null default '';
+  end if;
+  select COLUMN_TYPE INTO @col_type from INFORMATION_SCHEMA.COLUMNS
+    where TABLE_SCHEMA = 'mysql'
+      AND TABLE_NAME = 'spider_table_position_for_recovery'
+      AND COLUMN_NAME = 'table_name';
+  if @col_type != 'char(199)' then
+    alter table mysql.spider_table_position_for_recovery
+    modify table_name char(199) not null default '';
+  end if;
+  select COLUMN_TYPE INTO @col_type from INFORMATION_SCHEMA.COLUMNS
+    where TABLE_SCHEMA = 'mysql'
+      AND TABLE_NAME = 'spider_table_sts'
+      AND COLUMN_NAME = 'table_name';
+  if @col_type != 'char(199)' then
+    alter table mysql.spider_table_sts
+    modify table_name char(199) not null default '';
+  end if;
+  select COLUMN_TYPE INTO @col_type from INFORMATION_SCHEMA.COLUMNS
+    where TABLE_SCHEMA = 'mysql'
+      AND TABLE_NAME = 'spider_table_crd'
+      AND COLUMN_NAME = 'table_name';
+  if @col_type != 'char(199)' then
+    alter table mysql.spider_table_crd
+    modify table_name char(199) not null default '';
   end if;
 end;//
 delimiter ;

@@ -59,7 +59,7 @@ const char **spd_defaults_extra_file;
 const char **spd_defaults_file;
 bool volatile *spd_abort_loop;
 Time_zone *spd_tz_system;
-
+extern long spider_conn_mutex_id;
 handlerton *spider_hton_ptr;
 SPIDER_DBTON spider_dbton[SPIDER_DBTON_SIZE];
 extern SPIDER_DBTON spider_dbton_mysql;
@@ -115,6 +115,8 @@ PSI_mutex_key spd_key_mutex_udf_table;
 PSI_mutex_key spd_key_mutex_mem_calc;
 PSI_mutex_key spd_key_thread_id;
 PSI_mutex_key spd_key_conn_id;
+PSI_mutex_key spd_key_mutex_ipport_count;
+PSI_mutex_key spd_key_mutex_conn_i;
 
 static PSI_mutex_info all_spider_mutexes[]=
 {
@@ -139,6 +141,8 @@ static PSI_mutex_info all_spider_mutexes[]=
   { &spd_key_mutex_mem_calc, "mem_calc", PSI_FLAG_GLOBAL},
   { &spd_key_thread_id, "thread_id", PSI_FLAG_GLOBAL},
   { &spd_key_conn_id, "conn_id", PSI_FLAG_GLOBAL},
+  { &spd_key_mutex_ipport_count, "ipport_count", PSI_FLAG_GLOBAL},
+  { &spd_key_mutex_conn_i, "conn_i", 0},
   { &spd_key_mutex_mta_conn, "mta_conn", 0},
 #ifndef WITHOUT_SPIDER_BG_SEARCH
   { &spd_key_mutex_bg_conn_chain, "bg_conn_chain", 0},
@@ -176,6 +180,7 @@ PSI_cond_key spd_key_cond_bg_mon_sleep;
 PSI_cond_key spd_key_cond_bg_direct_sql;
 #endif
 PSI_cond_key spd_key_cond_udf_table_mon;
+PSI_cond_key spd_key_cond_conn_i;
 
 static PSI_cond_info all_spider_conds[] = {
 #ifndef WITHOUT_SPIDER_BG_SEARCH
@@ -190,6 +195,7 @@ static PSI_cond_info all_spider_conds[] = {
   {&spd_key_cond_bg_direct_sql, "bg_direct_sql", 0},
 #endif
   {&spd_key_cond_udf_table_mon, "udf_table_mon", 0},
+  {&spd_key_cond_conn_i, "conn_i", 0},
 };
 
 #ifndef WITHOUT_SPIDER_BG_SEARCH
@@ -210,6 +216,7 @@ static PSI_thread_info all_spider_threads[] = {
 #endif
 
 extern HASH spider_open_connections;
+extern HASH spider_ipport_conns;
 extern uint spider_open_connections_id;
 extern const char *spider_open_connections_func_name;
 extern const char *spider_open_connections_file_name;
@@ -259,6 +266,7 @@ pthread_mutex_t spider_init_error_tbl_mutex;
 
 extern pthread_mutex_t spider_thread_id_mutex;
 extern pthread_mutex_t spider_conn_id_mutex;
+extern pthread_mutex_t spider_ipport_conn_mutex;
 
 #ifdef WITH_PARTITION_STORAGE_ENGINE
 HASH spider_open_pt_share;
@@ -1925,6 +1933,7 @@ int spider_parse_connect_info(
   share->use_table_charset = -1;
   share->use_pushdown_udf = -1;
   share->skip_default_condition = -1;
+  share->skip_parallel_search = -1;
   share->direct_dup_insert = -1;
   share->direct_order_limit = -1;
   share->bka_mode = -1;
@@ -2172,6 +2181,7 @@ int spider_parse_connect_info(
           SPIDER_PARAM_INT_WITH_MAX("smd", sts_mode, 1, 2);
           SPIDER_PARAM_LONGLONG("smr", static_mean_rec_length, 0);
           SPIDER_PARAM_LONGLONG("spr", split_read, 0);
+          SPIDER_PARAM_INT_WITH_MAX("sps", skip_parallel_search, 0, 3);
           SPIDER_PARAM_STR_LIST("sqn", tgt_sequence_names);
           SPIDER_PARAM_LONGLONG("srd", second_read, 0);
           SPIDER_PARAM_DOUBLE("srt", scan_rate, 0);
@@ -2453,6 +2463,8 @@ int spider_parse_connect_info(
             "monitoring_server_id", monitoring_sid, 0, 4294967295LL);
           SPIDER_PARAM_INT_WITH_MAX(
             "delete_all_rows_type", delete_all_rows_type, 0, 1);
+          SPIDER_PARAM_INT_WITH_MAX(
+            "skip_parallel_search", skip_parallel_search, 0, 3);
           error_num = ER_SPIDER_INVALID_CONNECT_INFO_NUM;
           my_printf_error(error_num, ER_SPIDER_INVALID_CONNECT_INFO_STR,
             MYF(0), tmp_ptr);
@@ -3756,6 +3768,8 @@ int spider_set_connect_info_default(
     share->use_pushdown_udf = 1;
   if (share->skip_default_condition == -1)
     share->skip_default_condition = 0;
+  if (share->skip_parallel_search == -1)
+    share->skip_parallel_search = 0;
   if (share->direct_dup_insert == -1)
     share->direct_dup_insert = 0;
   if (share->direct_order_limit == -1)
@@ -4604,6 +4618,9 @@ SPIDER_SHARE *spider_get_share(
                 pthread_mutex_unlock(&spider_udf_table_mon_mutexes[roop_count]);
             }
             pthread_mutex_unlock(&share->mutex);
+            share->init_error = TRUE;
+            share->init_error_time = (time_t) time((time_t*) 0);
+            share->init = TRUE;
             spider_free_share(share);
             goto error_open_sys_table;
           }
@@ -4623,6 +4640,9 @@ SPIDER_SHARE *spider_get_share(
                   pthread_mutex_unlock(&spider_udf_table_mon_mutexes[roop_count]);
               }
               pthread_mutex_unlock(&share->mutex);
+              share->init_error = TRUE;
+              share->init_error_time = (time_t) time((time_t*) 0);
+              share->init = TRUE;
               spider_free_share(share);
               goto error_get_link_statuses;
             }
@@ -4826,6 +4846,10 @@ SPIDER_SHARE *spider_get_share(
           spider->dbton_handler[dbton_id] = NULL;
         }
       }
+      share->init_error = TRUE;
+      share->init_error_time = (time_t) time((time_t*) 0);
+      share->init = TRUE;
+      spider_free_share(share);
       goto error_but_no_delete;
     }
 
@@ -5017,9 +5041,22 @@ SPIDER_SHARE *spider_get_share(
     share->use_count++;
     pthread_mutex_unlock(&spider_tbl_mutex);
 
+    int sleep_cnt = 0;
     while (!share->init)
     {
-      my_sleep(10);
+      // avoid for dead loop
+      if (sleep_cnt++ > 1000)
+      {
+        fprintf(stderr, " [WARN SPIDER RESULT] "
+          "Wait share->init too long, table_name %s %s %ld\n",
+          share->table_name, share->tgt_hosts[0], share->tgt_ports[0]);
+        *error_num = ER_SPIDER_TABLE_OPEN_TIMEOUT_NUM;
+        my_printf_error(ER_SPIDER_TABLE_OPEN_TIMEOUT_NUM,
+          ER_SPIDER_TABLE_OPEN_TIMEOUT_STR, MYF(0),
+          table_share->db.str, table_share->table_name.str);
+        goto error_but_no_delete;
+      }
+      my_sleep(10000); // wait 10 ms
     }
 
     if (!share->link_status_init)
@@ -6465,6 +6502,7 @@ int spider_db_done(
     spider_open_connections.array.max_element *
     spider_open_connections.array.size_of_element);
   my_hash_free(&spider_open_connections);
+  my_hash_free(&spider_ipport_conns);
   spider_free_mem_calc(spider_current_trx,
     spider_lgtm_tblhnd_share_hash_id,
     spider_lgtm_tblhnd_share_hash.array.max_element *
@@ -6520,6 +6558,7 @@ int spider_db_done(
 #endif
   pthread_mutex_destroy(&spider_init_error_tbl_mutex);
   pthread_mutex_destroy(&spider_conn_id_mutex);
+  pthread_mutex_destroy(&spider_ipport_conn_mutex);
   pthread_mutex_destroy(&spider_thread_id_mutex);
   pthread_mutex_destroy(&spider_tbl_mutex);
 #ifndef WITHOUT_SPIDER_BG_SEARCH
@@ -6719,6 +6758,17 @@ int spider_db_init(
     goto error_conn_id_mutex_init;
   }
 #if MYSQL_VERSION_ID < 50500
+  if (pthread_mutex_init(&spider_ipport_conn_mutex, MY_MUTEX_INIT_FAST))
+#else
+  if (mysql_mutex_init(spd_key_mutex_ipport_count,
+    &spider_ipport_conn_mutex, MY_MUTEX_INIT_FAST))
+#endif
+  {
+    error_num = HA_ERR_OUT_OF_MEM;
+    goto error_ipport_count_mutex_init;
+  }
+
+#if MYSQL_VERSION_ID < 50500
   if (pthread_mutex_init(&spider_init_error_tbl_mutex, MY_MUTEX_INIT_FAST))
 #else
   if (mysql_mutex_init(spd_key_mutex_init_error_tbl,
@@ -6893,6 +6943,13 @@ int spider_db_init(
   ) {
     error_num = HA_ERR_OUT_OF_MEM;
     goto error_open_connections_hash_init;
+  }
+  if(
+    my_hash_init(&spider_ipport_conns, spd_charset_utf8_bin, 32, 0, 0,
+    (my_hash_get_key) spider_ipport_conn_get_key, spider_free_ipport_conn, 0)
+    ) {
+      error_num = HA_ERR_OUT_OF_MEM;
+      goto error_ipport_conn__hash_init;
   }
   spider_alloc_calc_mem_init(spider_open_connections, 146);
   spider_alloc_calc_mem(NULL,
@@ -7087,6 +7144,8 @@ error_mon_table_cache_array_init:
     spider_allocated_thds.array.size_of_element);
   my_hash_free(&spider_allocated_thds);
 error_allocated_thds_hash_init:
+  my_hash_free(&spider_ipport_conns);
+error_ipport_conn__hash_init:
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   spider_free_mem_calc(NULL,
     spider_hs_w_conn_hash_id,
@@ -7161,6 +7220,8 @@ error_pt_share_mutex_init:
 #endif
   pthread_mutex_destroy(&spider_init_error_tbl_mutex);
 error_init_error_tbl_mutex_init:
+  pthread_mutex_destroy(&spider_ipport_conn_mutex);
+error_ipport_count_mutex_init:
   pthread_mutex_destroy(&spider_conn_id_mutex);
 error_conn_id_mutex_init:
   pthread_mutex_destroy(&spider_thread_id_mutex);
@@ -8112,6 +8173,19 @@ TABLE_LIST *spider_get_parent_table_list(
   DBUG_RETURN(NULL);
 }
 
+List<Index_hint> *spider_get_index_hints(
+  ha_spider *spider
+  ) {
+    TABLE_LIST *table_list = spider_get_parent_table_list(spider);
+    DBUG_ENTER("spider_get_index_hint");
+    if (table_list)
+    {
+      DBUG_RETURN(table_list->index_hints);
+    }
+    DBUG_RETURN(NULL);
+}
+
+
 st_select_lex *spider_get_select_lex(
   ha_spider *spider
 ) {
@@ -8124,6 +8198,24 @@ st_select_lex *spider_get_select_lex(
   DBUG_RETURN(NULL);
 }
 
+void spider_get_select_limit_from_select_lex(
+  st_select_lex *select_lex,
+  longlong *select_limit,
+  longlong *offset_limit
+) {
+  DBUG_ENTER("spider_get_select_limit_from_select_lex");
+  *select_limit = 9223372036854775807LL;
+  *offset_limit = 0;
+  if (select_lex && select_lex->explicit_limit)
+  {
+    *select_limit = select_lex->select_limit ?
+      select_lex->select_limit->val_int() : 0;
+    *offset_limit = select_lex->offset_limit ?
+      select_lex->offset_limit->val_int() : 0;
+  }
+  DBUG_VOID_RETURN;
+}
+
 void spider_get_select_limit(
   ha_spider *spider,
   st_select_lex **select_lex,
@@ -8132,15 +8224,8 @@ void spider_get_select_limit(
 ) {
   DBUG_ENTER("spider_get_select_limit");
   *select_lex = spider_get_select_lex(spider);
-  *select_limit = 9223372036854775807LL;
-  *offset_limit = 0;
-  if (*select_lex && (*select_lex)->explicit_limit)
-  {
-    *select_limit = (*select_lex)->select_limit ?
-      (*select_lex)->select_limit->val_int() : 0;
-    *offset_limit = (*select_lex)->offset_limit ?
-      (*select_lex)->offset_limit->val_int() : 0;
-  }
+  spider_get_select_limit_from_select_lex(
+    *select_lex, select_limit, offset_limit);
   DBUG_VOID_RETURN;
 }
 
@@ -8583,6 +8668,102 @@ bool spider_check_direct_order_limit(
   DBUG_PRINT("info",("spider FALSE by parameter"));
   DBUG_RETURN(FALSE);
 }
+
+int spider_set_direct_limit_offset(
+  ha_spider *spider
+) {
+  THD *thd = spider->trx->thd;
+  st_select_lex *select_lex;
+  longlong select_limit;
+  longlong offset_limit;
+  TABLE_LIST *table_list;
+  DBUG_ENTER("spider_set_direct_limit_offset");
+
+  if (spider->result_list.direct_limit_offset)
+    DBUG_RETURN(TRUE);
+
+  if (
+    spider->pt_handler_share_creator &&
+    spider->pt_handler_share_creator != spider
+  ) {
+    if (spider->pt_handler_share_creator->result_list.direct_limit_offset == TRUE)
+    {
+      spider->result_list.direct_limit_offset = TRUE;
+      DBUG_RETURN(TRUE);
+    } else {
+      DBUG_RETURN(FALSE);
+    }
+  }
+
+  if (
+    spider->sql_command != SQLCOM_SELECT ||
+    spider->result_list.direct_aggregate ||
+    spider->result_list.direct_order_limit ||
+    spider->prev_index_rnd_init != SPD_RND    // must be RND_INIT and not be INDEX_INIT
+  )
+    DBUG_RETURN(FALSE);
+
+  spider_get_select_limit(spider, &select_lex, &select_limit, &offset_limit);
+
+  // limit and offset is non-zero
+  if (!(select_limit && offset_limit))
+    DBUG_RETURN(FALSE);
+
+  // more than one table
+  if (
+    !select_lex ||
+    select_lex->table_list.elements != 1
+  )
+    DBUG_RETURN(FALSE);
+
+  table_list = (TABLE_LIST *) select_lex->table_list.first;
+  if (table_list->table->file->partition_ht() != spider_hton_ptr)
+  {
+    DBUG_PRINT("info",("spider ht1=%s ht2=%s",
+      hton_name(table_list->table->file->partition_ht())->str,
+      hton_name(spider_hton_ptr)->str
+    ));
+    DBUG_RETURN(FALSE);
+  }
+
+  // contain where
+  if (
+#if MYSQL_VERSION_ID < 50500
+    !thd->variables.engine_condition_pushdown ||
+#else
+#ifdef SPIDER_ENGINE_CONDITION_PUSHDOWN_IS_ALWAYS_ON
+#else
+    !(thd->variables.optimizer_switch &
+      OPTIMIZER_SWITCH_ENGINE_CONDITION_PUSHDOWN) ||
+#endif
+#endif
+    spider->condition   // conditions is null may be no where condition in rand_init
+  )
+    DBUG_RETURN(FALSE);
+
+  // ignore condition like 1=1 
+  if (select_lex->where && select_lex->where->with_subselect)
+    DBUG_RETURN(FALSE);
+
+  if (
+    select_lex->group_list.elements ||
+    select_lex->with_sum_func ||
+    select_lex->having ||
+    select_lex->order_list.elements
+  )
+    DBUG_RETURN(FALSE);
+
+  // must not be derived table
+  if (&thd->lex->select_lex != select_lex)
+    DBUG_RETURN(FALSE);
+
+  spider->direct_select_offset = offset_limit;
+  spider->direct_current_offset = offset_limit;
+  spider->direct_select_limit = select_limit;
+  spider->result_list.direct_limit_offset = TRUE;
+  DBUG_RETURN(TRUE);
+}
+
 
 bool spider_check_index_merge(
   TABLE *table,

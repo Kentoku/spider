@@ -38,6 +38,7 @@
 
 extern handlerton *spider_hton_ptr;
 extern HASH spider_open_connections;
+extern HASH spider_ipport_conns;
 extern SPIDER_DBTON spider_dbton[SPIDER_DBTON_SIZE];
 extern const char spider_dig_upper[];
 
@@ -4350,6 +4351,16 @@ int spider_handlersocket_handler::init()
   hs_keys.init();
   hs_upds.init();
   hs_strs.init();
+  DBUG_RETURN(0);
+}
+
+int spider_handlersocket_handler::append_index_hint(
+  spider_string *str,
+  int link_idx,
+  ulong sql_type
+  ) 
+{
+  DBUG_ENTER("spider_handlersocket_handler::append_index_hint");
   DBUG_RETURN(0);
 }
 

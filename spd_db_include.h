@@ -1255,6 +1255,11 @@ public:
     spider(spider), db_share(db_share), first_link_idx(-1) {}
   virtual ~spider_db_handler() {}
   virtual int init() = 0;
+  virtual int append_index_hint(
+    spider_string *str,
+    int link_idx,
+    ulong sql_type
+    ) = 0;
   virtual int append_table_name_with_adjusting(
     spider_string *str,
     int link_idx,
@@ -1930,6 +1935,8 @@ typedef struct st_spider_result_list
   spider_bulk_upd_start   bulk_update_start;
   bool                    check_direct_order_limit;
   bool                    direct_order_limit;
+  /* the limit_offeset, without where condition */
+  bool                    direct_limit_offset;
   bool                    direct_distinct;
 #ifdef HANDLER_HAS_DIRECT_AGGREGATE
   bool                    direct_aggregate;

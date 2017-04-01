@@ -389,9 +389,18 @@ void spider_free_tmp_dbton_handler(
 TABLE_LIST *spider_get_parent_table_list(
   ha_spider *spider
 );
+List<Index_hint> *spider_get_index_hints(
+  ha_spider *spider
+  );
 
 st_select_lex *spider_get_select_lex(
   ha_spider *spider
+);
+
+void spider_get_select_limit_from_select_lex(
+  st_select_lex *select_lex,
+  longlong *select_limit,
+  longlong *offset_limit
 );
 
 void spider_get_select_limit(
@@ -420,6 +429,10 @@ void spider_next_split_read_param(
 bool spider_check_direct_order_limit(
   ha_spider *spider
 );
+
+int spider_set_direct_limit_offset(
+                                   ha_spider*		spider
+                                   );
 
 bool spider_check_index_merge(
   TABLE *table,
