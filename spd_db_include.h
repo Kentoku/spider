@@ -52,6 +52,10 @@
 #define SPIDER_HAS_GROUP_BY_HANDLER
 #endif
 
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100200
+#define SPIDER_ORDER_HAS_ENUM_ORDER
+#endif
+
 #if defined(MARIADB_BASE_VERSION)
 #define SPIDER_ITEM_GEOFUNC_NAME_HAS_MBR
 #define SPIDER_HANDLER_AUTO_REPAIR_HAS_ERROR
@@ -1493,6 +1497,9 @@ public:
     key_range *end_key,
     ulong sql_type,
     int link_idx
+  ) = 0;
+  virtual bool is_sole_projection_field(
+    uint16 field_index
   ) = 0;
   virtual bool is_bulk_insert_exec_period(
     bool bulk_end
