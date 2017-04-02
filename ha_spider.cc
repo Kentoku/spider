@@ -1672,8 +1672,11 @@ int ha_spider::reset()
     partition_handler_share->rnd_bitmap_is_set = FALSE;
   }
 #endif
-  memset(ft_discard_bitmap, 0xFF, no_bytes_in_map(table->read_set));
-  memset(searched_bitmap, 0, no_bytes_in_map(table->read_set));
+  if (!is_clone)
+  {
+    memset(ft_discard_bitmap, 0xFF, no_bytes_in_map(table->read_set));
+    memset(searched_bitmap, 0, no_bytes_in_map(table->read_set));
+  }
   if (!(tmp_trx = spider_get_trx(thd, TRUE, &error_num2)))
   {
     DBUG_PRINT("info",("spider get trx error"));
@@ -11953,8 +11956,22 @@ void ha_spider::set_searched_bitmap()
 void ha_spider::set_clone_searched_bitmap()
 {
   DBUG_ENTER("ha_spider::set_clone_searched_bitmap");
+  DBUG_PRINT("info",("spider searched_bitmap=%p", searched_bitmap));
+#ifndef DBUG_OFF
+  int roop_count;
+  for (roop_count = 0; roop_count < (int) ((table_share->fields + 7) / 8);
+    roop_count++)
+    DBUG_PRINT("info", ("spider before searched_bitmap is %x",
+      ((uchar *) searched_bitmap)[roop_count]));
+#endif
   memcpy(searched_bitmap, pt_clone_source_handler->searched_bitmap,
     (table_share->fields + 7) / 8);
+#ifndef DBUG_OFF
+  for (roop_count = 0; roop_count < (int) ((table_share->fields + 7) / 8);
+    roop_count++)
+    DBUG_PRINT("info", ("spider after searched_bitmap is %x",
+      ((uchar *) searched_bitmap)[roop_count]));
+#endif
   memcpy(ft_discard_bitmap, pt_clone_source_handler->ft_discard_bitmap,
     (table_share->fields + 7) / 8);
   DBUG_VOID_RETURN;
