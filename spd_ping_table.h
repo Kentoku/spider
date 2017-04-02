@@ -35,7 +35,7 @@ void spider_release_ping_table_mon_list_loop(
   SPIDER_TABLE_MON_LIST *table_mon_list
 );
 
-void spider_release_ping_table_mon_list(
+int spider_release_ping_table_mon_list(
   const char *conv_name,
   uint conv_name_length,
   int link_idx

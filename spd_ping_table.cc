@@ -229,7 +229,7 @@ void spider_release_ping_table_mon_list_loop(
   DBUG_VOID_RETURN;
 }
 
-void spider_release_ping_table_mon_list(
+int spider_release_ping_table_mon_list(
   const char *conv_name,
   uint conv_name_length,
   int link_idx
@@ -244,14 +244,14 @@ void spider_release_ping_table_mon_list(
   DBUG_PRINT("info", ("spider link_idx=%d", link_idx));
   link_idx_str_length = my_sprintf(link_idx_str, (link_idx_str, "%010d",
     link_idx));
-#ifdef _MSC_VER
-  spider_string conv_name_str(conv_name_length + link_idx_str_length + 1);
-  conv_name_str.set_charset(system_charset_info);
-#else
-  char buf[conv_name_length + link_idx_str_length + 1];
+  char *buf = (char *) my_alloca(conv_name_length + link_idx_str_length + 1);
+  if (!buf)
+  {
+    my_error(HA_ERR_OUT_OF_MEM, MYF(0));
+    DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+  }
   spider_string conv_name_str(buf, conv_name_length + link_idx_str_length + 1,
     system_charset_info);
-#endif
   conv_name_str.init_calc_mem(134);
   conv_name_str.length(0);
   conv_name_str.q_append(conv_name, conv_name_length);
@@ -277,7 +277,7 @@ void spider_release_ping_table_mon_list(
 #endif
     spider_release_ping_table_mon_list_loop(mutex_hash, table_mon_list);
   pthread_mutex_unlock(&spider_udf_table_mon_mutexes[mutex_hash]);
-  DBUG_VOID_RETURN;
+  DBUG_RETURN(0);
 }
 
 int spider_get_ping_table_mon(
@@ -1641,17 +1641,15 @@ int spider_ping_table_mon_from_table(
     link_idx_str_length = my_sprintf(link_idx_str, (link_idx_str, "%010d",
       link_idx));
   }
-#ifdef _MSC_VER
-  spider_string conv_name_str(conv_name_length + link_idx_str_length + 1);
-  conv_name_str.set_charset(system_charset_info);
-  *((char *)(conv_name_str.ptr() + conv_name_length + link_idx_str_length)) =
-    '\0';
-#else
-  char buf[conv_name_length + link_idx_str_length + 1];
+  char *buf = (char *) my_alloca(conv_name_length + link_idx_str_length + 1);
+  if (!buf)
+  {
+    my_error(HA_ERR_OUT_OF_MEM, MYF(0));
+    DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+  }
   buf[conv_name_length + link_idx_str_length] = '\0';
   spider_string conv_name_str(buf, conv_name_length + link_idx_str_length + 1,
     system_charset_info);
-#endif
   conv_name_str.init_calc_mem(136);
   conv_name_str.length(0);
   conv_name_str.q_append(conv_name, conv_name_length);
@@ -1673,7 +1671,10 @@ int spider_ping_table_mon_from_table(
     share->static_link_ids[link_idx],
     share->static_link_ids_lengths[link_idx],
     server_id, need_lock, &error_num)))
+  {
+    my_afree(buf);
     goto end;
+  }
 
   if (table_mon_list->mon_status == SPIDER_LINK_MON_NG)
   {
@@ -1687,6 +1688,7 @@ int spider_ping_table_mon_from_table(
       ER_SPIDER_LINK_MON_NG_STR, MYF(0),
       table_mon_list->share->tgt_dbs[0],
       table_mon_list->share->tgt_table_names[0]);
+    my_afree(buf);
     goto end_with_free_table_mon_list;
   }
 
@@ -1859,6 +1861,7 @@ int spider_ping_table_mon_from_table(
     pthread_mutex_unlock(&table_mon_list->caller_mutex);
   }
 
+  my_afree(buf);
 end_with_free_table_mon_list:
   spider_free_ping_table_mon_list(table_mon_list);
 end:

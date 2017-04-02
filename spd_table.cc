@@ -3921,31 +3921,28 @@ int spider_create_conn_keys(
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   char *tmp_hs_r_name, *tmp_hs_w_name;
 #endif
-#ifdef _MSC_VER
   uint *conn_keys_lengths;
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   uint *hs_r_conn_keys_lengths;
   uint *hs_w_conn_keys_lengths;
 #endif
-#else
-  uint conn_keys_lengths[share->all_link_count];
-#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
-  uint hs_r_conn_keys_lengths[share->all_link_count];
-  uint hs_w_conn_keys_lengths[share->all_link_count];
-#endif
-#endif
   DBUG_ENTER("spider_create_conn_keys");
-#ifdef _MSC_VER
-  if (!(conn_keys_lengths =
-    (uint *) spider_bulk_alloc_mem(spider_current_trx, 44,
-      __func__, __FILE__, __LINE__, MYF(MY_WME),
-      &conn_keys_lengths, sizeof(uint) * share->all_link_count,
+  char *ptr;
+  uint length = sizeof(uint) * share->all_link_count;
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
-      &hs_r_conn_keys_lengths, sizeof(uint) * share->all_link_count,
-      &hs_w_conn_keys_lengths, sizeof(uint) * share->all_link_count,
+  length += (sizeof(uint) * share->all_link_count) * 2;
 #endif
-      NullS)))
+  ptr = (char *) my_alloca(length);
+  if (!ptr)
+  {
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+  }
+  conn_keys_lengths = (uint *) ptr;
+  ptr += (sizeof(uint) * share->all_link_count);
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
+  hs_r_conn_keys_lengths = (uint *) ptr;
+  ptr += (sizeof(uint) * share->all_link_count);
+  hs_w_conn_keys_lengths = (uint *) ptr;
 #endif
 
   share->conn_keys_charlen = 0;
@@ -4024,9 +4021,7 @@ int spider_create_conn_keys(
 #endif
       NullS))
   ) {
-#ifdef _MSC_VER
-    spider_free(spider_current_trx, conn_keys_lengths, MYF(MY_WME));
-#endif
+    my_afree(conn_keys_lengths);
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   }
   share->conn_keys_length = share->all_link_count;
@@ -4041,9 +4036,7 @@ int spider_create_conn_keys(
     sizeof(uint) * share->all_link_count);
 #endif
 
-#ifdef _MSC_VER
-  spider_free(spider_current_trx, conn_keys_lengths, MYF(MY_WME));
-#endif
+  my_afree(conn_keys_lengths);
 
   for (roop_count = 0; roop_count < (int) share->all_link_count; roop_count++)
   {
@@ -4908,14 +4901,10 @@ SPIDER_SHARE *spider_get_share(
       share->link_count, SPIDER_LINK_STATUS_OK);
     if (search_link_idx == -1)
     {
-#ifdef _MSC_VER
-      char *db, *table_name;
-      if (!(db = (char *)
-        spider_bulk_malloc(spider_current_trx, 48, MYF(MY_WME),
-          &db, table_share->db.length + 1,
-          &table_name, table_share->table_name.length + 1,
-          NullS))
-      ) {
+      char *db = (char *) my_alloca(
+        table_share->db.length + 1 + table_share->table_name.length + 1);
+      if (!db)
+      {
         *error_num = HA_ERR_OUT_OF_MEM;
         share->init_error = TRUE;
         share->init_error_time = (time_t) time((time_t*) 0);
@@ -4923,10 +4912,7 @@ SPIDER_SHARE *spider_get_share(
         spider_free_share(share);
         goto error_but_no_delete;
       }
-#else
-      char db[table_share->db.length + 1],
-        table_name[table_share->table_name.length + 1];
-#endif
+      char *table_name = db + table_share->db.length + 1;
       memcpy(db, table_share->db.str, table_share->db.length);
       db[table_share->db.length] = '\0';
       memcpy(table_name, table_share->table_name.str,
@@ -4934,10 +4920,16 @@ SPIDER_SHARE *spider_get_share(
       table_name[table_share->table_name.length] = '\0';
       my_printf_error(ER_SPIDER_ALL_LINKS_FAILED_NUM,
         ER_SPIDER_ALL_LINKS_FAILED_STR, MYF(0), db, table_name);
-#ifdef _MSC_VER
-      spider_free(spider->trx, db, MYF(MY_WME));
-#endif
+      my_afree(db);
       *error_num = ER_SPIDER_ALL_LINKS_FAILED_NUM;
+      share->init_error = TRUE;
+      share->init_error_time = (time_t) time((time_t*) 0);
+      share->init = TRUE;
+      spider_free_share(share);
+      goto error_but_no_delete;
+    } else if (search_link_idx == -2)
+    {
+      *error_num = HA_ERR_OUT_OF_MEM;
       share->init_error = TRUE;
       share->init_error_time = (time_t) time((time_t*) 0);
       share->init = TRUE;
@@ -5365,22 +5357,15 @@ SPIDER_SHARE *spider_get_share(
       share->link_count, SPIDER_LINK_STATUS_OK);
     if (search_link_idx == -1)
     {
-#ifdef _MSC_VER
-      char *db, *table_name;
-      if (!(db = (char *)
-        spider_bulk_malloc(spider_current_trx, 50, MYF(MY_WME),
-          &db, table_share->db.length + 1,
-          &table_name, table_share->table_name.length + 1,
-          NullS))
-      ) {
+      char *db = (char *) my_alloca(
+        table_share->db.length + 1 + table_share->table_name.length + 1);
+      if (!db)
+      {
         *error_num = HA_ERR_OUT_OF_MEM;
         spider_free_share(share);
         goto error_but_no_delete;
       }
-#else
-      char db[table_share->db.length + 1],
-        table_name[table_share->table_name.length + 1];
-#endif
+      char *table_name = db + table_share->db.length + 1;
       memcpy(db, table_share->db.str, table_share->db.length);
       db[table_share->db.length] = '\0';
       memcpy(table_name, table_share->table_name.str,
@@ -5388,10 +5373,13 @@ SPIDER_SHARE *spider_get_share(
       table_name[table_share->table_name.length] = '\0';
       my_printf_error(ER_SPIDER_ALL_LINKS_FAILED_NUM,
         ER_SPIDER_ALL_LINKS_FAILED_STR, MYF(0), db, table_name);
-#ifdef _MSC_VER
-      spider_free(spider->trx, db, MYF(MY_WME));
-#endif
+      my_afree(db);
       *error_num = ER_SPIDER_ALL_LINKS_FAILED_NUM;
+      spider_free_share(share);
+      goto error_but_no_delete;
+    } else if (search_link_idx == -2)
+    {
+      *error_num = HA_ERR_OUT_OF_MEM;
       spider_free_share(share);
       goto error_but_no_delete;
     }

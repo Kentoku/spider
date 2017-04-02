@@ -3787,21 +3787,14 @@ int spider_check_trx_and_get_conn(
         {
           TABLE *table = spider->get_table();
           TABLE_SHARE *table_share = table->s;
-#ifdef _MSC_VER
-          char *db, *table_name;
-          if (!(db = (char *)
-            spider_bulk_malloc(spider_current_trx, 57, MYF(MY_WME),
-              &db, table_share->db.length + 1,
-              &table_name, table_share->table_name.length + 1,
-              NullS))
-          ) {
-            my_error(ER_OUT_OF_RESOURCES, MYF(0), HA_ERR_OUT_OF_MEM);
+          char *db = (char *) my_alloca(
+            table_share->db.length + 1 + table_share->table_name.length + 1);
+          if (!db)
+          {
+            my_error(HA_ERR_OUT_OF_MEM, MYF(0));
             DBUG_RETURN(HA_ERR_OUT_OF_MEM);
           }
-#else
-          char db[table_share->db.length + 1],
-            table_name[table_share->table_name.length + 1];
-#endif
+          char *table_name = db + table_share->db.length + 1;
           memcpy(db, table_share->db.str, table_share->db.length);
           db[table_share->db.length] = '\0';
           memcpy(table_name, table_share->table_name.str,
@@ -3809,10 +3802,12 @@ int spider_check_trx_and_get_conn(
           table_name[table_share->table_name.length] = '\0';
           my_printf_error(ER_SPIDER_ALL_LINKS_FAILED_NUM,
             ER_SPIDER_ALL_LINKS_FAILED_STR, MYF(0), db, table_name);
-#ifdef _MSC_VER
-          spider_free(trx, db, MYF(MY_WME));
-#endif
+          my_afree(db);
           DBUG_RETURN(ER_SPIDER_ALL_LINKS_FAILED_NUM);
+        } else if (search_link_idx == -2)
+        {
+          my_error(HA_ERR_OUT_OF_MEM, MYF(0));
+          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         }
         spider->search_link_idx = search_link_idx;
         spider->search_link_query_id = thd->query_id;
@@ -3948,21 +3943,14 @@ int spider_check_trx_and_get_conn(
       {
         TABLE *table = spider->get_table();
         TABLE_SHARE *table_share = table->s;
-#ifdef _MSC_VER
-        char *db, *table_name;
-        if (!(db = (char *)
-          spider_bulk_malloc(spider_current_trx, 57, MYF(MY_WME),
-            &db, table_share->db.length + 1,
-            &table_name, table_share->table_name.length + 1,
-            NullS))
-        ) {
-          my_error(ER_OUT_OF_RESOURCES, MYF(0), HA_ERR_OUT_OF_MEM);
+        char *db = (char *) my_alloca(
+          table_share->db.length + 1 + table_share->table_name.length + 1);
+        if (!db)
+        {
+          my_error(HA_ERR_OUT_OF_MEM, MYF(0));
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         }
-#else
-        char db[table_share->db.length + 1],
-          table_name[table_share->table_name.length + 1];
-#endif
+        char *table_name = db + table_share->db.length + 1;
         memcpy(db, table_share->db.str, table_share->db.length);
         db[table_share->db.length] = '\0';
         memcpy(table_name, table_share->table_name.str,
@@ -3970,9 +3958,7 @@ int spider_check_trx_and_get_conn(
         table_name[table_share->table_name.length] = '\0';
         my_printf_error(ER_SPIDER_LINK_MON_JUST_NG_NUM,
           ER_SPIDER_LINK_MON_JUST_NG_STR, MYF(0), db, table_name);
-#ifdef _MSC_VER
-        spider_free(trx, db, MYF(MY_WME));
-#endif
+        my_afree(db);
         DBUG_RETURN(ER_SPIDER_LINK_MON_JUST_NG_NUM);
       }
     } else {
@@ -4096,21 +4082,14 @@ int spider_check_trx_and_get_conn(
       {
         TABLE *table = spider->get_table();
         TABLE_SHARE *table_share = table->s;
-#ifdef _MSC_VER
-        char *db, *table_name;
-        if (!(db = (char *)
-          spider_bulk_malloc(spider_current_trx, 57, MYF(MY_WME),
-            &db, table_share->db.length + 1,
-            &table_name, table_share->table_name.length + 1,
-            NullS))
-        ) {
-          my_error(ER_OUT_OF_RESOURCES, MYF(0), HA_ERR_OUT_OF_MEM);
+        char *db = (char *) my_alloca(
+          table_share->db.length + 1 + table_share->table_name.length + 1);
+        if (!db)
+        {
+          my_error(HA_ERR_OUT_OF_MEM, MYF(0));
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         }
-#else
-        char db[table_share->db.length + 1],
-          table_name[table_share->table_name.length + 1];
-#endif
+        char *table_name = db + table_share->db.length + 1;
         memcpy(db, table_share->db.str, table_share->db.length);
         db[table_share->db.length] = '\0';
         memcpy(table_name, table_share->table_name.str,
@@ -4118,9 +4097,7 @@ int spider_check_trx_and_get_conn(
         table_name[table_share->table_name.length] = '\0';
         my_printf_error(ER_SPIDER_LINK_MON_JUST_NG_NUM,
           ER_SPIDER_LINK_MON_JUST_NG_STR, MYF(0), db, table_name);
-#ifdef _MSC_VER
-        spider_free(trx, db, MYF(MY_WME));
-#endif
+        my_afree(db);
         DBUG_RETURN(ER_SPIDER_LINK_MON_JUST_NG_NUM);
       }
     }

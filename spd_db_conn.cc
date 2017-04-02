@@ -9570,18 +9570,19 @@ int spider_db_udf_ping_table(
     {
       int init_sql_alloc_size =
         spider_param_init_sql_alloc_size(trx->thd, share->init_sql_alloc_size);
-#ifdef _MSC_VER
-      spider_string sql_str(init_sql_alloc_size);
-      sql_str.set_charset(system_charset_info);
-      spider_string where_str(init_sql_alloc_size);
-      where_str.set_charset(system_charset_info);
-#else
-      char sql_buf[init_sql_alloc_size], where_buf[init_sql_alloc_size];
+      char *sql_buf = (char *) my_alloca(init_sql_alloc_size * 2);
+      if (!sql_buf)
+      {
+        table_mon_list->last_mon_result = HA_ERR_OUT_OF_MEM;
+        pthread_mutex_unlock(&table_mon_list->monitor_mutex);
+        my_error(HA_ERR_OUT_OF_MEM, MYF(0));
+        DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+      }
+      char *where_buf = sql_buf + init_sql_alloc_size;
       spider_string sql_str(sql_buf, sizeof(sql_buf),
         system_charset_info);
       spider_string where_str(where_buf, sizeof(where_buf),
         system_charset_info);
-#endif
       sql_str.init_calc_mem(128);
       where_str.init_calc_mem(129);
       sql_str.length(0);
@@ -9594,6 +9595,7 @@ int spider_db_udf_ping_table(
         table_mon_list->last_mon_result = HA_ERR_OUT_OF_MEM;
         pthread_mutex_unlock(&table_mon_list->monitor_mutex);
         my_error(HA_ERR_OUT_OF_MEM, MYF(0));
+        my_afree(sql_buf);
         DBUG_RETURN(HA_ERR_OUT_OF_MEM);
       }
       share->access_charset = system_charset_info;
@@ -9603,6 +9605,7 @@ int spider_db_udf_ping_table(
         table_mon_list->last_mon_result = error_num;
         pthread_mutex_unlock(&table_mon_list->monitor_mutex);
         my_error(error_num, MYF(0));
+        my_afree(sql_buf);
         DBUG_RETURN(error_num);
       }
       pthread_mutex_lock(&conn->mta_conn_mutex);
@@ -9619,6 +9622,7 @@ int spider_db_udf_ping_table(
         table_mon_list->last_mon_result = error_num;
         pthread_mutex_unlock(&table_mon_list->monitor_mutex);
         DBUG_PRINT("info",("spider error_num=%d", error_num));
+        my_afree(sql_buf);
         DBUG_RETURN(error_num);
       }
       spider_conn_set_timeout_from_share(conn, 0, trx->thd, share);
@@ -9635,6 +9639,7 @@ int spider_db_udf_ping_table(
         table_mon_list->last_mon_result = error_num;
         pthread_mutex_unlock(&table_mon_list->monitor_mutex);
         DBUG_PRINT("info",("spider error_num=%d", error_num));
+        my_afree(sql_buf);
         DBUG_RETURN(error_num);
       }
       conn->mta_conn_mutex_lock_already = FALSE;
@@ -9642,6 +9647,7 @@ int spider_db_udf_ping_table(
       spider_db_discard_result(&spider, 0, conn);
       SPIDER_CLEAR_FILE_POS(&conn->mta_conn_mutex_file_pos);
       pthread_mutex_unlock(&conn->mta_conn_mutex);
+      my_afree(sql_buf);
     }
     table_mon_list->last_mon_result = 0;
     pthread_mutex_unlock(&table_mon_list->monitor_mutex);
@@ -9808,17 +9814,17 @@ int spider_db_udf_ping_table_mon_next(
   SPIDER_SHARE *share = table_mon->share;
   int init_sql_alloc_size =
     spider_param_init_sql_alloc_size(thd, share->init_sql_alloc_size);
-#ifdef _MSC_VER
-  spider_string sql_str(init_sql_alloc_size);
-  sql_str.set_charset(thd->variables.character_set_client);
-#else
-  char sql_buf[init_sql_alloc_size];
-  spider_string sql_str(sql_buf, sizeof(sql_buf),
-    thd->variables.character_set_client);
-#endif
   ha_spider spider;
   SPIDER_TRX trx;
   DBUG_ENTER("spider_db_udf_ping_table_mon_next");
+  char *sql_buf = (char *) my_alloca(init_sql_alloc_size);
+  if (!sql_buf)
+  {
+    my_error(HA_ERR_OUT_OF_MEM, MYF(0));
+    DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+  }
+  spider_string sql_str(sql_buf, sizeof(sql_buf),
+    thd->variables.character_set_client);
   sql_str.init_calc_mem(132);
   sql_str.length(0);
   trx.thd = thd;
@@ -9837,6 +9843,7 @@ int spider_db_udf_ping_table_mon_next(
     success_count, fault_count, flags, limit)))
   {
     my_error(error_num, MYF(0));
+    my_afree(sql_buf);
     DBUG_RETURN(error_num);
   }
 
@@ -9853,6 +9860,7 @@ int spider_db_udf_ping_table_mon_next(
     pthread_mutex_unlock(&conn->mta_conn_mutex);
     my_error(ER_CONNECT_TO_FOREIGN_DATA_SOURCE, MYF(0),
       share->server_names[0]);
+    my_afree(sql_buf);
     DBUG_RETURN(ER_CONNECT_TO_FOREIGN_DATA_SOURCE);
   }
   if ((error_num = spider_db_set_names(&spider, conn, 0)))
@@ -9861,6 +9869,7 @@ int spider_db_udf_ping_table_mon_next(
     conn->mta_conn_mutex_unlock_later = FALSE;
     SPIDER_CLEAR_FILE_POS(&conn->mta_conn_mutex_file_pos);
     pthread_mutex_unlock(&conn->mta_conn_mutex);
+    my_afree(sql_buf);
     DBUG_RETURN(error_num);
   }
   spider_conn_set_timeout_from_share(conn, 0, thd, share);
@@ -9873,6 +9882,7 @@ int spider_db_udf_ping_table_mon_next(
   ) {
     conn->mta_conn_mutex_lock_already = FALSE;
     conn->mta_conn_mutex_unlock_later = FALSE;
+    my_afree(sql_buf);
     DBUG_RETURN(spider_db_errorno(conn));
   }
   st_spider_db_request_key request_key;
@@ -9886,14 +9896,19 @@ int spider_db_udf_ping_table_mon_next(
     conn->mta_conn_mutex_lock_already = FALSE;
     conn->mta_conn_mutex_unlock_later = FALSE;
     if (error_num || (error_num = spider_db_errorno(conn)))
+    {
+      my_afree(sql_buf);
       DBUG_RETURN(error_num);
+    }
     my_error(HA_ERR_OUT_OF_MEM, MYF(0));
+    my_afree(sql_buf);
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   }
   conn->mta_conn_mutex_lock_already = FALSE;
   conn->mta_conn_mutex_unlock_later = FALSE;
   SPIDER_CLEAR_FILE_POS(&conn->mta_conn_mutex_file_pos);
   pthread_mutex_unlock(&conn->mta_conn_mutex);
+  my_afree(sql_buf);
   error_num = res->fetch_table_mon_status(mon_table_result->result_status);
   res->free_result();
   delete res;

@@ -11035,7 +11035,13 @@ int ha_spider::rename_table(
 
     /* release table mon list */
     for (roop_count = 0; roop_count < old_link_count; roop_count++)
-      spider_release_ping_table_mon_list(from, from_len, roop_count);
+    {
+      if ((error_num =
+        spider_release_ping_table_mon_list(from, from_len, roop_count)))
+      {
+        goto error;
+      }
+    }
   } else if (sql_command == SQLCOM_ALTER_TABLE)
   {
     DBUG_PRINT("info",("spider alter_table_from=%p", alter_table_from));
@@ -11117,9 +11123,21 @@ int ha_spider::rename_table(
       /* release table mon list */
       for (roop_count = 0; roop_count < (int) alter_table_from->all_link_count;
         roop_count++)
-        spider_release_ping_table_mon_list(from, from_len, roop_count);
+      {
+        if ((error_num =
+          spider_release_ping_table_mon_list(from, from_len, roop_count)))
+        {
+          goto error;
+        }
+      }
       for (roop_count = 0; roop_count < old_link_count; roop_count++)
-        spider_release_ping_table_mon_list(to, to_len, roop_count);
+      {
+        if ((error_num =
+          spider_release_ping_table_mon_list(to, to_len, roop_count)))
+        {
+          goto error;
+        }
+      }
     }
 /*
     spider_free_trx_alter_table_alloc(trx, alter_table_from);
@@ -11286,7 +11304,11 @@ int ha_spider::delete_table(
 
     /* release table mon list */
     for (roop_count = 0; roop_count < old_link_count; roop_count++)
-      spider_release_ping_table_mon_list(name, name_len, roop_count);
+    {
+      if ((error_num =
+        spider_release_ping_table_mon_list(name, name_len, roop_count)))
+        goto error;
+    }
 
     pthread_mutex_lock(&spider_lgtm_tblhnd_share_mutex);
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
