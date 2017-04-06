@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2016 Kentoku Shiba
+/* Copyright (C) 2008-2017 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
 #define MYSQL_SERVER 1
+#include <my_global.h>
 #include "mysql_version.h"
 #if MYSQL_VERSION_ID < 50500
 #include "mysql_priv.h"
@@ -3203,9 +3204,15 @@ TABLE *spider_mk_sys_tmp_table(
   TABLE *tmp_table;
   DBUG_ENTER("spider_mk_sys_tmp_table");
 
+#ifdef SPIDER_FIELD_FIELDPTR_REQUIRES_THDPTR
+  if (!(field = new (thd->mem_root) Field_blob(
+    4294967295U, FALSE, field_name, cs, TRUE)))
+    goto error_alloc_field;
+#else
   if (!(field = new Field_blob(
     4294967295U, FALSE, field_name, cs, TRUE)))
     goto error_alloc_field;
+#endif
   field->init(table);
 
 #ifdef SPIDER_FIELD_FIELDPTR_REQUIRES_THDPTR
@@ -3261,9 +3268,15 @@ TABLE *spider_mk_sys_tmp_table_for_result(
   TABLE *tmp_table;
   DBUG_ENTER("spider_mk_sys_tmp_table_for_result");
 
+#ifdef SPIDER_FIELD_FIELDPTR_REQUIRES_THDPTR
+  if (!(field1 = new (thd->mem_root) Field_blob(
+    4294967295U, FALSE, field_name1, cs, TRUE)))
+    goto error_alloc_field1;
+#else
   if (!(field1 = new Field_blob(
     4294967295U, FALSE, field_name1, cs, TRUE)))
     goto error_alloc_field1;
+#endif
   field1->init(table);
 
 #ifdef SPIDER_FIELD_FIELDPTR_REQUIRES_THDPTR
@@ -3277,9 +3290,15 @@ TABLE *spider_mk_sys_tmp_table_for_result(
   if (i_list.push_back(i_field1))
     goto error_push_item1;
 
+#ifdef SPIDER_FIELD_FIELDPTR_REQUIRES_THDPTR
+  if (!(field2 = new (thd->mem_root) Field_blob(
+    4294967295U, FALSE, field_name2, cs, TRUE)))
+    goto error_alloc_field2;
+#else
   if (!(field2 = new Field_blob(
     4294967295U, FALSE, field_name2, cs, TRUE)))
     goto error_alloc_field2;
+#endif
   field2->init(table);
 
 #ifdef SPIDER_FIELD_FIELDPTR_REQUIRES_THDPTR
@@ -3293,9 +3312,15 @@ TABLE *spider_mk_sys_tmp_table_for_result(
   if (i_list.push_back(i_field2))
     goto error_push_item2;
 
+#ifdef SPIDER_FIELD_FIELDPTR_REQUIRES_THDPTR
+  if (!(field3 = new (thd->mem_root) Field_blob(
+    4294967295U, FALSE, field_name3, cs, TRUE)))
+    goto error_alloc_field3;
+#else
   if (!(field3 = new Field_blob(
     4294967295U, FALSE, field_name3, cs, TRUE)))
     goto error_alloc_field3;
+#endif
   field3->init(table);
 
 #ifdef SPIDER_FIELD_FIELDPTR_REQUIRES_THDPTR

@@ -3,10 +3,11 @@
 
 /*
  * Copyright (C) 2010-2011 DeNA Co.,Ltd.. All rights reserved.
- * Copyright (C) 2011 Kentoku SHIBA
+ * Copyright (C) 2011-2017 Kentoku SHIBA
  * See COPYRIGHT.txt for details.
  */
 
+#include <my_global.h>
 #include "mysql_version.h"
 #include "hs_compat.h"
 #if MYSQL_VERSION_ID < 50500

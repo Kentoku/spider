@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2016 Kentoku Shiba
+/* Copyright (C) 2008-2017 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
 #define MYSQL_SERVER 1
+#include <my_global.h>
 #include "mysql_version.h"
 #if MYSQL_VERSION_ID < 50500
 #include "mysql_priv.h"
@@ -746,7 +747,8 @@ int spider_db_errorno(
             "to %ld: %d %s\n",
             l_time->tm_year + 1900, l_time->tm_mon + 1, l_time->tm_mday,
             l_time->tm_hour, l_time->tm_min, l_time->tm_sec,
-            current_thd->thread_id, error_num, conn->db_conn->get_error());
+            (ulong) current_thd->thread_id, error_num,
+            conn->db_conn->get_error());
         }
         if (!conn->mta_conn_mutex_unlock_later)
         {
@@ -766,7 +768,8 @@ int spider_db_errorno(
           "to %ld: %d %s\n",
           l_time->tm_year + 1900, l_time->tm_mon + 1, l_time->tm_mday,
           l_time->tm_hour, l_time->tm_min, l_time->tm_sec,
-          current_thd->thread_id, error_num, conn->db_conn->get_error());
+          (ulong) current_thd->thread_id, error_num,
+          conn->db_conn->get_error());
       }
       if (!conn->mta_conn_mutex_unlock_later)
       {
@@ -811,7 +814,7 @@ int spider_db_errorno(
         "to %ld: %d %s\n",
         l_time->tm_year + 1900, l_time->tm_mon + 1, l_time->tm_mday,
         l_time->tm_hour, l_time->tm_min, l_time->tm_sec,
-        current_thd->thread_id, conn->db_conn->get_errno(),
+        (ulong) current_thd->thread_id, conn->db_conn->get_errno(),
         conn->db_conn->get_error());
     }
     *conn->need_mon = ER_SPIDER_HS_NUM;
@@ -1382,7 +1385,11 @@ int spider_db_append_name_with_quote_str(
   for (name_end = name + length; name < name_end; name += length)
   {
     head_code = *name;
+#ifdef SPIDER_HAS_MY_CHARLEN
+    if ((length = my_charlen(system_charset_info, name, name_end)) < 1)
+#else
     if (!(length = my_mbcharlen(system_charset_info, (uchar) head_code)))
+#endif
     {
       my_message(ER_SPIDER_WRONG_CHARACTER_IN_NAME_NUM,
         ER_SPIDER_WRONG_CHARACTER_IN_NAME_STR, MYF(0));

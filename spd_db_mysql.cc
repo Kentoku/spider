@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2016 Kentoku Shiba
+/* Copyright (C) 2012-2017 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
 #define MYSQL_SERVER 1
+#include <my_global.h>
 #include "mysql_version.h"
 #if MYSQL_VERSION_ID < 50500
 #include "mysql_priv.h"
@@ -1861,7 +1862,7 @@ int spider_db_mysql::exec_query(
           l_time->tm_hour, l_time->tm_min, l_time->tm_sec,
           security_ctx->user ? security_ctx->user : "system user",
           security_ctx->host_or_ip,
-          thd->thread_id,
+          (ulong) thd->thread_id,
           tmp_query_str.c_ptr_safe());
       }
       if (log_result_error_with_sql & 1)
@@ -1875,7 +1876,7 @@ int spider_db_mysql::exec_query(
           "sql: %s\n",
           l_time->tm_year + 1900, l_time->tm_mon + 1, l_time->tm_mday,
           l_time->tm_hour, l_time->tm_min, l_time->tm_sec,
-          thd->thread_id, conn->tgt_host, db_conn->thread_id,
+          (ulong) thd->thread_id, conn->tgt_host, (ulong) db_conn->thread_id,
           tmp_query_str.c_ptr_safe());
       }
     }
@@ -1889,7 +1890,7 @@ int spider_db_mysql::exec_query(
         "affected_rows: %llu  id: %llu  status: %u  warning_count: %u\n",
         l_time->tm_year + 1900, l_time->tm_mon + 1, l_time->tm_mday,
         l_time->tm_hour, l_time->tm_min, l_time->tm_sec,
-        conn->tgt_host, db_conn->thread_id, thd->thread_id,
+        conn->tgt_host, (ulong) db_conn->thread_id, (ulong) thd->thread_id,
         db_conn->affected_rows, db_conn->insert_id,
         db_conn->server_status, db_conn->warning_count);
       if (spider_param_log_result_errors() >= 3)
@@ -1904,7 +1905,7 @@ int spider_db_mysql::exec_query(
         "affected_rows: %llu  id: %llu  status: %u  warning_count: %u\n",
         l_time->tm_year + 1900, l_time->tm_mon + 1, l_time->tm_mday,
         l_time->tm_hour, l_time->tm_min, l_time->tm_sec,
-        conn->tgt_host, db_conn->thread_id, thd->thread_id,
+        conn->tgt_host, (ulong) db_conn->thread_id, (ulong) thd->thread_id,
         db_conn->affected_rows, db_conn->insert_id,
         db_conn->server_status, db_conn->warning_count);
     }
@@ -2033,8 +2034,8 @@ void spider_db_mysql::print_warnings(
             "from [%s] %ld to %ld: %s %s %s\n",
             l_time->tm_year + 1900, l_time->tm_mon + 1, l_time->tm_mday,
             l_time->tm_hour, l_time->tm_min, l_time->tm_sec,
-            conn->tgt_host, db_conn->thread_id,
-            current_thd->thread_id, row[0], row[1], row[2]);
+            conn->tgt_host, (ulong) db_conn->thread_id,
+            (ulong) current_thd->thread_id, row[0], row[1], row[2]);
           row = mysql_fetch_row(res);
         }
         if (res)

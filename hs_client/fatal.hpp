@@ -3,7 +3,7 @@
 
 /*
  * Copyright (C) 2010-2011 DeNA Co.,Ltd.. All rights reserved.
- * Copyright (C) 2011 Kentoku SHIBA
+ * Copyright (C) 2011-2017 Kentoku SHIBA
  * See COPYRIGHT.txt for details.
  */
 
@@ -22,8 +22,6 @@
 
 namespace dena {
 
-void fatal_exit(const String& message);
-void fatal_exit(const char *message);
 void fatal_abort(const String& message);
 void fatal_abort(const char *message);
 

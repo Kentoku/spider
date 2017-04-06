@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2016 Kentoku Shiba
+/* Copyright (C) 2008-2017 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
 #define MYSQL_SERVER 1
+#include <my_global.h>
 #include "mysql_version.h"
 #if MYSQL_VERSION_ID < 50500
 #include "mysql_priv.h"
@@ -1920,7 +1921,7 @@ int spider_param_auto_increment_mode(
 static MYSQL_THDVAR_BOOL(
   same_server_link, /* name */
   PLUGIN_VAR_OPCMDARG, /* opt */
-  "Permit to link same server's table", /* comment */
+  "Permit one to link same server's table", /* comment */
   NULL, /* check */
   NULL, /* update */
   FALSE /* def */

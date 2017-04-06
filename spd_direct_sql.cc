@@ -1,4 +1,4 @@
-/* Copyright (C) 2009-2015 Kentoku Shiba
+/* Copyright (C) 2009-2017 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
 #define MYSQL_SERVER 1
+#include <my_global.h>
 #include "mysql_version.h"
 #if MYSQL_VERSION_ID < 50500
 #include "mysql_priv.h"
@@ -946,7 +947,7 @@ error:
 #define SPIDER_PARAM_STR(title_name, param_name) \
   if (!strncasecmp(tmp_ptr, title_name, title_length)) \
   { \
-    DBUG_PRINT("info",("spider "title_name" start")); \
+    DBUG_PRINT("info",("spider " title_name " start")); \
     if (!direct_sql->param_name) \
     { \
       if ((direct_sql->param_name = spider_get_string_between_quote( \
@@ -959,14 +960,14 @@ error:
           MYF(0), tmp_ptr); \
         goto error; \
       } \
-      DBUG_PRINT("info",("spider "title_name"=%s", direct_sql->param_name)); \
+      DBUG_PRINT("info",("spider " title_name "=%s", direct_sql->param_name)); \
     } \
     break; \
   }
 #define SPIDER_PARAM_HINT_WITH_MAX(title_name, param_name, check_length, max_size, min_val, max_val) \
   if (!strncasecmp(tmp_ptr, title_name, check_length)) \
   { \
-    DBUG_PRINT("info",("spider "title_name" start")); \
+    DBUG_PRINT("info",("spider " title_name " start")); \
     DBUG_PRINT("info",("spider max_size=%d", max_size)); \
     int hint_num = atoi(tmp_ptr + check_length) - 1; \
     DBUG_PRINT("info",("spider hint_num=%d", hint_num)); \
@@ -996,7 +997,7 @@ error:
           MYF(0), tmp_ptr); \
         goto error; \
       } \
-      DBUG_PRINT("info",("spider "title_name"[%d]=%d", hint_num, \
+      DBUG_PRINT("info",("spider " title_name "[%d]=%d", hint_num, \
         direct_sql->param_name[hint_num])); \
     } else { \
       error_num = ER_SPIDER_INVALID_CONNECT_INFO_NUM; \
@@ -1009,7 +1010,7 @@ error:
 #define SPIDER_PARAM_INT_WITH_MAX(title_name, param_name, min_val, max_val) \
   if (!strncasecmp(tmp_ptr, title_name, title_length)) \
   { \
-    DBUG_PRINT("info",("spider "title_name" start")); \
+    DBUG_PRINT("info",("spider " title_name " start")); \
     if (direct_sql->param_name == -1) \
     { \
       if ((tmp_ptr2 = spider_get_string_between_quote( \
@@ -1026,7 +1027,7 @@ error:
           MYF(0), tmp_ptr); \
         goto error; \
       } \
-      DBUG_PRINT("info",("spider "title_name"=%d", \
+      DBUG_PRINT("info",("spider " title_name "=%d", \
         (int) direct_sql->param_name)); \
     } \
     break; \
@@ -1034,7 +1035,7 @@ error:
 #define SPIDER_PARAM_INT(title_name, param_name, min_val) \
   if (!strncasecmp(tmp_ptr, title_name, title_length)) \
   { \
-    DBUG_PRINT("info",("spider "title_name" start")); \
+    DBUG_PRINT("info",("spider " title_name " start")); \
     if (direct_sql->param_name == -1) \
     { \
       if ((tmp_ptr2 = spider_get_string_between_quote( \
@@ -1049,14 +1050,14 @@ error:
           MYF(0), tmp_ptr); \
         goto error; \
       } \
-      DBUG_PRINT("info",("spider "title_name"=%d", direct_sql->param_name)); \
+      DBUG_PRINT("info",("spider " title_name "=%d", direct_sql->param_name)); \
     } \
     break; \
   }
 #define SPIDER_PARAM_LONGLONG(title_name, param_name, min_val) \
   if (!strncasecmp(tmp_ptr, title_name, title_length)) \
   { \
-    DBUG_PRINT("info",("spider "title_name" start")); \
+    DBUG_PRINT("info",("spider " title_name " start")); \
     if (direct_sql->param_name == -1) \
     { \
       if ((tmp_ptr2 = spider_get_string_between_quote( \
@@ -1072,7 +1073,7 @@ error:
           MYF(0), tmp_ptr); \
         goto error; \
       } \
-      DBUG_PRINT("info",("spider "title_name"=%lld", \
+      DBUG_PRINT("info",("spider " title_name "=%lld", \
         direct_sql->param_name)); \
     } \
     break; \
@@ -1699,7 +1700,7 @@ long long spider_direct_sql_body(
     table_list.table_name = direct_sql->table_names[roop_count];
 #endif
     if (!(direct_sql->tables[roop_count] =
-      find_temporary_table(thd, &table_list)))
+      SPIDER_find_temporary_table(thd, &table_list)))
     {
 #if MYSQL_VERSION_ID < 50500
 #else

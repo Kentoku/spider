@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2016 Kentoku Shiba
+/* Copyright (C) 2008-2017 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
-#define SPIDER_DETAIL_VERSION "3.3.10"
+#define SPIDER_DETAIL_VERSION "3.3.11"
 #define SPIDER_HEX_VERSION 0x0303
 
 #if MYSQL_VERSION_ID < 50500
@@ -65,6 +65,7 @@
 #define pthread_cond_destroy mysql_cond_destroy
 #define my_sprintf(A,B) sprintf B
 #endif
+
 
 #if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100004
 #define spider_stmt_da_message(A) thd_get_error_message(A)
@@ -136,14 +137,29 @@
 #endif
 
 #if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100200
+#define SPIDER_WITHOUT_HA_STATISTIC_INCREMENT
 #define SPIDER_init_read_record(A,B,C,D,E,F,G,H) init_read_record(A,B,C,D,E,F,G,H)
 #define SPIDER_HAS_NEXT_THREAD_ID
-#define SPIDER_next_thread_id next_thread_id()
+#define SPIDER_set_next_thread_id(A)
+#define SPIDER_new_THD(A) (new THD(A))
 #define SPIDER_order_direction_is_asc(A) (A->direction == ORDER::ORDER_ASC)
 #else
 #define SPIDER_init_read_record(A,B,C,D,E,F,G,H) init_read_record(A,B,C,D,F,G,H)
-#define SPIDER_next_thread_id (*spd_db_att_thread_id)++
+inline void SPIDER_set_next_thread_id(THD *A)
+{
+  pthread_mutex_lock(&LOCK_thread_count);
+  A->thread_id = (*spd_db_att_thread_id)++;
+  pthread_mutex_unlock(&LOCK_thread_count);
+}
+#define SPIDER_new_THD(A) (new THD())
 #define SPIDER_order_direction_is_asc(A) (A->asc)
+#endif
+
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100201
+#define SPIDER_HAS_MY_CHARLEN
+#define SPIDER_find_temporary_table(A,B) A->find_temporary_table(B)
+#else
+#define SPIDER_find_temporary_table(A,B) find_temporary_table(A,B)
 #endif
 
 #if defined(MARIADB_BASE_VERSION)

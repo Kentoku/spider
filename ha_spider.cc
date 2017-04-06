@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2016 Kentoku Shiba
+/* Copyright (C) 2008-2017 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #endif
 
 #define MYSQL_SERVER 1
+#include <my_global.h>
 #include "mysql_version.h"
 #if MYSQL_VERSION_ID < 50500
 #include "mysql_priv.h"
@@ -1932,9 +1933,9 @@ int ha_spider::extra(
         DBUG_RETURN(error_num);
       break;
 #endif
-#ifdef HA_EXTRA_HAS_HA_EXTRA_USE_CMP_REF
-    case HA_EXTRA_USE_CMP_REF:
-      DBUG_PRINT("info",("spider HA_EXTRA_USE_CMP_REF"));
+#ifdef HA_EXTRA_HAS_STARTING_ORDERED_INDEX_SCAN
+    case HA_EXTRA_STARTING_ORDERED_INDEX_SCAN:
+      DBUG_PRINT("info",("spider HA_EXTRA_STARTING_ORDERED_INDEX_SCAN"));
       if (table_share->primary_key != MAX_KEY)
       {
         DBUG_PRINT("info",("spider need primary key columns"));
@@ -9730,7 +9731,9 @@ int ha_spider::write_row(
     DBUG_RETURN(error_num);
   }
 #endif
+#ifndef SPIDER_WITHOUT_HA_STATISTIC_INCREMENT
   ha_statistic_increment(&SSV::ha_write_count);
+#endif
 #if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
 #else
   if (table->timestamp_field_type & TIMESTAMP_AUTO_SET_ON_INSERT)
@@ -9966,7 +9969,9 @@ int ha_spider::update_row(
     DBUG_RETURN(error_num);
   }
 #endif
+#ifndef SPIDER_WITHOUT_HA_STATISTIC_INCREMENT
   ha_statistic_increment(&SSV::ha_update_count);
+#endif
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
   do_direct_update = FALSE;
 #endif
@@ -10309,7 +10314,9 @@ int ha_spider::delete_row(
     DBUG_RETURN(error_num);
   }
 #endif
+#ifndef SPIDER_WITHOUT_HA_STATISTIC_INCREMENT
   ha_statistic_increment(&SSV::ha_delete_count);
+#endif
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
   do_direct_update = FALSE;
 #endif
