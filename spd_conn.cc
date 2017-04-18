@@ -40,8 +40,16 @@
 #include "spd_malloc.h"
 #include "spd_err.h"
 
-#ifndef SPIDER_HAS_NEXT_THREAD_ID
+#ifdef SPIDER_HAS_NEXT_THREAD_ID
+#define SPIDER_set_next_thread_id(A)
+#else
 extern ulong *spd_db_att_thread_id;
+inline void SPIDER_set_next_thread_id(THD *A)
+{
+  pthread_mutex_lock(&LOCK_thread_count);
+  A->thread_id = (*spd_db_att_thread_id)++;
+  pthread_mutex_unlock(&LOCK_thread_count);
+}
 #endif
 
 extern handlerton *spider_hton_ptr;

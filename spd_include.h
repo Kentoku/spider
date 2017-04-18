@@ -140,17 +140,10 @@
 #define SPIDER_WITHOUT_HA_STATISTIC_INCREMENT
 #define SPIDER_init_read_record(A,B,C,D,E,F,G,H) init_read_record(A,B,C,D,E,F,G,H)
 #define SPIDER_HAS_NEXT_THREAD_ID
-#define SPIDER_set_next_thread_id(A)
 #define SPIDER_new_THD(A) (new THD(A))
 #define SPIDER_order_direction_is_asc(A) (A->direction == ORDER::ORDER_ASC)
 #else
 #define SPIDER_init_read_record(A,B,C,D,E,F,G,H) init_read_record(A,B,C,D,F,G,H)
-inline void SPIDER_set_next_thread_id(THD *A)
-{
-  pthread_mutex_lock(&LOCK_thread_count);
-  A->thread_id = (*spd_db_att_thread_id)++;
-  pthread_mutex_unlock(&LOCK_thread_count);
-}
 #define SPIDER_new_THD(A) (new THD())
 #define SPIDER_order_direction_is_asc(A) (A->asc)
 #endif
