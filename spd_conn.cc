@@ -4531,7 +4531,7 @@ SPIDER_IP_PORT_CONN* spider_create_ipport_conn(SPIDER_CONN *conn)
 #endif
     DBUG_RETURN(ret);    
 err_malloc_key:
-    my_free(ret, MYF(0));
+    spider_my_free(ret, MYF(0));
 err_return_direct:
     DBUG_RETURN(NULL);
   }
@@ -4547,8 +4547,8 @@ void spider_free_ipport_conn(void *info)
     SPIDER_IP_PORT_CONN *p = (SPIDER_IP_PORT_CONN *)info;
     pthread_cond_destroy(&p->cond);
     pthread_mutex_destroy(&p->mutex);
-    my_free(p->key, MYF(0));
-    my_free(p, MYF(0));
+    spider_my_free(p->key, MYF(0));
+    spider_my_free(p, MYF(0));
   }
   DBUG_VOID_RETURN;
 }

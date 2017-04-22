@@ -17,8 +17,9 @@
 #define SPIDER_HEX_VERSION 0x0303
 
 #if MYSQL_VERSION_ID < 50500
+#define spider_my_free(A,B) my_free(A,B)
 #else
-#define my_free(A,B) my_free(A)
+#define spider_my_free(A,B) my_free(A)
 #ifdef pthread_mutex_t
 #undef pthread_mutex_t
 #endif

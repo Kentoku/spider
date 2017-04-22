@@ -183,7 +183,7 @@ void spider_free_mem(
   size = *((uint *) tmp_ptr);
   tmp_ptr -= ALIGN_SIZE(sizeof(uint));
   id = *((uint *) tmp_ptr);
-  my_free(tmp_ptr, my_flags);
+  spider_my_free(tmp_ptr, my_flags);
 
   spider_free_mem_calc(trx, id, size);
   DBUG_VOID_RETURN;

@@ -9132,7 +9132,7 @@ int spider_discover_table_structure(
       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
     }
     str.q_append(part_syntax, part_syntax_len);
-    my_free(part_syntax, MYF(0));
+    spider_my_free(part_syntax, MYF(0));
   }
 #endif
   DBUG_PRINT("info",("spider str=%s", str.c_ptr_safe()));
