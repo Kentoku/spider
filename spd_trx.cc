@@ -4114,7 +4114,7 @@ THD *spider_create_tmp_thd()
 {
   THD *thd;
   DBUG_ENTER("spider_create_tmp_thd");
-  if (!(thd = SPIDER_new_THD(0)))
+  if (!(thd = SPIDER_new_THD((my_thread_id) 0)))
     DBUG_RETURN(NULL);
 #if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
   thd->killed = NOT_KILLED;
