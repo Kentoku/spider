@@ -3,10 +3,11 @@
 
 /*
  * Copyright (C) 2010-2011 DeNA Co.,Ltd.. All rights reserved.
- * Copyright (C) 2011 Kentoku SHIBA
+ * Copyright (C) 2011-2017 Kentoku SHIBA
  * See COPYRIGHT.txt for details.
  */
 
+#include <my_global.h>
 #include <my_config.h>
 #ifndef __WIN__
 #include <sys/types.h>
@@ -67,7 +68,7 @@ socket_args::set(const config& conf)
         message.append(node);
         message.q_append(":", sizeof(":") - 1);
         message.append(port);
-        fatal_exit(message);
+        fatal_abort(message);
       }
     }
   }

@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2016 Kentoku Shiba
+/* Copyright (C) 2008-2017 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
 #define MYSQL_SERVER 1
+#include <my_global.h>
 #include "mysql_version.h"
 #if MYSQL_VERSION_ID < 50500
 #include "mysql_priv.h"
@@ -1704,7 +1705,8 @@ int spider_xa_lock(
 #ifdef SPIDER_XID_USES_xid_cache_iterate
   if (xid_cache_insert(thd, xid_state))
   {
-    error_num = my_errno;
+    error_num = (spider_stmt_da_sql_errno(thd) == ER_XAER_DUPID ?
+      ER_SPIDER_XA_LOCKED_NUM : HA_ERR_OUT_OF_MEM);
     goto error;
   }
 #else
@@ -4112,7 +4114,7 @@ THD *spider_create_tmp_thd()
 {
   THD *thd;
   DBUG_ENTER("spider_create_tmp_thd");
-  if (!(thd = new THD))
+  if (!(thd = SPIDER_new_THD((my_thread_id) 0)))
     DBUG_RETURN(NULL);
 #if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
   thd->killed = NOT_KILLED;
@@ -4123,7 +4125,10 @@ THD *spider_create_tmp_thd()
   thd->locked_tables = FALSE;
 #endif
   thd->proc_info = "";
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100200
+#else
   thd->thread_id = thd->variables.pseudo_thread_id = 0;
+#endif
   thd->thread_stack = (char*) &thd;
   if (thd->store_globals())
     DBUG_RETURN(NULL);

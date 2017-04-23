@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2015 Kentoku Shiba
+/* Copyright (C) 2008-2017 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -15,6 +15,11 @@
 
 #ifdef USE_PRAGMA_INTERFACE
 #pragma interface
+#endif
+
+#if (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100203)
+#define HANDLER_HAS_TOP_TABLE_FIELDS
+#define HA_EXTRA_HAS_STARTING_ORDERED_INDEX_SCAN
 #endif
 
 #if (defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000)

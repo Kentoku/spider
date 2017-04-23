@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2016 Kentoku Shiba
+/* Copyright (C) 2008-2017 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
 #define MYSQL_SERVER 1
+#include <my_global.h>
 #include "mysql_version.h"
 #if MYSQL_VERSION_ID < 50500
 #include "mysql_priv.h"
@@ -39,8 +40,16 @@
 #include "spd_malloc.h"
 #include "spd_err.h"
 
-#ifndef SPIDER_HAS_NEXT_THREAD_ID
+#ifdef SPIDER_HAS_NEXT_THREAD_ID
+#define SPIDER_set_next_thread_id(A)
+#else
 extern ulong *spd_db_att_thread_id;
+inline void SPIDER_set_next_thread_id(THD *A)
+{
+  pthread_mutex_lock(&LOCK_thread_count);
+  A->thread_id = (*spd_db_att_thread_id)++;
+  pthread_mutex_unlock(&LOCK_thread_count);
+}
 #endif
 
 extern handlerton *spider_hton_ptr;
@@ -2437,7 +2446,7 @@ void *spider_bg_conn_action(
   my_thread_init();
   DBUG_ENTER("spider_bg_conn_action");
   /* init start */
-  if (!(thd = new THD()))
+  if (!(thd = SPIDER_new_THD(next_thread_id())))
   {
     pthread_mutex_lock(&conn->bg_conn_sync_mutex);
     pthread_cond_signal(&conn->bg_conn_sync_cond);
@@ -2445,9 +2454,7 @@ void *spider_bg_conn_action(
     my_thread_end();
     DBUG_RETURN(NULL);
   }
-  pthread_mutex_lock(&LOCK_thread_count);
-  thd->thread_id = SPIDER_next_thread_id;
-  pthread_mutex_unlock(&LOCK_thread_count);
+  SPIDER_set_next_thread_id(thd);
 #ifdef HAVE_PSI_INTERFACE
   mysql_thread_set_psi_id(thd->thread_id);
 #endif
@@ -2456,9 +2463,6 @@ void *spider_bg_conn_action(
   if (!(trx = spider_get_trx(thd, FALSE, &error_num)))
   {
     delete thd;
-#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
-    set_current_thd(NULL);
-#endif
     pthread_mutex_lock(&conn->bg_conn_sync_mutex);
     pthread_cond_signal(&conn->bg_conn_sync_cond);
     pthread_mutex_unlock(&conn->bg_conn_sync_mutex);
@@ -2522,9 +2526,6 @@ void *spider_bg_conn_action(
       spider_free_trx(trx, TRUE);
       /* lex_end(thd->lex); */
       delete thd;
-#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
-      set_current_thd(NULL);
-#endif
       pthread_mutex_lock(&conn->bg_conn_sync_mutex);
       pthread_cond_signal(&conn->bg_conn_sync_cond);
       pthread_mutex_unlock(&conn->bg_conn_mutex);
@@ -2953,7 +2954,7 @@ void *spider_bg_sts_action(
 #endif
   dbton_hdl = (spider_db_handler **) ptr;
   pthread_mutex_lock(&share->sts_mutex);
-  if (!(thd = new THD()))
+  if (!(thd = SPIDER_new_THD(next_thread_id())))
   {
     share->bg_sts_thd_wait = FALSE;
     share->bg_sts_kill = FALSE;
@@ -2963,9 +2964,7 @@ void *spider_bg_sts_action(
     my_afree(need_mons);
     DBUG_RETURN(NULL);
   }
-  pthread_mutex_lock(&LOCK_thread_count);
-  thd->thread_id = SPIDER_next_thread_id;
-  pthread_mutex_unlock(&LOCK_thread_count);
+  SPIDER_set_next_thread_id(thd);
 #ifdef HAVE_PSI_INTERFACE
   mysql_thread_set_psi_id(thd->thread_id);
 #endif
@@ -2974,9 +2973,6 @@ void *spider_bg_sts_action(
   if (!(trx = spider_get_trx(thd, FALSE, &error_num)))
   {
     delete thd;
-#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
-    set_current_thd(NULL);
-#endif
     share->bg_sts_thd_wait = FALSE;
     share->bg_sts_kill = FALSE;
     share->bg_sts_init = FALSE;
@@ -3040,9 +3036,6 @@ void *spider_bg_sts_action(
     }
     spider_free_trx(trx, TRUE);
     delete thd;
-#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
-    set_current_thd(NULL);
-#endif
     share->bg_sts_thd_wait = FALSE;
     share->bg_sts_kill = FALSE;
     share->bg_sts_init = FALSE;
@@ -3074,9 +3067,6 @@ void *spider_bg_sts_action(
       }
       spider_free_trx(trx, TRUE);
       delete thd;
-#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
-      set_current_thd(NULL);
-#endif
       pthread_cond_signal(&share->bg_sts_sync_cond);
       pthread_mutex_unlock(&share->sts_mutex);
 #if !defined(MYSQL_DYNAMIC_PLUGIN) || !defined(_WIN32)
@@ -3328,7 +3318,7 @@ void *spider_bg_crd_action(
 #endif
   dbton_hdl = (spider_db_handler **) ptr;
   pthread_mutex_lock(&share->crd_mutex);
-  if (!(thd = new THD()))
+  if (!(thd = SPIDER_new_THD(next_thread_id())))
   {
     share->bg_crd_thd_wait = FALSE;
     share->bg_crd_kill = FALSE;
@@ -3338,9 +3328,7 @@ void *spider_bg_crd_action(
     my_afree(need_mons);
     DBUG_RETURN(NULL);
   }
-  pthread_mutex_lock(&LOCK_thread_count);
-  thd->thread_id = SPIDER_next_thread_id;
-  pthread_mutex_unlock(&LOCK_thread_count);
+  SPIDER_set_next_thread_id(thd);
 #ifdef HAVE_PSI_INTERFACE
   mysql_thread_set_psi_id(thd->thread_id);
 #endif
@@ -3349,9 +3337,6 @@ void *spider_bg_crd_action(
   if (!(trx = spider_get_trx(thd, FALSE, &error_num)))
   {
     delete thd;
-#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
-    set_current_thd(NULL);
-#endif
     share->bg_crd_thd_wait = FALSE;
     share->bg_crd_kill = FALSE;
     share->bg_crd_init = FALSE;
@@ -3419,9 +3404,6 @@ void *spider_bg_crd_action(
     }
     spider_free_trx(trx, TRUE);
     delete thd;
-#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
-    set_current_thd(NULL);
-#endif
     share->bg_crd_thd_wait = FALSE;
     share->bg_crd_kill = FALSE;
     share->bg_crd_init = FALSE;
@@ -3453,9 +3435,6 @@ void *spider_bg_crd_action(
       }
       spider_free_trx(trx, TRUE);
       delete thd;
-#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
-      set_current_thd(NULL);
-#endif
       pthread_cond_signal(&share->bg_crd_sync_cond);
       pthread_mutex_unlock(&share->crd_mutex);
 #if !defined(MYSQL_DYNAMIC_PLUGIN) || !defined(_WIN32)
@@ -3835,7 +3814,7 @@ void *spider_bg_mon_action(
   DBUG_ENTER("spider_bg_mon_action");
   /* init start */
   pthread_mutex_lock(&share->bg_mon_mutexes[link_idx]);
-  if (!(thd = new THD()))
+  if (!(thd = SPIDER_new_THD(next_thread_id())))
   {
     share->bg_mon_kill = FALSE;
     share->bg_mon_init = FALSE;
@@ -3844,9 +3823,7 @@ void *spider_bg_mon_action(
     my_thread_end();
     DBUG_RETURN(NULL);
   }
-  pthread_mutex_lock(&LOCK_thread_count);
-  thd->thread_id = SPIDER_next_thread_id;
-  pthread_mutex_unlock(&LOCK_thread_count);
+  SPIDER_set_next_thread_id(thd);
 #ifdef HAVE_PSI_INTERFACE
   mysql_thread_set_psi_id(thd->thread_id);
 #endif
@@ -3855,9 +3832,6 @@ void *spider_bg_mon_action(
   if (!(trx = spider_get_trx(thd, FALSE, &error_num)))
   {
     delete thd;
-#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
-    set_current_thd(NULL);
-#endif
     share->bg_mon_kill = FALSE;
     share->bg_mon_init = FALSE;
     pthread_cond_signal(&share->bg_mon_conds[link_idx]);
@@ -3901,9 +3875,6 @@ void *spider_bg_mon_action(
       pthread_mutex_unlock(&share->bg_mon_mutexes[link_idx]);
       spider_free_trx(trx, TRUE);
       delete thd;
-#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100000
-      set_current_thd(NULL);
-#endif
 #if !defined(MYSQL_DYNAMIC_PLUGIN) || !defined(_WIN32)
       my_pthread_setspecific_ptr(THR_THD, NULL);
 #endif
@@ -4560,7 +4531,7 @@ SPIDER_IP_PORT_CONN* spider_create_ipport_conn(SPIDER_CONN *conn)
 #endif
     DBUG_RETURN(ret);    
 err_malloc_key:
-    my_free(ret, MYF(0));
+    spider_my_free(ret, MYF(0));
 err_return_direct:
     DBUG_RETURN(NULL);
   }
@@ -4576,8 +4547,8 @@ void spider_free_ipport_conn(void *info)
     SPIDER_IP_PORT_CONN *p = (SPIDER_IP_PORT_CONN *)info;
     pthread_cond_destroy(&p->cond);
     pthread_mutex_destroy(&p->mutex);
-    my_free(p->key, MYF(0));
-    my_free(p, MYF(0));
+    spider_my_free(p->key, MYF(0));
+    spider_my_free(p, MYF(0));
   }
   DBUG_VOID_RETURN;
 }

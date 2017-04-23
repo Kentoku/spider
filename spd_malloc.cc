@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2014 Kentoku Shiba
+/* Copyright (C) 2012-2017 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -14,6 +14,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
 #define MYSQL_SERVER 1
+#include <my_global.h>
 #include "mysql_version.h"
 #if MYSQL_VERSION_ID < 50500
 #include "mysql_priv.h"
@@ -182,7 +183,7 @@ void spider_free_mem(
   size = *((uint *) tmp_ptr);
   tmp_ptr -= ALIGN_SIZE(sizeof(uint));
   id = *((uint *) tmp_ptr);
-  my_free(tmp_ptr, my_flags);
+  spider_my_free(tmp_ptr, my_flags);
 
   spider_free_mem_calc(trx, id, size);
   DBUG_VOID_RETURN;
