@@ -423,6 +423,7 @@ int ha_spider::open(
     partition_handler_share->rnd_bitmap_is_set = FALSE;
     partition_handler_share->table_hash_value = hash_value;
     partition_handler_share->creator = this;
+    partition_handler_share->parallel_search_query_id = 0;
     pt_handler_share_creator = this;
     if (part_num)
     {
