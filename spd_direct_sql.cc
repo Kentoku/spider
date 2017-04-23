@@ -354,6 +354,27 @@ int spider_udf_direct_sql_create_conn_key(
 #endif
     }
   }
+  if (direct_sql->dbton_id == SPIDER_DBTON_SIZE)
+  {
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
+    if (direct_sql->access_mode == 0)
+    {
+#endif
+      my_printf_error(
+        ER_SPIDER_SQL_WRAPPER_IS_INVALID_NUM,
+        ER_SPIDER_SQL_WRAPPER_IS_INVALID_STR,
+        MYF(0), direct_sql->tgt_wrapper);
+      DBUG_RETURN(ER_SPIDER_SQL_WRAPPER_IS_INVALID_NUM);
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
+    } else {
+      my_printf_error(
+        ER_SPIDER_NOSQL_WRAPPER_IS_INVALID_NUM,
+        ER_SPIDER_NOSQL_WRAPPER_IS_INVALID_STR,
+        MYF(0), direct_sql->tgt_wrapper);
+      DBUG_RETURN(ER_SPIDER_NOSQL_WRAPPER_IS_INVALID_NUM);
+    }
+#endif
+  }
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
   direct_sql->conn_key_hash_value = my_calc_hash(&spider_open_connections,
     (uchar*) direct_sql->conn_key, direct_sql->conn_key_length);
