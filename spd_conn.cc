@@ -2915,17 +2915,25 @@ void *spider_bg_sts_action(
   DBUG_ENTER("spider_bg_sts_action");
   /* init start */
   char *ptr;
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   ptr = (char *) my_alloca(
     (sizeof(int) * share->link_count) +
     (sizeof(SPIDER_CONN *) * share->link_count) +
     (sizeof(uint) * share->link_count) +
     (sizeof(uchar) * share->link_bitmap_size) +
     (sizeof(char *) * share->link_count) +
-#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
     (sizeof(char *) * share->link_count) +
     (sizeof(char *) * share->link_count) +
-#endif
     (sizeof(spider_db_handler *) * SPIDER_DBTON_SIZE));
+#else
+  ptr = (char *) my_alloca(
+    (sizeof(int) * share->link_count) +
+    (sizeof(SPIDER_CONN *) * share->link_count) +
+    (sizeof(uint) * share->link_count) +
+    (sizeof(uchar) * share->link_bitmap_size) +
+    (sizeof(char *) * share->link_count) +
+    (sizeof(spider_db_handler *) * SPIDER_DBTON_SIZE));
+#endif
   if (!ptr)
   {
     pthread_mutex_lock(&share->sts_mutex);
@@ -3279,17 +3287,25 @@ void *spider_bg_crd_action(
   DBUG_ENTER("spider_bg_crd_action");
   /* init start */
   char *ptr;
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   ptr = (char *) my_alloca(
     (sizeof(int) * share->link_count) +
     (sizeof(SPIDER_CONN *) * share->link_count) +
     (sizeof(uint) * share->link_count) +
     (sizeof(uchar) * share->link_bitmap_size) +
     (sizeof(char *) * share->link_count) +
-#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
     (sizeof(char *) * share->link_count) +
     (sizeof(char *) * share->link_count) +
-#endif
     (sizeof(spider_db_handler *) * SPIDER_DBTON_SIZE));
+#else
+  ptr = (char *) my_alloca(
+    (sizeof(int) * share->link_count) +
+    (sizeof(SPIDER_CONN *) * share->link_count) +
+    (sizeof(uint) * share->link_count) +
+    (sizeof(uchar) * share->link_bitmap_size) +
+    (sizeof(char *) * share->link_count) +
+    (sizeof(spider_db_handler *) * SPIDER_DBTON_SIZE));
+#endif
   if (!ptr)
   {
     pthread_mutex_lock(&share->crd_mutex);
