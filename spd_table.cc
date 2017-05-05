@@ -59,6 +59,7 @@ struct charset_info_st *spd_charset_utf8_bin;
 const char **spd_defaults_extra_file;
 const char **spd_defaults_file;
 bool volatile *spd_abort_loop;
+Time_zone *spd_tz_system;
 extern long spider_conn_mutex_id;
 handlerton *spider_hton_ptr;
 SPIDER_DBTON spider_dbton[SPIDER_DBTON_SIZE];
@@ -6672,6 +6673,8 @@ int spider_db_init(
     GetProcAddress(current_module, "my_defaults_file");
   spd_abort_loop = (bool volatile *)
     GetProcAddress(current_module, "?abort_loop@@3_NC");
+  spd_tz_system = *(Time_zone **)
+    GetProcAddress(current_module, "my_tz_SYSTEM");
 #else
 #ifndef SPIDER_HAS_NEXT_THREAD_ID
   spd_db_att_thread_id = &thread_id;
@@ -6691,6 +6694,7 @@ int spider_db_init(
   spd_defaults_extra_file = &my_defaults_extra_file;
   spd_defaults_file = &my_defaults_file;
   spd_abort_loop = &abort_loop;
+  spd_tz_system = my_tz_SYSTEM;
 #endif
 
 #ifdef HAVE_PSI_INTERFACE
