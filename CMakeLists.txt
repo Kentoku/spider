@@ -59,8 +59,10 @@ IF(ORACLE_INCLUDE_DIR AND ORACLE_OCI_LIBRARY)
 ENDIF()
 
 IF(MSVC)
-  ADD_CUSTOM_COMMAND(TARGET spider
-                     POST_BUILD 
-                     COMMAND if not exist ..\\..\\sql\\lib mkdir ..\\..\\sql\\lib\\plugin
-                     COMMAND copy Debug\\ha_spider.dll ..\\..\\sql\\lib\\plugin\\ha_spider.dll)
+  IF (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    ADD_CUSTOM_COMMAND(TARGET spider
+                       POST_BUILD 
+                       COMMAND if not exist ..\\..\\sql\\lib mkdir ..\\..\\sql\\lib\\plugin
+                       COMMAND copy Debug\\ha_spider.dll ..\\..\\sql\\lib\\plugin\\ha_spider.dll)
+  ENDIF()
 ENDIF()
