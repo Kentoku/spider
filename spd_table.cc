@@ -6674,7 +6674,7 @@ int spider_db_init(
   spd_abort_loop = (bool volatile *)
     GetProcAddress(current_module, "?abort_loop@@3_NC");
   spd_tz_system = *(Time_zone **)
-    GetProcAddress(current_module, "my_tz_SYSTEM");
+    GetProcAddress(current_module, "?my_tz_SYSTEM@@3PAVTime_zone@@A");
 #else
 #ifndef SPIDER_HAS_NEXT_THREAD_ID
   spd_db_att_thread_id = &thread_id;
