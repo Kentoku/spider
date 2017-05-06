@@ -36,6 +36,7 @@
 #include "spd_malloc.h"
 
 extern handlerton *spider_hton_ptr;
+extern Time_zone *spd_tz_system;
 
 #if MYSQL_VERSION_ID < 50500
 TABLE *spider_open_sys_table(
@@ -1128,18 +1129,17 @@ void spider_store_table_sts_info(
   time_t *update_time
 ) {
   MYSQL_TIME mysql_time;
-  Time_zone *tz_system = global_system_variables.time_zone;
   DBUG_ENTER("spider_store_table_sts_info");
   table->field[2]->store((longlong) *data_file_length, TRUE);
   table->field[3]->store((longlong) *max_data_file_length, TRUE);
   table->field[4]->store((longlong) *index_file_length, TRUE);
   table->field[5]->store((longlong) *records, TRUE);
   table->field[6]->store((longlong) *mean_rec_length, TRUE);
-  tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) *check_time);
+  spd_tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) *check_time);
   table->field[7]->store_time(&mysql_time);
-  tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) *create_time);
+  spd_tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) *create_time);
   table->field[8]->store_time(&mysql_time);
-  tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) *update_time);
+  spd_tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) *update_time);
   table->field[9]->store_time(&mysql_time);
   DBUG_VOID_RETURN;
 }
