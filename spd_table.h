@@ -467,3 +467,55 @@ int spider_discover_table_structure(
   HA_CREATE_INFO *info
 );
 #endif
+
+#ifndef WITHOUT_SPIDER_BG_SEARCH
+int spider_create_spider_object_for_share(
+  SPIDER_TRX *trx,
+  SPIDER_SHARE *share,
+  ha_spider **spider
+);
+
+void spider_free_spider_object_for_share(
+  ha_spider **spider
+);
+
+int spider_create_sts_threads(
+  SPIDER_THREAD *spider_thread
+);
+
+void spider_free_sts_threads(
+  SPIDER_THREAD *spider_thread
+);
+
+int spider_create_crd_threads(
+  SPIDER_THREAD *spider_thread
+);
+
+void spider_free_crd_threads(
+  SPIDER_THREAD *spider_thread
+);
+
+void *spider_table_bg_sts_action(
+  void *arg
+);
+
+void *spider_table_bg_crd_action(
+  void *arg
+);
+
+void spider_table_add_share_to_sts_thread(
+  SPIDER_SHARE *share
+);
+
+void spider_table_add_share_to_crd_thread(
+  SPIDER_SHARE *share
+);
+
+void spider_table_remove_share_from_sts_thread(
+  SPIDER_SHARE *share
+);
+
+void spider_table_remove_share_from_crd_thread(
+  SPIDER_SHARE *share
+);
+#endif

@@ -1704,7 +1704,8 @@ double spider_param_crd_weight(
 /*
  -1 :use table parameter
   0 :Background confirmation is disabled
-  1 :Background confirmation is enabled
+  1 :Background confirmation is enabled (create thread per table/partition)
+  2 :Background confirmation is enabled (use static threads)
  */
 static MYSQL_THDVAR_INT(
   crd_bg_mode, /* name */
@@ -1714,7 +1715,7 @@ static MYSQL_THDVAR_INT(
   NULL, /* update */
   -1, /* def */
   -1, /* min */
-  1, /* max */
+  2, /* max */
   0 /* blk */
 );
 
@@ -1815,7 +1816,8 @@ int spider_param_sts_sync(
 /*
  -1 :use table parameter
   0 :Background confirmation is disabled
-  1 :Background confirmation is enabled
+  1 :Background confirmation is enabled (create thread per table/partition)
+  2 :Background confirmation is enabled (use static threads)
  */
 static MYSQL_THDVAR_INT(
   sts_bg_mode, /* name */
@@ -1825,7 +1827,7 @@ static MYSQL_THDVAR_INT(
   NULL, /* update */
   -1, /* def */
   -1, /* min */
-  1, /* max */
+  2, /* max */
   0 /* blk */
 );
 
@@ -3244,6 +3246,54 @@ int spider_param_load_crd_at_startup(
     load_crd_at_startup : spider_load_crd_at_startup);
 }
 
+#ifndef WITHOUT_SPIDER_BG_SEARCH
+static uint spider_table_sts_thread_count;
+/*
+  1-: thread count
+ */
+static MYSQL_SYSVAR_UINT(
+  table_sts_thread_count,
+  spider_table_sts_thread_count,
+  PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+  "Static thread count of table sts",
+  NULL,
+  NULL,
+  10,
+  1,
+  4294967295U,
+  0
+);
+
+uint spider_param_table_sts_thread_count()
+{
+  DBUG_ENTER("spider_param_table_sts_thread_count");
+  DBUG_RETURN(spider_table_sts_thread_count);
+}
+
+static uint spider_table_crd_thread_count;
+/*
+  1-: thread count
+ */
+static MYSQL_SYSVAR_UINT(
+  table_crd_thread_count,
+  spider_table_crd_thread_count,
+  PLUGIN_VAR_RQCMDARG | PLUGIN_VAR_READONLY,
+  "Static thread count of table crd",
+  NULL,
+  NULL,
+  10,
+  1,
+  4294967295U,
+  0
+);
+
+uint spider_param_table_crd_thread_count()
+{
+  DBUG_ENTER("spider_param_table_crd_thread_count");
+  DBUG_RETURN(spider_table_crd_thread_count);
+}
+#endif
+
 static struct st_mysql_storage_engine spider_storage_engine =
 { MYSQL_HANDLERTON_INTERFACE_VERSION };
 
@@ -3388,6 +3438,10 @@ static struct st_mysql_sys_var* spider_system_variables[] = {
   MYSQL_SYSVAR(delete_all_rows_type),
   MYSQL_SYSVAR(bka_table_name_type),
   MYSQL_SYSVAR(connect_error_interval),
+#ifndef WITHOUT_SPIDER_BG_SEARCH
+  MYSQL_SYSVAR(table_sts_thread_count),
+  MYSQL_SYSVAR(table_crd_thread_count),
+#endif
   NULL
 };
 

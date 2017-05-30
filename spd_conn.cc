@@ -3022,14 +3022,14 @@ void *spider_bg_sts_action(
       spider_bit_is_set(share->dbton_bitmap, roop_count) &&
       spider_dbton[roop_count].create_db_handler
     ) {
-      if ((dbton_hdl[roop_count] = spider_dbton[roop_count].create_db_handler(
+      if (!(dbton_hdl[roop_count] = spider_dbton[roop_count].create_db_handler(
         &spider, share->dbton_share[roop_count])))
         break;
       if (dbton_hdl[roop_count]->init())
         break;
     }
   }
-  if (roop_count == SPIDER_DBTON_SIZE)
+  if (roop_count < SPIDER_DBTON_SIZE)
   {
     DBUG_PRINT("info",("spider handler init error"));
     for (roop_count = SPIDER_DBTON_SIZE - 1; roop_count >= 0; --roop_count)
@@ -3398,14 +3398,14 @@ void *spider_bg_crd_action(
       spider_bit_is_set(share->dbton_bitmap, roop_count) &&
       spider_dbton[roop_count].create_db_handler
     ) {
-      if ((dbton_hdl[roop_count] = spider_dbton[roop_count].create_db_handler(
+      if (!(dbton_hdl[roop_count] = spider_dbton[roop_count].create_db_handler(
         &spider, share->dbton_share[roop_count])))
         break;
       if (dbton_hdl[roop_count]->init())
         break;
     }
   }
-  if (roop_count == SPIDER_DBTON_SIZE)
+  if (roop_count < SPIDER_DBTON_SIZE)
   {
     DBUG_PRINT("info",("spider handler init error"));
     for (roop_count = SPIDER_DBTON_SIZE - 1; roop_count >= 0; --roop_count)

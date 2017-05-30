@@ -13,7 +13,7 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
-#define SPIDER_DETAIL_VERSION "3.3.11"
+#define SPIDER_DETAIL_VERSION "3.3.12"
 #define SPIDER_HEX_VERSION 0x0303
 
 #if MYSQL_VERSION_ID < 50500
@@ -195,7 +195,7 @@
 #define SPIDER_TMP_SHARE_LONG_COUNT         19
 #define SPIDER_TMP_SHARE_LONGLONG_COUNT      3
 
-#define SPIDER_MEM_CALC_LIST_NUM           255
+#define SPIDER_MEM_CALC_LIST_NUM           257
 #define SPIDER_CONN_META_BUF_LEN           64
 
 #define SPIDER_BACKUP_DASTATUS \
@@ -218,6 +218,23 @@ class ha_spider;
 typedef struct st_spider_share SPIDER_SHARE;
 typedef struct st_spider_table_mon_list SPIDER_TABLE_MON_LIST;
 typedef struct st_spider_ip_port_conn SPIDER_IP_PORT_CONN;
+
+#ifndef WITHOUT_SPIDER_BG_SEARCH
+typedef struct st_spider_thread
+{
+  uint                  thread_idx;
+  THD                   *thd;
+  volatile bool         killed;
+  volatile bool         thd_wait;
+  volatile bool         first_free_wait;
+  pthread_t             thread;
+  pthread_cond_t        cond;
+  pthread_mutex_t       mutex;
+  pthread_cond_t        sync_cond;
+  volatile SPIDER_SHARE *queue_first;
+  volatile SPIDER_SHARE *queue_last;
+} SPIDER_THREAD;
+#endif
 
 typedef struct st_spider_file_pos
 {
@@ -777,6 +794,27 @@ typedef struct st_spider_share
   pthread_cond_t     *bg_mon_conds;
   pthread_cond_t     *bg_mon_sleep_conds;
 #endif
+#ifndef WITHOUT_SPIDER_BG_SEARCH
+  /* static bg thread for sts and crd */
+  TABLE                 table;
+  ha_spider             *sts_spider;
+  ha_spider             *crd_spider;
+  SPIDER_THREAD         *sts_thread;
+  SPIDER_THREAD         *crd_thread;
+  volatile bool         sts_spider_init;
+  volatile bool         sts_working;
+  volatile bool         sts_wait;
+  volatile bool         crd_spider_init;
+  volatile bool         crd_working;
+  volatile bool         crd_wait;
+  volatile SPIDER_SHARE *sts_prev;
+  volatile SPIDER_SHARE *sts_next;
+  volatile SPIDER_SHARE *crd_prev;
+  volatile SPIDER_SHARE *crd_next;
+#endif
+
+  MEM_ROOT           mem_root;
+
 /*
   volatile bool      auto_increment_init;
   volatile ulonglong auto_increment_lclval;
