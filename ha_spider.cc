@@ -8685,7 +8685,7 @@ int ha_spider::info(
             }
           }
 #ifndef WITHOUT_SPIDER_BG_SEARCH
-        } else {
+        } else if (sts_bg_mode == 1) {
           /* background */
           if (!share->bg_sts_init || share->bg_sts_thd_wait)
           {
@@ -8715,6 +8715,14 @@ int ha_spider::info(
             } else
               pthread_cond_signal(&share->bg_sts_cond);
           }
+        } else {
+          share->bg_sts_try_time = tmp_time;
+          share->bg_sts_interval = sts_interval;
+          share->bg_sts_mode = sts_mode;
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+          share->bg_sts_sync = sts_sync;
+#endif
+          spider_table_add_share_to_sts_thread(share);
         }
 #endif
         pthread_mutex_unlock(&share->sts_mutex);
@@ -8949,7 +8957,7 @@ ha_rows ha_spider::records_in_range(
             }
           }
 #ifndef WITHOUT_SPIDER_BG_SEARCH
-        } else {
+        } else if (crd_bg_mode == 1) {
           /* background */
           if (!share->bg_crd_init || share->bg_crd_thd_wait)
           {
@@ -8971,6 +8979,14 @@ ha_rows ha_spider::records_in_range(
             } else
               pthread_cond_signal(&share->bg_crd_cond);
           }
+        } else {
+          share->bg_crd_try_time = tmp_time;
+          share->bg_crd_interval = crd_interval;
+          share->bg_crd_mode = crd_mode;
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+          share->bg_crd_sync = crd_sync;
+#endif
+          spider_table_add_share_to_crd_thread(share);
         }
 #endif
         pthread_mutex_unlock(&share->crd_mutex);
@@ -9235,7 +9251,7 @@ int ha_spider::check_crd()
           }
         }
 #ifndef WITHOUT_SPIDER_BG_SEARCH
-      } else {
+      } else if (crd_bg_mode == 1) {
         /* background */
         if (!share->bg_crd_init || share->bg_crd_thd_wait)
         {
@@ -9256,6 +9272,14 @@ int ha_spider::check_crd()
           } else
             pthread_cond_signal(&share->bg_crd_cond);
         }
+      } else {
+        share->bg_crd_try_time = tmp_time;
+        share->bg_crd_interval = crd_interval;
+        share->bg_crd_mode = crd_mode;
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+        share->bg_crd_sync = crd_sync;
+#endif
+        spider_table_add_share_to_crd_thread(share);
       }
 #endif
       pthread_mutex_unlock(&share->crd_mutex);
