@@ -1574,8 +1574,10 @@ group_by_handler *spider_create_group_by_handler(
       part_id_range *part_spec = partition->get_part_spec();
       DBUG_PRINT("info",("spider part_spec->start_part=%u", part_spec->start_part));
       DBUG_PRINT("info",("spider part_spec->end_part=%u", part_spec->end_part));
-      if (part_spec->start_part != part_spec->end_part)
-      {
+      if (
+        part_spec->start_part == partition->get_no_current_part_id() ||
+        part_spec->start_part != part_spec->end_part
+      ) {
         DBUG_PRINT("info",("spider using multiple partitions is not supported by this feature yet"));
 #else
         DBUG_PRINT("info",("spider partition is not supported by this feature yet"));

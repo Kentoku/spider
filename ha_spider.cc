@@ -11531,15 +11531,18 @@ Field *ha_spider::field_exchange(
   }
 #endif
   DBUG_PRINT("info",("spider in field=%p", field));
+  DBUG_PRINT("info",("spider in field->table=%p", field->table));
 #ifdef HANDLER_HAS_TOP_TABLE_FIELDS
   if (set_top_table_fields)
   {
+    DBUG_PRINT("info",("spider top_table=%p", top_table));
     if (field->table != top_table)
       DBUG_RETURN(NULL);
     if (!(field = top_table_field[field->field_index]))
       DBUG_RETURN(NULL);
   } else {
 #endif
+    DBUG_PRINT("info",("spider table=%p", table));
     if (field->table != table)
       DBUG_RETURN(NULL);
 #ifdef HANDLER_HAS_TOP_TABLE_FIELDS
