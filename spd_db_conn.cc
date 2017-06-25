@@ -8381,6 +8381,7 @@ int spider_db_open_item_field(
             DBUG_RETURN(error_num);
           }
         }
+        DBUG_RETURN(0);
       }
     }
   }
