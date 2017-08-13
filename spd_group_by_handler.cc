@@ -954,6 +954,7 @@ int spider_fields::add_field(
   SPIDER_FIELD_CHAIN *field_chain;
   DBUG_ENTER("spider_fields::add_field");
   DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_PRINT("info",("spider field=%p", field_arg));
   if (!first_field_holder)
   {
     field_holder = create_field_holder();
@@ -1055,6 +1056,7 @@ void spider_fields::set_field_ptr(
 ) {
   DBUG_ENTER("spider_fields::set_field_ptr");
   DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_PRINT("info",("spider field_ptr=%p", field_arg));
   first_field_ptr = field_arg;
   current_field_ptr = field_arg;
   DBUG_VOID_RETURN;
@@ -1067,6 +1069,7 @@ Field **spider_fields::get_next_field_ptr(
   DBUG_PRINT("info",("spider this=%p", this));
   if (*current_field_ptr)
     current_field_ptr++;
+  DBUG_PRINT("info",("spider field_ptr=%p", return_field_ptr));
   DBUG_RETURN(return_field_ptr);
 }
 
@@ -1561,6 +1564,18 @@ group_by_handler *spider_create_group_by_handler(
   uint table_idx, dbton_id;
   long tgt_link_status;
   DBUG_ENTER("spider_create_group_by_handler");
+
+  switch (thd_sql_command(thd))
+  {
+    case SQLCOM_UPDATE:
+    case SQLCOM_UPDATE_MULTI:
+    case SQLCOM_DELETE:
+    case SQLCOM_DELETE_MULTI:
+      DBUG_PRINT("info",("spider update and delete does not support this feature"));
+      DBUG_RETURN(NULL);
+    default:
+      break;
+  }
 
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   from = query->from;
