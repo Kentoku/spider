@@ -8064,6 +8064,9 @@ void ha_spider::ft_end()
       store_error_num = index_end();
   }
   ft_init_without_index_init = FALSE;
+#ifdef HANDLER_HAS_HA_FT_END
+  ha_ft_end();
+#endif
   DBUG_VOID_RETURN;
 }
 
