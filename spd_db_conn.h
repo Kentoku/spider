@@ -745,6 +745,7 @@ int spider_db_update(
 );
 
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
 int spider_db_direct_update(
   ha_spider *spider,
   TABLE *table,
@@ -752,6 +753,13 @@ int spider_db_direct_update(
   uint range_count,
   uint *update_rows
 );
+#else
+int spider_db_direct_update(
+  ha_spider *spider,
+  TABLE *table,
+  uint *update_rows
+);
+#endif
 #endif
 
 #ifdef HA_CAN_BULK_ACCESS
@@ -774,6 +782,7 @@ int spider_db_delete(
 );
 
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
 int spider_db_direct_delete(
   ha_spider *spider,
   TABLE *table,
@@ -781,6 +790,13 @@ int spider_db_direct_delete(
   uint range_count,
   uint *delete_rows
 );
+#else
+int spider_db_direct_delete(
+  ha_spider *spider,
+  TABLE *table,
+  uint *delete_rows
+);
+#endif
 #endif
 
 int spider_db_delete_all_rows(

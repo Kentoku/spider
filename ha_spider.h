@@ -595,6 +595,7 @@ public:
     uchar *new_data
   );
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
   int direct_update_rows_init(
     uint mode,
     KEY_MULTI_RANGE *ranges,
@@ -602,7 +603,11 @@ public:
     bool sorted,
     uchar *new_data
   );
+#else
+  int direct_update_rows_init();
+#endif
 #ifdef HA_CAN_BULK_ACCESS
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
   int pre_direct_update_rows_init(
     uint mode,
     KEY_MULTI_RANGE *ranges,
@@ -610,7 +615,11 @@ public:
     bool sorted,
     uchar *new_data
   );
+#else
+  int pre_direct_update_rows_init();
 #endif
+#endif
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
   int direct_update_rows(
     KEY_MULTI_RANGE *ranges,
     uint range_count,
@@ -618,6 +627,11 @@ public:
     uchar *new_data,
     uint *update_rows
   );
+#else
+  int direct_update_rows(
+    uint *update_rows
+  );
+#endif
 #ifdef HA_CAN_BULK_ACCESS
   int pre_direct_update_rows(
     KEY_MULTI_RANGE *ranges,
@@ -626,6 +640,7 @@ public:
     uchar *new_data,
     uint *update_rows
   );
+  int pre_direct_update_rows();
 #endif
 #endif
   bool start_bulk_delete();
@@ -634,33 +649,51 @@ public:
     const uchar *buf
   );
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
   int direct_delete_rows_init(
     uint mode,
     KEY_MULTI_RANGE *ranges,
     uint range_count,
     bool sorted
   );
+#else
+  int direct_delete_rows_init();
+#endif
 #ifdef HA_CAN_BULK_ACCESS
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
   int pre_direct_delete_rows_init(
     uint mode,
     KEY_MULTI_RANGE *ranges,
     uint range_count,
     bool sorted
   );
+#else
+  int pre_direct_delete_rows_init();
 #endif
+#endif
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
   int direct_delete_rows(
     KEY_MULTI_RANGE *ranges,
     uint range_count,
     bool sorted,
     uint *delete_rows
   );
+#else
+  int direct_delete_rows(
+    uint *delete_rows
+  );
+#endif
 #ifdef HA_CAN_BULK_ACCESS
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
   int pre_direct_delete_rows(
     KEY_MULTI_RANGE *ranges,
     uint range_count,
     bool sorted,
     uint *delete_rows
   );
+#else
+  int pre_direct_delete_rows();
+#endif
 #endif
 #endif
   int delete_all_rows();
