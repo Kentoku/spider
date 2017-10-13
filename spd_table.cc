@@ -6778,6 +6778,9 @@ int spider_db_init(
 
   spider_hton->state = SHOW_OPTION_YES;
   spider_hton->flags = HTON_NO_FLAGS;
+#ifdef HTON_CAN_READ_CONNECT_STRING_IN_PARTITION
+  spider_hton->flags |= HTON_CAN_READ_CONNECT_STRING_IN_PARTITION;
+#endif
   /* spider_hton->db_type = DB_TYPE_SPIDER; */
   /*
   spider_hton->savepoint_offset;
