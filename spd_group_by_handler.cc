@@ -24,6 +24,7 @@
 #include "probes_mysql.h"
 #include "sql_class.h"
 #include "sql_partition.h"
+#include "ha_partition.h"
 #endif
 #include "sql_common.h"
 #include <errmsg.h>
@@ -953,6 +954,7 @@ int spider_fields::add_field(
   SPIDER_FIELD_CHAIN *field_chain;
   DBUG_ENTER("spider_fields::add_field");
   DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_PRINT("info",("spider field=%p", field_arg));
   if (!first_field_holder)
   {
     field_holder = create_field_holder();
@@ -1054,6 +1056,7 @@ void spider_fields::set_field_ptr(
 ) {
   DBUG_ENTER("spider_fields::set_field_ptr");
   DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_PRINT("info",("spider field_ptr=%p", field_arg));
   first_field_ptr = field_arg;
   current_field_ptr = field_arg;
   DBUG_VOID_RETURN;
@@ -1066,6 +1069,7 @@ Field **spider_fields::get_next_field_ptr(
   DBUG_PRINT("info",("spider this=%p", this));
   if (*current_field_ptr)
     current_field_ptr++;
+  DBUG_PRINT("info",("spider field_ptr=%p", return_field_ptr));
   DBUG_RETURN(return_field_ptr);
 }
 
@@ -1561,20 +1565,61 @@ group_by_handler *spider_create_group_by_handler(
   long tgt_link_status;
   DBUG_ENTER("spider_create_group_by_handler");
 
+  switch (thd_sql_command(thd))
+  {
+    case SQLCOM_UPDATE:
+    case SQLCOM_UPDATE_MULTI:
+    case SQLCOM_DELETE:
+    case SQLCOM_DELETE_MULTI:
+      DBUG_PRINT("info",("spider update and delete does not support this feature"));
+      DBUG_RETURN(NULL);
+    default:
+      break;
+  }
+
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   from = query->from;
   do {
+    DBUG_PRINT("info",("spider from=%p", from));
     if (from->table->part_info)
     {
-      DBUG_PRINT("info",("spider partition is not support by this feature yet"));
-      DBUG_RETURN(NULL);
+      DBUG_PRINT("info",("spider partition handler"));
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+      ha_partition *partition = (ha_partition *) from->table->file;
+      part_id_range *part_spec = partition->get_part_spec();
+      DBUG_PRINT("info",("spider part_spec->start_part=%u", part_spec->start_part));
+      DBUG_PRINT("info",("spider part_spec->end_part=%u", part_spec->end_part));
+      if (
+        part_spec->start_part == partition->get_no_current_part_id() ||
+        part_spec->start_part != part_spec->end_part
+      ) {
+        DBUG_PRINT("info",("spider using multiple partitions is not supported by this feature yet"));
+#else
+        DBUG_PRINT("info",("spider partition is not supported by this feature yet"));
+#endif
+        DBUG_RETURN(NULL);
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+      }
+#endif
     }
   } while ((from = from->next_local));
 #endif
 
   table_idx = 0;
   from = query->from;
-  spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+  if (from->table->part_info)
+  {
+    ha_partition *partition = (ha_partition *) from->table->file;
+    part_id_range *part_spec = partition->get_part_spec();
+    handler **handlers = partition->get_child_handlers();
+    spider = (ha_spider *) handlers[part_spec->start_part];
+  } else {
+#endif
+    spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+  }
+#endif
   share = spider->share;
   spider->idx_for_direct_join = table_idx;
   ++table_idx;
@@ -1591,7 +1636,19 @@ group_by_handler *spider_create_group_by_handler(
   }
   while ((from = from->next_local))
   {
-    spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    if (from->table->part_info)
+    {
+      ha_partition *partition = (ha_partition *) from->table->file;
+      part_id_range *part_spec = partition->get_part_spec();
+      handler **handlers = partition->get_child_handlers();
+      spider = (ha_spider *) handlers[part_spec->start_part];
+    } else {
+#endif
+      spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    }
+#endif
     share = spider->share;
     spider->idx_for_direct_join = table_idx;
     ++table_idx;
@@ -1615,7 +1672,19 @@ group_by_handler *spider_create_group_by_handler(
 
   from = query->from;
   do {
-    spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    if (from->table->part_info)
+    {
+      ha_partition *partition = (ha_partition *) from->table->file;
+      part_id_range *part_spec = partition->get_part_spec();
+      handler **handlers = partition->get_child_handlers();
+      spider = (ha_spider *) handlers[part_spec->start_part];
+    } else {
+#endif
+      spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    }
+#endif
     share = spider->share;
     if (spider_param_skip_default_condition(thd,
       share->skip_default_condition))
@@ -1641,6 +1710,7 @@ group_by_handler *spider_create_group_by_handler(
       it.init(*query->select);
       while ((item = it++))
       {
+        DBUG_PRINT("info",("spider select item=%p", item));
         if (spider_db_print_item_type(item, spider, NULL, NULL, 0,
           roop_count, TRUE, fields_arg))
         {
@@ -1652,6 +1722,7 @@ group_by_handler *spider_create_group_by_handler(
       }
       if (keep_going)
       {
+        DBUG_PRINT("info",("spider query->where=%p", query->where));
         if (query->where)
         {
           if (spider_db_print_item_type(query->where, spider, NULL, NULL, 0,
@@ -1665,6 +1736,7 @@ group_by_handler *spider_create_group_by_handler(
       }
       if (keep_going)
       {
+        DBUG_PRINT("info",("spider query->group_by=%p", query->group_by));
         if (query->group_by)
         {
           for (order = query->group_by; order; order = order->next)
@@ -1682,6 +1754,7 @@ group_by_handler *spider_create_group_by_handler(
       }
       if (keep_going)
       {
+        DBUG_PRINT("info",("spider query->order_by=%p", query->order_by));
         if (query->order_by)
         {
           for (order = query->order_by; order; order = order->next)
@@ -1699,6 +1772,7 @@ group_by_handler *spider_create_group_by_handler(
       }
       if (keep_going)
       {
+        DBUG_PRINT("info",("spider query->having=%p", query->having));
         if (query->having)
         {
           if (spider_db_print_item_type(query->having, spider, NULL, NULL, 0,
@@ -1732,7 +1806,19 @@ group_by_handler *spider_create_group_by_handler(
   }
 
   from = query->from;
-  spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+  if (from->table->part_info)
+  {
+    ha_partition *partition = (ha_partition *) from->table->file;
+    part_id_range *part_spec = partition->get_part_spec();
+    handler **handlers = partition->get_child_handlers();
+    spider = (ha_spider *) handlers[part_spec->start_part];
+  } else {
+#endif
+    spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+  }
+#endif
   share = spider->share;
   lock_mode = spider_conn_lock_mode(spider);
   if (lock_mode)
@@ -1806,7 +1892,19 @@ group_by_handler *spider_create_group_by_handler(
   {
     fields->clear_conn_holder_from_conn();
 
-    spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    if (from->table->part_info)
+    {
+      ha_partition *partition = (ha_partition *) from->table->file;
+      part_id_range *part_spec = partition->get_part_spec();
+      handler **handlers = partition->get_child_handlers();
+      spider = (ha_spider *) handlers[part_spec->start_part];
+    } else {
+#endif
+      spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    }
+#endif
     share = spider->share;
     if (!fields->add_table(spider))
     {

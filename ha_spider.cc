@@ -1934,8 +1934,13 @@ int ha_spider::extra(
         DBUG_RETURN(error_num);
       break;
 #endif
+#if defined(HA_EXTRA_HAS_STARTING_ORDERED_INDEX_SCAN) || defined(HA_EXTRA_HAS_HA_EXTRA_USE_CMP_REF)
 #ifdef HA_EXTRA_HAS_STARTING_ORDERED_INDEX_SCAN
     case HA_EXTRA_STARTING_ORDERED_INDEX_SCAN:
+#endif
+#ifdef HA_EXTRA_HAS_HA_EXTRA_USE_CMP_REF
+    case HA_EXTRA_USE_CMP_REF:
+#endif
       DBUG_PRINT("info",("spider HA_EXTRA_STARTING_ORDERED_INDEX_SCAN"));
       if (table_share->primary_key != MAX_KEY)
       {
@@ -9388,6 +9393,9 @@ ulonglong ha_spider::table_flags() const
 #ifdef SPIDER_ENGINE_CONDITION_PUSHDOWN_IS_ALWAYS_ON
     HA_CAN_TABLE_CONDITION_PUSHDOWN |
 #endif
+#ifdef HA_SKIP_OPTIMIZE_CONST_TABLE
+    HA_SKIP_OPTIMIZE_CONST_TABLE |
+#endif
 #ifdef HA_CAN_BULK_ACCESS
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
     (support_bulk_access_hs() ? HA_CAN_BULK_ACCESS : 0) |
@@ -11866,15 +11874,18 @@ Field *ha_spider::field_exchange(
   }
 #endif
   DBUG_PRINT("info",("spider in field=%p", field));
+  DBUG_PRINT("info",("spider in field->table=%p", field->table));
 #ifdef HANDLER_HAS_TOP_TABLE_FIELDS
   if (set_top_table_fields)
   {
+    DBUG_PRINT("info",("spider top_table=%p", top_table));
     if (field->table != top_table)
       DBUG_RETURN(NULL);
     if (!(field = top_table_field[field->field_index]))
       DBUG_RETURN(NULL);
   } else {
 #endif
+    DBUG_PRINT("info",("spider table=%p", table));
     if (field->table != table)
       DBUG_RETURN(NULL);
 #ifdef HANDLER_HAS_TOP_TABLE_FIELDS
