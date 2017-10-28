@@ -12069,6 +12069,7 @@ int ha_spider::info_push(
       hs_decrement = FALSE;
       break;
 #endif
+#ifdef INFO_KIND_UPDATE_FIELDS
     case INFO_KIND_UPDATE_FIELDS:
       DBUG_PRINT("info",("spider INFO_KIND_UPDATE_FIELDS"));
       direct_update_fields = (List<Item> *) info;
@@ -12078,10 +12079,13 @@ int ha_spider::info_push(
         keyread = FALSE;
 #endif
       break;
+#endif
+#ifdef INFO_KIND_UPDATE_VALUES
     case INFO_KIND_UPDATE_VALUES:
       DBUG_PRINT("info",("spider INFO_KIND_UPDATE_VALUES"));
       direct_update_values = (List<Item> *) info;
       break;
+#endif
 #ifdef INFO_KIND_FORCE_LIMIT_BEGIN
     case INFO_KIND_FORCE_LIMIT_BEGIN:
       DBUG_PRINT("info",("spider INFO_KIND_FORCE_LIMIT_BEGIN"));
