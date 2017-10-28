@@ -7538,12 +7538,12 @@ void spider_get_partition_info(
       List_iterator<partition_element> sub_it((*part_elem)->subpartitions);
       while ((*sub_elem = sub_it++))
       {
-        if ((error_num = SPIDER_create_subpartition_name(
+        if (SPIDER_create_subpartition_name(
           tmp_name, FN_LEN, table_share->path.str,
           (*part_elem)->partition_name, (*sub_elem)->partition_name,
-          NORMAL_PART_NAME)))
+          NORMAL_PART_NAME))
         {
-          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+          DBUG_VOID_RETURN;
         }
         DBUG_PRINT("info",("spider tmp_name=%s", tmp_name));
         if (!memcmp(table_name, tmp_name, table_name_length + 1))
@@ -7560,11 +7560,11 @@ void spider_get_partition_info(
         }
       }
     } else {
-      if ((error_num = SPIDER_create_partition_name(
+      if (SPIDER_create_partition_name(
         tmp_name, FN_LEN, table_share->path.str,
-        (*part_elem)->partition_name, NORMAL_PART_NAME, TRUE)))
+        (*part_elem)->partition_name, NORMAL_PART_NAME, TRUE))
       {
-        DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+        DBUG_VOID_RETURN;
       }
       DBUG_PRINT("info",("spider tmp_name=%s", tmp_name));
       if (!memcmp(table_name, tmp_name, table_name_length + 1))
