@@ -157,7 +157,9 @@
 #endif
 
 #if defined(MARIADB_BASE_VERSION)
-#if MYSQL_VERSION_ID >= 100200
+#if MYSQL_VERSION_ID >= 100209
+#define SPIDER_generate_partition_syntax(A,B,C,D,E,F,G,H) generate_partition_syntax(A,B,C,E,F,G)
+#elif MYSQL_VERSION_ID >= 100200
 #define SPIDER_generate_partition_syntax(A,B,C,D,E,F,G,H) generate_partition_syntax(A,B,C,D,E,F,G,H)
 #elif MYSQL_VERSION_ID >= 100007
 #define SPIDER_generate_partition_syntax(A,B,C,D,E,F,G,H) generate_partition_syntax(B,C,D,E,F,G,H)
@@ -166,6 +168,14 @@
 #endif
 #else
 #define SPIDER_generate_partition_syntax(A,B,C,D,E,F,G,H)
+#endif
+
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100209
+#define SPIDER_create_partition_name(A,B,C,D,E,F) create_partition_name(A,B,C,D,E,F)
+#define SPIDER_create_subpartition_name(A,B,C,D,E,F) create_subpartition_name(A,B,C,D,E,F)
+#else
+#define SPIDER_create_partition_name(A,B,C,D,E,F) create_partition_name(A,C,D,E,F)
+#define SPIDER_create_subpartition_name(A,B,C,D,E,F) create_subpartition_name(A,C,D,E,F)
 #endif
 
 #if MYSQL_VERSION_ID >= 50500

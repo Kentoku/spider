@@ -7538,7 +7538,7 @@ void spider_get_partition_info(
       List_iterator<partition_element> sub_it((*part_elem)->subpartitions);
       while ((*sub_elem = sub_it++))
       {
-        create_subpartition_name(tmp_name, table_share->path.str,
+        SPIDER_create_subpartition_name(tmp_name, FN_LEN, table_share->path.str,
           (*part_elem)->partition_name, (*sub_elem)->partition_name,
           NORMAL_PART_NAME);
         DBUG_PRINT("info",("spider tmp_name=%s", tmp_name));
@@ -7556,7 +7556,7 @@ void spider_get_partition_info(
         }
       }
     } else {
-      create_partition_name(tmp_name, table_share->path.str,
+      SPIDER_create_partition_name(tmp_name, FN_LEN, table_share->path.str,
         (*part_elem)->partition_name, NORMAL_PART_NAME, TRUE);
       DBUG_PRINT("info",("spider tmp_name=%s", tmp_name));
       if (!memcmp(table_name, tmp_name, table_name_length + 1))
@@ -9241,7 +9241,7 @@ int spider_discover_table_structure(
         while ((sub_elem = sub_it++))
         {
           str.length(str_len);
-          create_subpartition_name(tmp_name, table_name,
+          SPIDER_create_subpartition_name(tmp_name, FN_LEN, table_name,
             (part_elem)->partition_name, (sub_elem)->partition_name,
             NORMAL_PART_NAME);
           DBUG_PRINT("info",("spider tmp_name=%s", tmp_name));
@@ -9266,7 +9266,7 @@ int spider_discover_table_structure(
           break;
       } else {
         str.length(str_len);
-        create_partition_name(tmp_name, table_name,
+        SPIDER_create_partition_name(tmp_name, FN_LEN, table_name,
           (part_elem)->partition_name, NORMAL_PART_NAME, TRUE);
         DBUG_PRINT("info",("spider tmp_name=%s", tmp_name));
         if (!(spider_share = spider_create_share(table_name, share,
