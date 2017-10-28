@@ -7517,7 +7517,7 @@ void spider_get_partition_info(
   partition_element **part_elem,
   partition_element **sub_elem
 ) {
-  char tmp_name[FN_LEN];
+  char tmp_name[FN_REFLEN + 1];
   partition_element *tmp_part_elem = NULL, *tmp_sub_elem = NULL;
   bool tmp_flg = FALSE, tmp_find_flg = FALSE;
   DBUG_ENTER("spider_get_partition_info");
@@ -7539,7 +7539,7 @@ void spider_get_partition_info(
       while ((*sub_elem = sub_it++))
       {
         if (SPIDER_create_subpartition_name(
-          tmp_name, FN_LEN, table_share->path.str,
+          tmp_name, FN_REFLEN + 1, table_share->path.str,
           (*part_elem)->partition_name, (*sub_elem)->partition_name,
           NORMAL_PART_NAME))
         {
@@ -7561,7 +7561,7 @@ void spider_get_partition_info(
       }
     } else {
       if (SPIDER_create_partition_name(
-        tmp_name, FN_LEN, table_share->path.str,
+        tmp_name, FN_REFLEN + 1, table_share->path.str,
         (*part_elem)->partition_name, NORMAL_PART_NAME, TRUE))
       {
         DBUG_VOID_RETURN;
@@ -9238,7 +9238,7 @@ int spider_discover_table_structure(
     spider_free_share_resource_only(spider_share);
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   } else {
-    char tmp_name[FN_LEN];
+    char tmp_name[FN_REFLEN + 1];
     List_iterator<partition_element> part_it(part_info->partitions);
     partition_element *part_elem, *sub_elem;
     while ((part_elem = part_it++))
@@ -9250,7 +9250,7 @@ int spider_discover_table_structure(
         {
           str.length(str_len);
           if ((error_num = SPIDER_create_subpartition_name(
-            tmp_name, FN_LEN, table_name,
+            tmp_name, FN_REFLEN + 1, table_name,
             (part_elem)->partition_name, (sub_elem)->partition_name,
             NORMAL_PART_NAME)))
           {
@@ -9279,7 +9279,7 @@ int spider_discover_table_structure(
       } else {
         str.length(str_len);
         if ((error_num = SPIDER_create_partition_name(
-          tmp_name, FN_LEN, table_name,
+          tmp_name, FN_REFLEN + 1, table_name,
           (part_elem)->partition_name, NORMAL_PART_NAME, TRUE)))
         {
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
