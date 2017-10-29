@@ -9226,7 +9226,7 @@ int spider_discover_table_structure(
           SPIDER_SYS_TABLES_TABLE_NAME_LEN, TRUE, &open_tables_backup, FALSE,
           &error_num))
       ) {
-        if (info->or_replace())
+        if (thd->lex->create_info.or_replace())
         {
           error_num = spider_delete_tables(table_tables,
             spider_share->table_name, &dummy);

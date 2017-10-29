@@ -11220,7 +11220,7 @@ int ha_spider::create(
       goto error;
     }
     if (
-      info->or_replace() &&
+      thd->lex->create_info.or_replace() &&
       (error_num = spider_delete_tables(
         table_tables, tmp_share.table_name, &dummy))
     ) {
