@@ -9266,7 +9266,7 @@ int spider_discover_table_structure(
             DBUG_RETURN(HA_ERR_OUT_OF_MEM);
           }
           DBUG_PRINT("info",("spider tmp_name=%s", tmp_name));
-          if (!(spider_share = spider_create_share(table_name, share,
+          if (!(spider_share = spider_create_share(tmp_name, share,
             part_info,
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
             hash_value,
@@ -9294,7 +9294,7 @@ int spider_discover_table_structure(
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         }
         DBUG_PRINT("info",("spider tmp_name=%s", tmp_name));
-        if (!(spider_share = spider_create_share(table_name, share,
+        if (!(spider_share = spider_create_share(tmp_name, share,
           part_info,
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
           hash_value,
