@@ -1247,22 +1247,9 @@ int spider_db_mysql_result::fetch_columns_for_discover_table_structure(
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         }
         str->q_append(SPIDER_SQL_DEFAULT_STR, SPIDER_SQL_DEFAULT_LEN);
-        if (!strcmp(mysql_row[1], "NULL"))
+        if (str->append(mysql_row[1], strlen(mysql_row[1]), access_charset))
         {
-          if (str->reserve(SPIDER_SQL_NULL_LEN))
-            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-          str->q_append(SPIDER_SQL_NULL_STR, SPIDER_SQL_NULL_LEN);
-        } else {
-          if (str->reserve(SPIDER_SQL_VALUE_QUOTE_LEN))
-            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-          str->q_append(SPIDER_SQL_VALUE_QUOTE_STR, SPIDER_SQL_VALUE_QUOTE_LEN);
-          if (str->append(mysql_row[1], strlen(mysql_row[1]), access_charset))
-          {
-            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-          }
-          if (str->reserve(SPIDER_SQL_VALUE_QUOTE_LEN))
-            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-          str->q_append(SPIDER_SQL_VALUE_QUOTE_STR, SPIDER_SQL_VALUE_QUOTE_LEN);
+          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         }
       }
     } else {
