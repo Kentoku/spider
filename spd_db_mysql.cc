@@ -1175,6 +1175,7 @@ int spider_db_mysql_result::fetch_columns_for_discover_table_structure(
   CHARSET_INFO *access_charset
 ) {
   int error_num;
+  uint length;
   MYSQL_ROW mysql_row;
   DBUG_ENTER("spider_db_mysql_result::fetch_columns_for_discover_table_structure");
   DBUG_PRINT("info",("spider this=%p", this));
@@ -1217,21 +1218,23 @@ int spider_db_mysql_result::fetch_columns_for_discover_table_structure(
     }
     if (mysql_row[3])
     {
-      if (str->reserve(SPIDER_SQL_CHARACTER_SET_LEN))
+      length = strlen(mysql_row[3]);
+      if (str->reserve(SPIDER_SQL_CHARACTER_SET_LEN + length))
       {
         DBUG_RETURN(HA_ERR_OUT_OF_MEM);
       }
       str->q_append(SPIDER_SQL_CHARACTER_SET_STR, SPIDER_SQL_CHARACTER_SET_LEN);
-      str->q_append(mysql_row[3], strlen(mysql_row[3]));
+      str->q_append(mysql_row[3], length);
     }
     if (mysql_row[4])
     {
-      if (str->reserve(SPIDER_SQL_COLLATE_LEN))
+      length = strlen(mysql_row[4]);
+      if (str->reserve(SPIDER_SQL_COLLATE_LEN + length))
       {
         DBUG_RETURN(HA_ERR_OUT_OF_MEM);
       }
       str->q_append(SPIDER_SQL_COLLATE_STR, SPIDER_SQL_COLLATE_LEN);
-      str->q_append(mysql_row[4], strlen(mysql_row[4]));
+      str->q_append(mysql_row[4], length);
     }
     if (!strcmp(mysql_row[2], "NO"))
     {
