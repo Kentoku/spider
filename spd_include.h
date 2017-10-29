@@ -173,9 +173,11 @@
 #if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100209
 #define SPIDER_create_partition_name(A,B,C,D,E,F) create_partition_name(A,B,C,D,E,F)
 #define SPIDER_create_subpartition_name(A,B,C,D,E,F) create_subpartition_name(A,B,C,D,E,F)
+#define SPIDER_free_part_syntax(A,B)
 #else
 #define SPIDER_create_partition_name(A,B,C,D,E,F) create_partition_name(A,C,D,E,F)
 #define SPIDER_create_subpartition_name(A,B,C,D,E,F) create_subpartition_name(A,C,D,E,F)
+#define SPIDER_free_part_syntax(A,B) spider_my_free(A,B)
 #endif
 
 #if MYSQL_VERSION_ID >= 50500
