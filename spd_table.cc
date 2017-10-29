@@ -9155,7 +9155,7 @@ int spider_discover_table_structure(
   TABLE_SHARE *share,
   HA_CREATE_INFO *info
 ) {
-  int error_num = HA_ERR_WRONG_COMMAND;
+  int error_num = HA_ERR_WRONG_COMMAND, dummy;
   SPIDER_SHARE *spider_share;
   const char *table_name = share->path.str;
   uint table_name_length = (uint) strlen(table_name);
@@ -9226,7 +9226,15 @@ int spider_discover_table_structure(
           SPIDER_SYS_TABLES_TABLE_NAME_LEN, TRUE, &open_tables_backup, FALSE,
           &error_num))
       ) {
-        error_num = spider_insert_tables(table_tables, spider_share);
+        if (info->or_replace())
+        {
+          error_num = spider_delete_tables(table_tables,
+            spider_share->table_name, &dummy);
+        }
+        if (!error_num)
+        {
+          error_num = spider_insert_tables(table_tables, spider_share);
+        }
         spider_close_sys_table(thd, table_tables,
           &open_tables_backup, FALSE);
       }

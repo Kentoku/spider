@@ -11128,7 +11128,7 @@ int ha_spider::create(
   TABLE *form,
   HA_CREATE_INFO *info
 ) {
-  int error_num;
+  int error_num, dummy;
   SPIDER_SHARE tmp_share;
   THD *thd = ha_thd();
   uint sql_command = thd_sql_command(thd), roop_count;
@@ -11216,6 +11216,13 @@ int ha_spider::create(
         current_thd, SPIDER_SYS_TABLES_TABLE_NAME_STR,
         SPIDER_SYS_TABLES_TABLE_NAME_LEN, TRUE, &open_tables_backup, FALSE,
         &error_num))
+    ) {
+      goto error;
+    }
+    if (
+      info->or_replace() &&
+      (error_num = spider_delete_tables(
+        table_tables, tmp_share.table_name, &dummy))
     ) {
       goto error;
     }
