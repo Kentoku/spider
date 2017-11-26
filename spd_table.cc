@@ -9163,6 +9163,8 @@ int spider_discover_table_structure(
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   partition_info *part_info = thd->work_part_info;
 #endif
+  Open_tables_backup open_tables_backup;
+  TABLE *table_tables;
   uint str_len;
   char buf[MAX_FIELD_WIDTH];
   spider_string str(buf, sizeof(buf), system_charset_info);
@@ -9218,8 +9220,6 @@ int spider_discover_table_structure(
 
     if (!error_num)
     {
-      Open_tables_backup open_tables_backup;
-      TABLE *table_tables;
       if (
         (table_tables = spider_open_sys_table(
           thd, SPIDER_SYS_TABLES_TABLE_NAME_STR,
@@ -9249,6 +9249,7 @@ int spider_discover_table_structure(
   } else {
     char tmp_name[FN_REFLEN + 1];
     List_iterator<partition_element> part_it(part_info->partitions);
+    List_iterator<partition_element> part_it2(part_info->partitions);
     partition_element *part_elem, *sub_elem;
     while ((part_elem = part_it++))
     {
@@ -9273,7 +9274,7 @@ int spider_discover_table_structure(
 #endif
             &error_num
           ))) {
-            continue;
+            DBUG_RETURN(error_num);
           }
 
           error_num = spider_discover_table_structure_internal(
@@ -9301,7 +9302,7 @@ int spider_discover_table_structure(
 #endif
           &error_num
         ))) {
-          continue;
+          DBUG_RETURN(error_num);
         }
 
         error_num = spider_discover_table_structure_internal(
@@ -9311,6 +9312,101 @@ int spider_discover_table_structure(
         if (!error_num)
           break;
       }
+    }
+    if (!error_num)
+    {
+      if (
+        !(table_tables = spider_open_sys_table(
+          thd, SPIDER_SYS_TABLES_TABLE_NAME_STR,
+          SPIDER_SYS_TABLES_TABLE_NAME_LEN, TRUE, &open_tables_backup, FALSE,
+          &error_num))
+      ) {
+        DBUG_RETURN(error_num);
+      }
+      while ((part_elem = part_it2++))
+      {
+        if ((part_elem)->subpartitions.elements)
+        {
+          List_iterator<partition_element> sub_it((part_elem)->subpartitions);
+          while ((sub_elem = sub_it++))
+          {
+            if ((error_num = SPIDER_create_subpartition_name(
+              tmp_name, FN_REFLEN + 1, table_name,
+              (part_elem)->partition_name, (sub_elem)->partition_name,
+              NORMAL_PART_NAME)))
+            {
+              DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+            }
+            DBUG_PRINT("info",("spider tmp_name=%s", tmp_name));
+            if (!(spider_share = spider_create_share(tmp_name, share,
+              part_info,
+#ifdef SPIDER_HAS_HASH_VALUE_TYPE
+              hash_value,
+#endif
+              &error_num
+            ))) {
+              DBUG_RETURN(error_num);
+            }
+
+#ifdef SPIDER_SUPPORT_CREATE_OR_REPLACE_TABLE
+            if (thd->lex->create_info.or_replace())
+            {
+              error_num = spider_delete_tables(table_tables,
+                spider_share->table_name, &dummy);
+            }
+            if (!error_num)
+            {
+#endif
+              error_num = spider_insert_tables(table_tables, spider_share);
+#ifdef SPIDER_SUPPORT_CREATE_OR_REPLACE_TABLE
+            }
+#endif
+
+            spider_free_share_resource_only(spider_share);
+            if (error_num)
+              break;
+          }
+          if (error_num)
+            break;
+        } else {
+          if ((error_num = SPIDER_create_partition_name(
+            tmp_name, FN_REFLEN + 1, table_name,
+            (part_elem)->partition_name, NORMAL_PART_NAME, TRUE)))
+          {
+            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+          }
+          DBUG_PRINT("info",("spider tmp_name=%s", tmp_name));
+          if (!(spider_share = spider_create_share(tmp_name, share,
+            part_info,
+#ifdef SPIDER_HAS_HASH_VALUE_TYPE
+            hash_value,
+#endif
+            &error_num
+          ))) {
+            DBUG_RETURN(error_num);
+          }
+
+#ifdef SPIDER_SUPPORT_CREATE_OR_REPLACE_TABLE
+          if (thd->lex->create_info.or_replace())
+          {
+            error_num = spider_delete_tables(table_tables,
+              spider_share->table_name, &dummy);
+          }
+          if (!error_num)
+          {
+#endif
+            error_num = spider_insert_tables(table_tables, spider_share);
+#ifdef SPIDER_SUPPORT_CREATE_OR_REPLACE_TABLE
+          }
+#endif
+
+          spider_free_share_resource_only(spider_share);
+          if (error_num)
+            break;
+        }
+      }
+      spider_close_sys_table(thd, table_tables,
+        &open_tables_backup, FALSE);
     }
   }
 #endif
