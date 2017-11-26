@@ -573,13 +573,13 @@ public:
 #endif
   bool start_bulk_update();
   int exec_bulk_update(
-    uint *dup_key_found
+    ha_rows *dup_key_found
   );
-  void end_bulk_update();
+  int end_bulk_update();
   int bulk_update_row(
     const uchar *old_data,
     uchar *new_data,
-    uint *dup_key_found
+    ha_rows *dup_key_found
   );
   int update_row(
     const uchar *old_data,
@@ -587,6 +587,10 @@ public:
   );
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
+  inline int direct_update_rows_init()
+  {
+    return direct_update_rows_init(2, NULL, 0, FALSE, NULL);
+  }
   int direct_update_rows_init(
     uint mode,
     KEY_MULTI_RANGE *ranges,
@@ -599,6 +603,10 @@ public:
 #endif
 #ifdef HA_CAN_BULK_ACCESS
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
+  inline int pre_direct_update_rows_init()
+  {
+    return pre_direct_update_rows_init(2, NULL, 0, FALSE, NULL);
+  }
   int pre_direct_update_rows_init(
     uint mode,
     KEY_MULTI_RANGE *ranges,
@@ -611,27 +619,40 @@ public:
 #endif
 #endif
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
+  inline int direct_update_rows(ha_rows *update_rows)
+  {
+    return direct_update_rows(NULL, 0, FALSE, NULL, update_rows);
+  }
   int direct_update_rows(
     KEY_MULTI_RANGE *ranges,
     uint range_count,
     bool sorted,
     uchar *new_data,
-    uint *update_rows
+    ha_rows *update_rows
   );
 #else
   int direct_update_rows(
-    uint *update_rows
+    ha_rows *update_rows
   );
 #endif
 #ifdef HA_CAN_BULK_ACCESS
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
+  inline int pre_direct_update_rows()
+  {
+    ha_rows update_rows;
+
+    return pre_direct_update_rows(NULL, 0, FALSE, NULL, &update_rows);
+  }
   int pre_direct_update_rows(
     KEY_MULTI_RANGE *ranges,
     uint range_count,
     bool sorted,
     uchar *new_data,
-    uint *update_rows
+    ha_rows *update_rows
   );
+#else
   int pre_direct_update_rows();
+#endif
 #endif
 #endif
   bool start_bulk_delete();
@@ -641,6 +662,10 @@ public:
   );
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
+  inline int direct_delete_rows_init()
+  {
+    return direct_delete_rows_init(2, NULL, 0, FALSE);
+  }
   int direct_delete_rows_init(
     uint mode,
     KEY_MULTI_RANGE *ranges,
@@ -652,6 +677,10 @@ public:
 #endif
 #ifdef HA_CAN_BULK_ACCESS
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
+  inline int pre_direct_delete_rows_init()
+  {
+    return pre_direct_delete_rows_init(2, NULL, 0, FALSE);
+  }
   int pre_direct_delete_rows_init(
     uint mode,
     KEY_MULTI_RANGE *ranges,
@@ -663,24 +692,34 @@ public:
 #endif
 #endif
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
+  inline int direct_delete_rows(ha_rows *delete_rows)
+  {
+    return direct_delete_rows(NULL, 0, FALSE, delete_rows);
+  }
   int direct_delete_rows(
     KEY_MULTI_RANGE *ranges,
     uint range_count,
     bool sorted,
-    uint *delete_rows
+    ha_rows *delete_rows
   );
 #else
   int direct_delete_rows(
-    uint *delete_rows
+    ha_rows *delete_rows
   );
 #endif
 #ifdef HA_CAN_BULK_ACCESS
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
+  inline int pre_direct_delete_rows()
+  {
+    ha_rows delete_rows;
+
+    return pre_direct_delete_rows(NULL, 0, FALSE, &delete_rows);
+  }
   int pre_direct_delete_rows(
     KEY_MULTI_RANGE *ranges,
     uint range_count,
     bool sorted,
-    uint *delete_rows
+    ha_rows *delete_rows
   );
 #else
   int pre_direct_delete_rows();
