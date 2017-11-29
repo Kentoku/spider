@@ -279,6 +279,7 @@ int spider_release_ping_table_mon_list(
 #endif
     spider_release_ping_table_mon_list_loop(mutex_hash, table_mon_list);
   pthread_mutex_unlock(&spider_udf_table_mon_mutexes[mutex_hash]);
+  my_afree(buf);
   DBUG_RETURN(0);
 }
 
