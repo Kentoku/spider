@@ -8973,7 +8973,7 @@ int spider_set_direct_limit_offset(
   )
     DBUG_RETURN(FALSE);
 
-  // ignore condition like 1=1 
+  // ignore condition like 1=1
   if (select_lex->where && select_lex->where->with_subselect)
     DBUG_RETURN(FALSE);
 

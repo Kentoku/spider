@@ -25,11 +25,11 @@ IF(DEFINED ENV{ORACLE_HOME})
 ENDIF()
 
 IF(EXISTS ${PROJECT_SOURCE_DIR}/storage/mysql_storage_engine.cmake)
-  SET(CMAKE_CXX_FLAGS_DEBUG 
+  SET(CMAKE_CXX_FLAGS_DEBUG
     "${CMAKE_CXX_FLAGS_DEBUG} -DSAFEMALLOC -DSAFE_MUTEX -DUSE_SYMDIR /Zi")
-  SET(CMAKE_C_FLAGS_DEBUG 
+  SET(CMAKE_C_FLAGS_DEBUG
     "${CMAKE_C_FLAGS_DEBUG} -DSAFEMALLOC -DSAFE_MUTEX -DUSE_SYMDIR /Zi")
-  SET(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /MAP /MAPINFO:EXPORTS") 
+  SET(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /MAP /MAPINFO:EXPORTS")
   INCLUDE("${PROJECT_SOURCE_DIR}/storage/mysql_storage_engine.cmake")
 
   INCLUDE_DIRECTORIES(
@@ -61,7 +61,7 @@ ENDIF()
 IF(MSVC)
   IF (CMAKE_BUILD_TYPE STREQUAL "Debug")
     ADD_CUSTOM_COMMAND(TARGET spider
-                       POST_BUILD 
+                       POST_BUILD
                        COMMAND if not exist ..\\..\\sql\\lib mkdir ..\\..\\sql\\lib\\plugin
                        COMMAND copy Debug\\ha_spider.dll ..\\..\\sql\\lib\\plugin\\ha_spider.dll)
   ENDIF()

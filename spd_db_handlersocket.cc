@@ -4360,7 +4360,7 @@ int spider_handlersocket_handler::append_index_hint(
   spider_string *str,
   int link_idx,
   ulong sql_type
-  ) 
+  )
 {
   DBUG_ENTER("spider_handlersocket_handler::append_index_hint");
   DBUG_RETURN(0);

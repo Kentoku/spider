@@ -747,7 +747,7 @@ SPIDER_CONN *spider_create_conn(
     if (spider_param_max_connections())
     { /* enable conncetion pool */
       if (ip_port_conn->ip_port_count >= spider_param_max_connections())
-      { /* bigger than the max num of conn£¬ free conn and return NULL */
+      { /* bigger than the max num of connections, free conn and return NULL */
         pthread_mutex_unlock(&ip_port_conn->mutex);
         *error_num = ER_SPIDER_CON_COUNT_ERROR;
         goto error_too_many_ipport_count;
@@ -757,7 +757,7 @@ SPIDER_CONN *spider_create_conn(
     pthread_mutex_unlock(&ip_port_conn->mutex);
   }
   else
-  {// do not exist 
+  {// do not exist
     ip_port_conn = spider_create_ipport_conn(conn);
     if (!ip_port_conn) {
       /* failed, always do not effect 'create conn' */
@@ -947,7 +947,7 @@ SPIDER_CONN *spider_get_conn(
           {	/* did not enable conncetion pool , create_conn */
             DBUG_PRINT("info",("spider create new conn"));
             if (!(conn = spider_create_conn(share, spider, link_idx,
-              base_link_idx, conn_kind, error_num)))                     
+              base_link_idx, conn_kind, error_num)))
               goto error;
             *conn->conn_key = *conn_key;
             if (spider)
@@ -4374,7 +4374,7 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
   int base_link_idx,
   int *error_num
   )
-{	
+{
   DBUG_ENTER("spider_get_conn_from_idle_connection");
   SPIDER_IP_PORT_CONN *ip_port_conn;
   SPIDER_CONN *conn = NULL;
@@ -4410,9 +4410,9 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
     ip_port_conn &&
     ip_port_count >= spider_max_connections &&
     spider_max_connections > 0
-  ) { /* no idle conn && enable connection pool, wait */ 
+  ) { /* no idle conn && enable connection pool, wait */
     pthread_mutex_unlock(&ip_port_conn->mutex);
-    start = my_hrtime().val; 
+    start = my_hrtime().val;
     while(1)
     {
       int error;
@@ -4460,7 +4460,7 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
         {
           spider->conns[base_link_idx] = conn;
           if (spider_bit_is_set(spider->conn_can_fo, base_link_idx))
-            conn->use_for_active_standby = TRUE;  
+            conn->use_for_active_standby = TRUE;
         }
         DBUG_RETURN(conn);
       }
@@ -4476,7 +4476,7 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
       pthread_mutex_unlock(&ip_port_conn->mutex);
     DBUG_PRINT("info",("spider create new conn"));
     if (!(conn = spider_create_conn(share, spider, link_idx, base_link_idx, conn_kind, error_num)))
-      DBUG_RETURN(conn);  
+      DBUG_RETURN(conn);
     *conn->conn_key = *conn_key;
     if (spider)
     {
@@ -4490,13 +4490,13 @@ SPIDER_CONN* spider_get_conn_from_idle_connection(
 }
 
 
-SPIDER_IP_PORT_CONN* spider_create_ipport_conn(SPIDER_CONN *conn) 
+SPIDER_IP_PORT_CONN* spider_create_ipport_conn(SPIDER_CONN *conn)
 {
   DBUG_ENTER("spider_create_ipport_conn");
   if (conn)
   {
     SPIDER_IP_PORT_CONN *ret = (SPIDER_IP_PORT_CONN *) my_malloc(sizeof(*ret), MY_ZEROFILL | MY_WME);
-    if (!ret) 
+    if (!ret)
     {
       goto err_return_direct;
     }
@@ -4541,12 +4541,12 @@ SPIDER_IP_PORT_CONN* spider_create_ipport_conn(SPIDER_CONN *conn)
     strncpy(ret->remote_ip_str, conn->tgt_host, sizeof(ret->remote_ip_str));
     ret->remote_port = conn->tgt_port;
     ret->conn_id = conn->conn_id;
-    ret->ip_port_count = 1; // init 
+    ret->ip_port_count = 1; // init
 
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
     ret->key_hash_value = conn->conn_key_hash_value;
 #endif
-    DBUG_RETURN(ret);    
+    DBUG_RETURN(ret);
 err_malloc_key:
     spider_my_free(ret, MYF(0));
 err_return_direct:
@@ -4559,7 +4559,7 @@ err_return_direct:
 void spider_free_ipport_conn(void *info)
 {
   DBUG_ENTER("spider_free_ipport_conn");
-  if (info) 
+  if (info)
   {
     SPIDER_IP_PORT_CONN *p = (SPIDER_IP_PORT_CONN *)info;
     pthread_cond_destroy(&p->cond);

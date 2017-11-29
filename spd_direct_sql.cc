@@ -606,7 +606,7 @@ SPIDER_CONN *spider_udf_direct_sql_create_conn(
     if (spider_param_max_connections())
     { /* enable conncetion pool */
       if (ip_port_conn->ip_port_count >= spider_param_max_connections())
-      { /* bigger than the max num of connE free conn and return NULL */
+      { /* bigger than the max num of connections, free conn and return NULL */
         pthread_mutex_unlock(&ip_port_conn->mutex);
         goto error_too_many_ipport_count;
       }
@@ -615,7 +615,7 @@ SPIDER_CONN *spider_udf_direct_sql_create_conn(
     pthread_mutex_unlock(&ip_port_conn->mutex);
   }
   else
-  {// do not exist 
+  {// do not exist
     ip_port_conn = spider_create_ipport_conn(conn);
     if (!ip_port_conn) {
       /* failed, always do not effect 'create conn' */

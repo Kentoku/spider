@@ -4227,7 +4227,7 @@ int spider_db_oracle_util::append_from_and_tables(
       spider->share->dbton_share[dbton_id];
     from_length +=
       db_share->db_nm_max_length +
-      SPIDER_SQL_DOT_LEN + /* SPIDER_SQL_NAME_QUOTE_LEN */ 4 + 
+      SPIDER_SQL_DOT_LEN + /* SPIDER_SQL_NAME_QUOTE_LEN */ 4 +
       db_share->table_nm_max_length +
       SPIDER_SQL_SPACE_LEN + SPIDER_SQL_COMMA_LEN +
       table_holder->alias->length() - SPIDER_SQL_DOT_LEN;

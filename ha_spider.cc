@@ -7960,7 +7960,7 @@ int ha_spider::cmp_ref(
       *field;
       field++
     ) {
-      if ((ret = (*field)->cmp_binary_offset(ptr_diff)))
+      if ((ret = (*field)->cmp_binary_offset((uint) ptr_diff)))
       {
         DBUG_PRINT("info",("spider different at %s", (*field)->field_name));
         break;
@@ -13482,7 +13482,7 @@ void ha_spider::check_pre_call(
     ) ||
     (
       (skip_parallel_search & 2) &&
-      select_lex && select_lex->sql_cache == SELECT_LEX::SQL_NO_CACHE //  for mysqldump 
+      select_lex && select_lex->sql_cache == SELECT_LEX::SQL_NO_CACHE //  for mysqldump
     )
   ) {
     use_pre_call = FALSE;
