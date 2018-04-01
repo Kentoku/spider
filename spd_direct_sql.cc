@@ -1,4 +1,4 @@
-/* Copyright (C) 2009-2017 Kentoku Shiba
+/* Copyright (C) 2009-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -132,7 +132,7 @@ int spider_udf_direct_sql_create_table_list(
       &direct_sql->tables, sizeof(TABLE*) * table_count,
       &tmp_name_ptr, sizeof(char) * (
         table_name_list_length +
-        thd->db_length * table_count +
+        thd->SPIDER_db_length * table_count +
         2 * table_count
       ),
       &direct_sql->iop, sizeof(int) * table_count,
@@ -163,11 +163,11 @@ int spider_udf_direct_sql_create_table_list(
       tmp_name_ptr += length + 1;
       tmp_ptr = tmp_ptr3 + 1;
     } else {
-      if (thd->db)
+      if (thd->SPIDER_db_str)
       {
-        memcpy(tmp_name_ptr, thd->db,
-          thd->db_length + 1);
-        tmp_name_ptr += thd->db_length + 1;
+        memcpy(tmp_name_ptr, thd->SPIDER_db_str,
+          thd->SPIDER_db_length + 1);
+        tmp_name_ptr += thd->SPIDER_db_length + 1;
       } else {
         direct_sql->db_names[roop_count] = (char *) "";
       }
@@ -1356,10 +1356,10 @@ int spider_udf_set_direct_sql_param_default(
   if (!direct_sql->tgt_default_db_name)
   {
     DBUG_PRINT("info",("spider create default tgt_default_db_name"));
-    direct_sql->tgt_default_db_name_length = trx->thd->db_length;
+    direct_sql->tgt_default_db_name_length = trx->thd->SPIDER_db_length;
     if (
       !(direct_sql->tgt_default_db_name = spider_create_string(
-        trx->thd->db,
+        trx->thd->SPIDER_db_str,
         direct_sql->tgt_default_db_name_length))
     ) {
       my_error(ER_OUT_OF_RESOURCES, MYF(0), HA_ERR_OUT_OF_MEM);
@@ -1712,11 +1712,25 @@ long long spider_direct_sql_body(
   for (roop_count = 0; roop_count < direct_sql->table_count; roop_count++)
   {
 #ifdef SPIDER_NEED_INIT_ONE_TABLE_FOR_FIND_TEMPORARY_TABLE
+#ifdef SPIDER_use_LEX_CSTRING_for_database_tablename_alias
+    LEX_CSTRING db_name =
+    {
+      direct_sql->db_names[roop_count],
+      strlen(direct_sql->db_names[roop_count])
+    };
+    LEX_CSTRING tbl_name =
+    {
+      direct_sql->table_names[roop_count],
+      strlen(direct_sql->table_names[roop_count])
+    };
+    table_list.init_one_table(&db_name, &tbl_name, 0, TL_WRITE);
+#else
     table_list.init_one_table(direct_sql->db_names[roop_count],
       strlen(direct_sql->db_names[roop_count]),
       direct_sql->table_names[roop_count],
       strlen(direct_sql->table_names[roop_count]),
       direct_sql->table_names[roop_count], TL_WRITE);
+#endif
 #else
     table_list.db = direct_sql->db_names[roop_count];
     table_list.table_name = direct_sql->table_names[roop_count];
@@ -1738,11 +1752,16 @@ long long spider_direct_sql_body(
 #else
       }
       TABLE_LIST *tables = &direct_sql->table_list[roop_count];
+#ifdef SPIDER_use_LEX_CSTRING_for_database_tablename_alias
+      table_list.init_one_table(
+        &table_list.db, &table_list.table_name, 0, TL_WRITE);
+#else
       tables->init_one_table(table_list.db, strlen(table_list.db),
         table_list.table_name, strlen(table_list.table_name),
         table_list.table_name, TL_WRITE);
-      tables->mdl_request.init(MDL_key::TABLE, table_list.db,
-        table_list.table_name, MDL_SHARED_WRITE, MDL_TRANSACTION);
+#endif
+      tables->mdl_request.init(MDL_key::TABLE, table_list.SPIDER_db_str,
+        table_list.SPIDER_table_name_str, MDL_SHARED_WRITE, MDL_TRANSACTION);
       if (!direct_sql->table_list_first)
       {
         direct_sql->table_list_first = tables;

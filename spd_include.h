@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -178,6 +178,25 @@
 #define SPIDER_create_partition_name(A,B,C,D,E,F) create_partition_name(A,C,D,E,F)
 #define SPIDER_create_subpartition_name(A,B,C,D,E,F) create_subpartition_name(A,C,D,E,F)
 #define SPIDER_free_part_syntax(A,B) spider_my_free(A,B)
+#endif
+
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100306
+#define SPIDER_use_LEX_CSTRING_for_database_tablename_alias
+#define SPIDER_db_str db.str
+#define SPIDER_db_length db.length
+#define SPIDER_table_name_str table_name.str
+#define SPIDER_table_name_length table_name.length
+#define SPIDER_alias_str alias.str
+#define SPIDER_alias_length alias.length
+const LEX_CSTRING SPIDER_empty_string = {"", 0};
+#else
+#define SPIDER_db_str db
+#define SPIDER_db_length db_length
+#define SPIDER_table_name_str table_name
+#define SPIDER_table_name_length
+#define SPIDER_alias_str alias
+#define SPIDER_alias_length
+const char SPIDER_empty_string = "";
 #endif
 
 #if MYSQL_VERSION_ID >= 50500
