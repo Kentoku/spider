@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -696,6 +696,7 @@ public:
   SPIDER_TABLE_HOLDER *add_table(
     ha_spider *spider_arg
   );
+  bool check_no_table_field();
   int create_table_holder(
     uint table_count_arg
   );

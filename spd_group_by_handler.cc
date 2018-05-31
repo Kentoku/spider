@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -909,6 +909,23 @@ SPIDER_TABLE_HOLDER *spider_fields::add_table(
     }
   }
   DBUG_RETURN(return_table_holder);
+}
+
+bool spider_fields::check_no_table_field()
+{
+  SPIDER_FIELD_HOLDER *field_holder;
+  DBUG_ENTER("spider_fields::add_table");
+  DBUG_PRINT("info",("spider this=%p", this));
+  set_pos_to_first_field_holder();
+  while ((field_holder = get_next_field_holder()))
+  {
+    if (!field_holder->spider)
+    {
+      DBUG_PRINT("info",("spider field does not have table in subquery"));
+      DBUG_RETURN(TRUE);
+    }
+  }
+  DBUG_RETURN(FALSE);
 }
 
 int spider_fields::create_table_holder(
@@ -1991,6 +2008,13 @@ group_by_handler *spider_create_group_by_handler(
       delete fields;
       DBUG_RETURN(NULL);
     }
+  }
+
+  if (fields->check_no_table_field())
+  {
+    DBUG_PRINT("info",("spider found no table field"));
+    delete fields;
+    DBUG_RETURN(NULL);
   }
 
   fields->check_support_dbton(dbton_bitmap);
