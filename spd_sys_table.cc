@@ -390,7 +390,7 @@ TABLE *spider_sys_open_table(
     MYSQL_OPEN_IGNORE_FLUSH | MYSQL_LOCK_IGNORE_TIMEOUT | MYSQL_LOCK_LOG_TABLE
   ))) {
     table->use_all_columns();
-    table->no_replicate = 1;
+    table->s->no_replicate = 1;
   } else
     thd->restore_backup_open_tables_state(open_tables_backup);
   thd->utime_after_lock = utime_after_lock_backup;
@@ -3253,13 +3253,24 @@ error:
   DBUG_RETURN(error_num);
 }
 
+#ifdef SPIDER_use_LEX_CSTRING_for_Field_blob_constructor
+TABLE *spider_mk_sys_tmp_table(
+  THD *thd,
+  TABLE *table,
+  TMP_TABLE_PARAM *tmp_tbl_prm,
+  const LEX_CSTRING *field_name,
+  CHARSET_INFO *cs
+)
+#else
 TABLE *spider_mk_sys_tmp_table(
   THD *thd,
   TABLE *table,
   TMP_TABLE_PARAM *tmp_tbl_prm,
   const char *field_name,
   CHARSET_INFO *cs
-) {
+)
+#endif
+{
   Field_blob *field;
   Item_field *i_field;
   List<Item> i_list;
@@ -3315,6 +3326,17 @@ void spider_rm_sys_tmp_table(
   DBUG_VOID_RETURN;
 }
 
+#ifdef SPIDER_use_LEX_CSTRING_for_Field_blob_constructor
+TABLE *spider_mk_sys_tmp_table_for_result(
+  THD *thd,
+  TABLE *table,
+  TMP_TABLE_PARAM *tmp_tbl_prm,
+  const LEX_CSTRING *field_name1,
+  const LEX_CSTRING *field_name2,
+  const LEX_CSTRING *field_name3,
+  CHARSET_INFO *cs
+)
+#else
 TABLE *spider_mk_sys_tmp_table_for_result(
   THD *thd,
   TABLE *table,
@@ -3323,7 +3345,9 @@ TABLE *spider_mk_sys_tmp_table_for_result(
   const char *field_name2,
   const char *field_name3,
   CHARSET_INFO *cs
-) {
+)
+#endif
+{
   Field_blob *field1, *field2, *field3;
   Item_field *i_field1, *i_field2, *i_field3;
   List<Item> i_list;

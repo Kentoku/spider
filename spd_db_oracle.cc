@@ -2410,8 +2410,13 @@ void spider_db_oracle::set_dup_key_idx(
       key_name = spider->share->tgt_pk_names[all_link_idx];
       key_name_length = spider->share->tgt_pk_names_lengths[all_link_idx];
     } else {
+#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+      key_name = (char *) table->s->key_info[roop_count].name.str;
+      key_name_length = table->s->key_info[roop_count].name.length;
+#else
       key_name = table->s->key_info[roop_count].name;
       key_name_length = strlen(key_name);
+#endif
     }
     memcpy(tmp_pos, key_name, key_name_length + 1);
     DBUG_PRINT("info",("spider key_name=%s", key_name));
@@ -4745,7 +4750,7 @@ int spider_oracle_share::create_column_name_str()
     str->init_calc_mem(196);
     str->set_charset(spider_share->access_charset);
     if ((error_num = spider_db_append_name_with_quote_str(str,
-      (char *) (*field)->field_name, dbton_id)))
+      (*field)->field_name, dbton_id)))
       goto error;
   }
   DBUG_RETURN(0);
@@ -10199,8 +10204,14 @@ int spider_oracle_handler::mk_bulk_tmp_table_and_bulk_start()
   DBUG_PRINT("info",("spider this=%p", this));
   if (!upd_tmp_tbl)
   {
+#ifdef SPIDER_use_LEX_CSTRING_for_Field_blob_constructor
+    LEX_CSTRING field_name = {STRING_WITH_LEN("a")};
+    if (!(upd_tmp_tbl = spider_mk_sys_tmp_table(
+      thd, table, &upd_tmp_tbl_prm, &field_name, update_sql.charset())))
+#else
     if (!(upd_tmp_tbl = spider_mk_sys_tmp_table(
       thd, table, &upd_tmp_tbl_prm, "a", update_sql.charset())))
+#endif
     {
       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
     }
@@ -12600,15 +12611,24 @@ int spider_oracle_handler::append_list_item_select(
       DBUG_RETURN(error_num);
     }
     field_ptr = fields->get_next_field_ptr();
+#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+    length = (*field_ptr)->field_name.length;
+#else
     length = strlen((*field_ptr)->field_name);
+#endif
     if (str->reserve(
       SPIDER_SQL_COMMA_LEN + /* SPIDER_SQL_NAME_QUOTE_LEN */ 2 +
       SPIDER_SQL_SPACE_LEN + length
     ))
       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
     str->q_append(SPIDER_SQL_SPACE_STR, SPIDER_SQL_SPACE_LEN);
+#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+    if ((error_num = spider_db_oracle_utility.append_name(str,
+      (*field_ptr)->field_name.str, length)))
+#else
     if ((error_num = spider_db_oracle_utility.append_name(str,
       (*field_ptr)->field_name, length)))
+#endif
     {
       DBUG_RETURN(error_num);
     }
@@ -12831,7 +12851,7 @@ int spider_oracle_copy_table::append_table_columns(
       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
     sql.q_append(SPIDER_SQL_NAME_QUOTE_STR, SPIDER_SQL_NAME_QUOTE_LEN);
     if ((error_num = spider_db_append_name_with_quote_str(&sql,
-      (char *) (*field)->field_name, spider_dbton_oracle.dbton_id)))
+      (*field)->field_name, spider_dbton_oracle.dbton_id)))
       DBUG_RETURN(error_num);
     if (sql.reserve(SPIDER_SQL_NAME_QUOTE_LEN + SPIDER_SQL_COMMA_LEN))
       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
@@ -12977,7 +12997,7 @@ int spider_oracle_copy_table::append_key_order_str(
         sql_part.q_append(SPIDER_SQL_NAME_QUOTE_STR,
           SPIDER_SQL_NAME_QUOTE_LEN);
         if ((error_num = spider_db_append_name_with_quote_str(&sql_part,
-          (char *) field->field_name, spider_dbton_oracle.dbton_id)))
+          field->field_name, spider_dbton_oracle.dbton_id)))
           DBUG_RETURN(error_num);
         if (key_part->key_part_flag & HA_REVERSE_SORT)
         {
@@ -13011,7 +13031,7 @@ int spider_oracle_copy_table::append_key_order_str(
         sql_part.q_append(SPIDER_SQL_NAME_QUOTE_STR,
           SPIDER_SQL_NAME_QUOTE_LEN);
         if ((error_num = spider_db_append_name_with_quote_str(&sql_part,
-          (char *) field->field_name, spider_dbton_oracle.dbton_id)))
+          field->field_name, spider_dbton_oracle.dbton_id)))
           DBUG_RETURN(error_num);
         if (key_part->key_part_flag & HA_REVERSE_SORT)
         {
@@ -13075,7 +13095,7 @@ int spider_oracle_copy_table::append_key_order_str(
         sql.q_append(SPIDER_SQL_NAME_QUOTE_STR,
           SPIDER_SQL_NAME_QUOTE_LEN);
         if ((error_num = spider_db_append_name_with_quote_str(&sql,
-          (char *) field->field_name, spider_dbton_oracle.dbton_id)))
+          field->field_name, spider_dbton_oracle.dbton_id)))
           DBUG_RETURN(error_num);
         if (key_part->key_part_flag & HA_REVERSE_SORT)
         {
@@ -13108,7 +13128,7 @@ int spider_oracle_copy_table::append_key_order_str(
         sql.q_append(SPIDER_SQL_NAME_QUOTE_STR,
           SPIDER_SQL_NAME_QUOTE_LEN);
         if ((error_num = spider_db_append_name_with_quote_str(&sql,
-          (char *) field->field_name, spider_dbton_oracle.dbton_id)))
+          field->field_name, spider_dbton_oracle.dbton_id)))
           DBUG_RETURN(error_num);
         if (key_part->key_part_flag & HA_REVERSE_SORT)
         {
@@ -13316,7 +13336,7 @@ int spider_oracle_copy_table::copy_key_row(
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   sql.q_append(SPIDER_SQL_NAME_QUOTE_STR, SPIDER_SQL_NAME_QUOTE_LEN);
   if ((error_num = spider_db_append_name_with_quote_str(&sql,
-    (char *) field->field_name, spider_dbton_oracle.dbton_id)))
+    field->field_name, spider_dbton_oracle.dbton_id)))
     DBUG_RETURN(error_num);
   if (sql.reserve(SPIDER_SQL_NAME_QUOTE_LEN + joint_length + *length +
     SPIDER_SQL_AND_LEN))

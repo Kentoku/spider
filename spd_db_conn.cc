@@ -1380,12 +1380,34 @@ int spider_db_unlock_tables(
 
 int spider_db_append_name_with_quote_str(
   spider_string *str,
-  char *name,
+  const char *name,
   uint dbton_id
 ) {
-  int error_num, length = strlen(name);
-  char *name_end, head_code;
   DBUG_ENTER("spider_db_append_name_with_quote_str");
+  DBUG_RETURN(spider_db_append_name_with_quote_str_internal(
+    str, name, strlen(name), dbton_id));
+}
+
+int spider_db_append_name_with_quote_str(
+  spider_string *str,
+  LEX_CSTRING &name,
+  uint dbton_id
+) {
+  DBUG_ENTER("spider_db_append_name_with_quote_str");
+  DBUG_RETURN(spider_db_append_name_with_quote_str_internal(
+    str, name.str, name.length, dbton_id));
+}
+
+int spider_db_append_name_with_quote_str_internal(
+  spider_string *str,
+  const char *name,
+  int length,
+  uint dbton_id
+) {
+  int error_num;
+  const char *name_end;
+  char head_code;
+  DBUG_ENTER("spider_db_append_name_with_quote_str_internal");
   for (name_end = name + length; name < name_end; name += length)
   {
     head_code = *name;
@@ -1688,8 +1710,13 @@ int spider_db_append_key_where_internal(
 
   if (sql_kind == SPIDER_SQL_KIND_HANDLER)
   {
-    char *key_name = key_info->name;
+#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+    const char *key_name = key_info->name.str;
+    key_name_length = key_info->name.length;
+#else
+    const char *key_name = key_info->name;
     key_name_length = strlen(key_name);
+#endif
     if (str->reserve(SPIDER_SQL_READ_LEN +
       /* SPIDER_SQL_NAME_QUOTE_LEN */ 2 + key_name_length))
       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
@@ -3994,9 +4021,18 @@ int spider_db_store_result(
 
         DBUG_PRINT("info",("spider store result to temporary table"));
         DBUG_ASSERT(!current->result_tmp_tbl);
+#ifdef SPIDER_use_LEX_CSTRING_for_Field_blob_constructor
+        LEX_CSTRING field_name1 = {STRING_WITH_LEN("a")};
+        LEX_CSTRING field_name2 = {STRING_WITH_LEN("b")};
+        LEX_CSTRING field_name3 = {STRING_WITH_LEN("c")};
+        if (!(current->result_tmp_tbl = spider_mk_sys_tmp_table_for_result(
+          thd, table, &current->result_tmp_tbl_prm, &field_name1, &field_name2,
+          &field_name3, &my_charset_bin)))
+#else
         if (!(current->result_tmp_tbl = spider_mk_sys_tmp_table_for_result(
           thd, table, &current->result_tmp_tbl_prm, "a", "b", "c",
           &my_charset_bin)))
+#endif
         {
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         }
@@ -8696,8 +8732,13 @@ int spider_db_open_item_ident(
   }
   if (str)
   {
+#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+    if (item_ident->field_name.str)
+      field_name_length = item_ident->field_name.length;
+#else
     if (item_ident->field_name)
       field_name_length = strlen(item_ident->field_name);
+#endif
     else
       field_name_length = 0;
     if (share->access_charset->cset == system_charset_info->cset)
@@ -8708,8 +8749,13 @@ int spider_db_open_item_ident(
         DBUG_RETURN(HA_ERR_OUT_OF_MEM);
       }
       str->q_append(alias, alias_length);
+#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+      if ((error_num = spider_dbton[dbton_id].db_util->
+        append_name(str, item_ident->field_name.str, field_name_length)))
+#else
       if ((error_num = spider_dbton[dbton_id].db_util->
         append_name(str, item_ident->field_name, field_name_length)))
+#endif
       {
         DBUG_RETURN(error_num);
       }
@@ -8717,9 +8763,15 @@ int spider_db_open_item_ident(
       if (str->reserve(alias_length))
         DBUG_RETURN(HA_ERR_OUT_OF_MEM);
       str->q_append(alias, alias_length);
+#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+      if ((error_num = spider_dbton[dbton_id].db_util->
+        append_name_with_charset(str, item_ident->field_name.str,
+          field_name_length, system_charset_info)))
+#else
       if ((error_num = spider_dbton[dbton_id].db_util->
         append_name_with_charset(str, item_ident->field_name,
           field_name_length, system_charset_info)))
+#endif
       {
         DBUG_RETURN(error_num);
       }
@@ -8804,22 +8856,42 @@ int spider_db_open_item_ref(
   DBUG_ENTER("spider_db_open_item_ref");
   if (item_ref->ref)
   {
+#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+    if (
+      (*(item_ref->ref))->type() != Item::CACHE_ITEM &&
+      item_ref->ref_type() != Item_ref::VIEW_REF &&
+      !item_ref->table_name &&
+      item_ref->name.str &&
+      item_ref->alias_name_used
+    )
+#else
     if (
       (*(item_ref->ref))->type() != Item::CACHE_ITEM &&
       item_ref->ref_type() != Item_ref::VIEW_REF &&
       !item_ref->table_name &&
       item_ref->name &&
       item_ref->alias_name_used
-    ) {
+    )
+#endif
+    {
       if (str)
       {
+#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+        uint length = item_ref->name.length;
+#else
         uint length = strlen(item_ref->name);
+#endif
         if (str->reserve(length + /* SPIDER_SQL_NAME_QUOTE_LEN */ 2))
         {
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         }
+#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+        if ((error_num = spider_dbton[dbton_id].db_util->
+          append_name(str, item_ref->name.str, length)))
+#else
         if ((error_num = spider_dbton[dbton_id].db_util->
           append_name(str, item_ref->name, length)))
+#endif
         {
           DBUG_RETURN(error_num);
         }
@@ -10335,8 +10407,13 @@ int spider_db_udf_copy_key_row(
 ) {
   int error_num;
   DBUG_ENTER("spider_db_udf_copy_key_row");
+#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+  if ((error_num = spider_db_append_name_with_quote_str(str,
+    (char *) field->field_name.str, dbton_id)))
+#else
   if ((error_num = spider_db_append_name_with_quote_str(str,
     (char *) field->field_name, dbton_id)))
+#endif
     DBUG_RETURN(error_num);
   if (str->reserve(joint_length + *length + SPIDER_SQL_AND_LEN))
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);

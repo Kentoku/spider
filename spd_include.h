@@ -190,6 +190,10 @@
 #endif
 
 #if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100306
+#define SPIDER_read_record_read_record(A) read_record()
+#define SPIDER_has_Item_with_subquery
+#define SPIDER_use_LEX_CSTRING_for_KEY_Field_name
+#define SPIDER_use_LEX_CSTRING_for_Field_blob_constructor
 #define SPIDER_use_LEX_CSTRING_for_database_tablename_alias
 #define SPIDER_db_str db.str
 #define SPIDER_db_length db.length
@@ -199,6 +203,7 @@
 #define SPIDER_alias_length alias.length
 const LEX_CSTRING SPIDER_empty_string = {"", 0};
 #else
+#define SPIDER_read_record_read_record(A) read_record(A)
 #define SPIDER_db_str db
 #define SPIDER_db_length db_length
 #define SPIDER_table_name_str table_name

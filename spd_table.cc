@@ -9070,7 +9070,11 @@ int spider_set_direct_limit_offset(
     DBUG_RETURN(FALSE);
 
   // ignore condition like 1=1
+#ifdef SPIDER_has_Item_with_subquery
+  if (select_lex->where && select_lex->where->with_subquery())
+#else
   if (select_lex->where && select_lex->where->with_subselect)
+#endif
     DBUG_RETURN(FALSE);
 
   if (
