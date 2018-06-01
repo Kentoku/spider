@@ -1521,7 +1521,7 @@ int spider_db_mysql_result::fetch_table_for_discover_table_structure(
     }
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   }
-  if (num_fields() != 18)
+  if (num_fields() < 18)
   {
     DBUG_PRINT("info",("spider num_fields != 18"));
     my_printf_error(ER_SPIDER_UNKNOWN_NUM, ER_SPIDER_UNKNOWN_STR, MYF(0));
@@ -5559,6 +5559,10 @@ int spider_mysql_share::append_table_select()
   spider_string *str = table_select;
   TABLE_SHARE *table_share = spider_share->table_share;
   DBUG_ENTER("spider_mysql_share::append_table_select");
+
+  if (!*table_share->field)
+    DBUG_RETURN(0);
+
   for (field = table_share->field; *field; field++)
   {
     field_length = column_name_str[(*field)->field_index].length();
@@ -5583,6 +5587,10 @@ int spider_mysql_share::append_key_select(
   TABLE_SHARE *table_share = spider_share->table_share;
   const KEY *key_info = &table_share->key_info[idx];
   DBUG_ENTER("spider_mysql_share::append_key_select");
+
+  if (!spider_user_defined_key_parts(key_info))
+    DBUG_RETURN(0);
+
   for (key_part = key_info->key_part, part_num = 0;
     part_num < spider_user_defined_key_parts(key_info); key_part++, part_num++)
   {

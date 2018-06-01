@@ -9528,7 +9528,8 @@ int spider_discover_table_structure(
   uint collatelen = strlen(table_charset->name);
   if (str.reserve(SPIDER_SQL_CLOSE_PAREN_LEN + SPIDER_SQL_DEFAULT_CHARSET_LEN +
     csnamelen + SPIDER_SQL_COLLATE_LEN + collatelen +
-    SPIDER_SQL_CONNECTION_LEN + SPIDER_SQL_VALUE_QUOTE_LEN
+    SPIDER_SQL_CONNECTION_LEN + SPIDER_SQL_VALUE_QUOTE_LEN +
+    (share->comment.length * 2)
   )) {
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   }
@@ -9541,7 +9542,8 @@ int spider_discover_table_structure(
   str.q_append(SPIDER_SQL_VALUE_QUOTE_STR, SPIDER_SQL_VALUE_QUOTE_LEN);
   str.append_escape_string(share->comment.str, share->comment.length);
   if (str.reserve(SPIDER_SQL_CONNECTION_LEN +
-    (SPIDER_SQL_VALUE_QUOTE_LEN * 2)))
+    (SPIDER_SQL_VALUE_QUOTE_LEN * 2) +
+    (share->connect_string.length * 2)))
   {
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   }

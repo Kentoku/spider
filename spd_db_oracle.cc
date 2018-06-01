@@ -5193,6 +5193,10 @@ int spider_oracle_share::append_table_select()
   spider_string *str = table_select;
   TABLE_SHARE *table_share = spider_share->table_share;
   DBUG_ENTER("spider_oracle_share::append_table_select");
+
+  if (!*table_share->field)
+    DBUG_RETURN(0);
+
   for (field = table_share->field; *field; field++)
   {
     field_length = column_name_str[(*field)->field_index].length();
@@ -5217,6 +5221,10 @@ int spider_oracle_share::append_key_select(
   TABLE_SHARE *table_share = spider_share->table_share;
   const KEY *key_info = &table_share->key_info[idx];
   DBUG_ENTER("spider_oracle_share::append_key_select");
+
+  if (!spider_user_defined_key_parts(key_info))
+    DBUG_RETURN(0);
+
   for (key_part = key_info->key_part, part_num = 0;
     part_num < spider_user_defined_key_parts(key_info); key_part++, part_num++)
   {
