@@ -8236,15 +8236,50 @@ int spider_mysql_handler::append_update_where(
   if (str->reserve(SPIDER_SQL_WHERE_LEN))
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   str->q_append(SPIDER_SQL_WHERE_STR, SPIDER_SQL_WHERE_LEN);
-  for (field = table->field; *field; field++)
+
+  if (table->s->primary_key == MAX_KEY)
   {
-    DBUG_PRINT("info", ("spider bitmap=%s",
-      bitmap_is_set(table->read_set, (*field)->field_index) ?
-      "TRUE" : "FALSE"));
-    if (
-      table->s->primary_key == MAX_KEY ||
-      bitmap_is_set(table->read_set, (*field)->field_index)
+    for (field = table->field; *field; field++)
+    {
+      field_name_length =
+        mysql_share->column_name_str[(*field)->field_index].length();
+      if ((*field)->is_null(ptr_diff))
+      {
+        if (str->reserve(field_name_length +
+          /* SPIDER_SQL_NAME_QUOTE_LEN */ 2 +
+          SPIDER_SQL_IS_NULL_LEN + SPIDER_SQL_AND_LEN))
+          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+        mysql_share->append_column_name(str, (*field)->field_index);
+        str->q_append(SPIDER_SQL_IS_NULL_STR, SPIDER_SQL_IS_NULL_LEN);
+      } else {
+        if (str->reserve(field_name_length +
+          /* SPIDER_SQL_NAME_QUOTE_LEN */ 2 +
+          SPIDER_SQL_EQUAL_LEN))
+          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+        mysql_share->append_column_name(str, (*field)->field_index);
+        str->q_append(SPIDER_SQL_EQUAL_STR, SPIDER_SQL_EQUAL_LEN);
+        (*field)->move_field_offset(ptr_diff);
+        if (
+          spider_db_mysql_utility.
+            append_column_value(spider, str, *field, NULL,
+              share->access_charset) ||
+          str->reserve(SPIDER_SQL_AND_LEN)
+        )
+          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+        (*field)->move_field_offset(-ptr_diff);
+      }
+      str->q_append(SPIDER_SQL_AND_STR, SPIDER_SQL_AND_LEN);
+    }
+  } else {
+    KEY *key_info = &table->key_info[table->s->primary_key];
+    KEY_PART_INFO *key_part;
+    uint part_num;
+    for (
+      key_part = key_info->key_part, part_num = 0;
+      part_num < spider_user_defined_key_parts(key_info);
+      key_part++, part_num++
     ) {
+      field = &key_part->field;
       field_name_length =
         mysql_share->column_name_str[(*field)->field_index].length();
       if ((*field)->is_null(ptr_diff))
