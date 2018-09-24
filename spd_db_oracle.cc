@@ -1,4 +1,4 @@
-/* Copyright (C) 2012-2017 Kentoku Shiba
+/* Copyright (C) 2012-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -4214,8 +4214,11 @@ int spider_db_oracle_util::append_escaped_util(
 
 #ifdef SPIDER_HAS_GROUP_BY_HANDLER
 int spider_db_oracle_util::append_from_and_tables(
+  ha_spider *spider,
   spider_fields *fields,
-  spider_string *str
+  spider_string *str,
+  TABLE_LIST *table_list,
+  uint table_count
 ) {
   SPIDER_TABLE_HOLDER *table_holder;
   int error_num;
@@ -12473,6 +12476,8 @@ int spider_oracle_handler::append_from_and_tables_part(
 ) {
   int error_num;
   spider_string *str;
+  SPIDER_TABLE_HOLDER *table_holder;
+  TABLE_LIST *table_list;
   DBUG_ENTER("spider_oracle_handler::append_from_and_tables_part");
   DBUG_PRINT("info",("spider this=%p", this));
   switch (sql_type)
@@ -12483,7 +12488,11 @@ int spider_oracle_handler::append_from_and_tables_part(
     default:
       DBUG_RETURN(0);
   }
-  error_num = spider_db_oracle_utility.append_from_and_tables(fields, str);
+  fields->set_pos_to_first_table_holder();
+  table_holder = fields->get_next_table_holder();
+  table_list = table_holder->table->pos_in_table_list;
+  error_num = spider_db_oracle_utility.append_from_and_tables(fields, str,
+    table_list);
   DBUG_RETURN(error_num);
 }
 
