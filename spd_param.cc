@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -3486,7 +3486,7 @@ maria_declare_plugin(spider)
   spider_status_variables,
   spider_system_variables,
   SPIDER_DETAIL_VERSION,
-  MariaDB_PLUGIN_MATURITY_GAMMA
+  MariaDB_PLUGIN_MATURITY_STABLE
 },
 spider_i_s_alloc_mem_maria
 maria_declare_plugin_end;
