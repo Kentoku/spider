@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -7962,7 +7962,8 @@ int ha_spider::cmp_ref(
     ) {
       if ((ret = (*field)->cmp_binary_offset((uint) ptr_diff)))
       {
-        DBUG_PRINT("info",("spider different at %s", (*field)->field_name));
+        DBUG_PRINT("info",("spider different at %s",
+          (*field)->SPIDER_field_name_str));
         break;
       }
     }
@@ -9958,21 +9959,38 @@ int ha_spider::end_bulk_update(
   DBUG_RETURN(0);
 }
 
+#ifdef SPIDER_UPDATE_ROW_HAS_CONST_NEW_DATA
+int ha_spider::bulk_update_row(
+  const uchar *old_data,
+  const uchar *new_data,
+  ha_rows *dup_key_found
+)
+#else
 int ha_spider::bulk_update_row(
   const uchar *old_data,
   uchar *new_data,
   ha_rows *dup_key_found
-) {
+)
+#endif
+{
   DBUG_ENTER("ha_spider::bulk_update_row");
   DBUG_PRINT("info",("spider this=%p", this));
   *dup_key_found = 0;
   DBUG_RETURN(update_row(old_data, new_data));
 }
 
+#ifdef SPIDER_UPDATE_ROW_HAS_CONST_NEW_DATA
+int ha_spider::update_row(
+  const uchar *old_data,
+  const uchar *new_data
+)
+#else
 int ha_spider::update_row(
   const uchar *old_data,
   uchar *new_data
-) {
+)
+#endif
+{
   int error_num;
   THD *thd = ha_thd();
   backup_error_status();

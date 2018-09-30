@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -2894,7 +2894,7 @@ int spider_db_fetch_row(
 ) {
   int error_num;
   DBUG_ENTER("spider_db_fetch_row");
-  DBUG_PRINT("info", ("spider field_name %s", field->field_name));
+  DBUG_PRINT("info", ("spider field_name %s", field->SPIDER_field_name_str));
   DBUG_PRINT("info", ("spider fieldcharset %s", field->charset()->csname));
   field->move_field_offset(ptr_diff);
   error_num = row->store_to_field(field, share->access_charset);
@@ -3024,7 +3024,8 @@ int spider_db_fetch_table(
         my_bitmap_map *tmp_map =
           dbug_tmp_use_all_columns(table, table->write_set);
 #endif
-        DBUG_PRINT("info", ("spider bitmap is set %s", (*field)->field_name));
+        DBUG_PRINT("info", ("spider bitmap is set %s",
+          (*field)->SPIDER_field_name_str));
         if ((error_num =
           spider_db_fetch_row(share, *field, row, ptr_diff)))
           DBUG_RETURN(error_num);
@@ -3195,7 +3196,8 @@ int spider_db_fetch_key(
       my_bitmap_map *tmp_map =
         dbug_tmp_use_all_columns(table, table->write_set);
 #endif
-      DBUG_PRINT("info", ("spider bitmap is set %s", field->field_name));
+      DBUG_PRINT("info", ("spider bitmap is set %s",
+        field->SPIDER_field_name_str));
       if ((error_num =
         spider_db_fetch_row(share, field, row, ptr_diff)))
         DBUG_RETURN(error_num);
@@ -3313,7 +3315,8 @@ int spider_db_fetch_minimum_columns(
         my_bitmap_map *tmp_map =
           dbug_tmp_use_all_columns(table, table->write_set);
 #endif
-        DBUG_PRINT("info", ("spider bitmap is set %s", (*field)->field_name));
+        DBUG_PRINT("info", ("spider bitmap is set %s",
+          (*field)->SPIDER_field_name_str));
         if ((error_num = spider_db_fetch_row(share, *field, row, ptr_diff)))
           DBUG_RETURN(error_num);
 #ifndef DBUG_OFF
@@ -5342,7 +5345,8 @@ int spider_db_seek_tmp_table(
       my_bitmap_map *tmp_map =
         dbug_tmp_use_all_columns(table, table->write_set);
 #endif
-      DBUG_PRINT("info", ("spider bitmap is set %s", (*field)->field_name));
+      DBUG_PRINT("info", ("spider bitmap is set %s",
+        (*field)->SPIDER_field_name_str));
       if ((error_num =
         spider_db_fetch_row(spider->share, *field, row, ptr_diff)))
         DBUG_RETURN(error_num);
@@ -5429,7 +5433,8 @@ int spider_db_seek_tmp_key(
       my_bitmap_map *tmp_map =
         dbug_tmp_use_all_columns(table, table->write_set);
 #endif
-      DBUG_PRINT("info", ("spider bitmap is set %s", field->field_name));
+      DBUG_PRINT("info", ("spider bitmap is set %s",
+        field->SPIDER_field_name_str));
       if ((error_num =
         spider_db_fetch_row(spider->share, field, row, ptr_diff)))
         DBUG_RETURN(error_num);
@@ -5519,7 +5524,8 @@ int spider_db_seek_tmp_minimum_columns(
       my_bitmap_map *tmp_map =
         dbug_tmp_use_all_columns(table, table->write_set);
 #endif
-      DBUG_PRINT("info", ("spider bitmap is set %s", (*field)->field_name));
+      DBUG_PRINT("info", ("spider bitmap is set %s",
+        (*field)->SPIDER_field_name_str));
       if ((error_num =
         spider_db_fetch_row(spider->share, *field, row, ptr_diff)))
         DBUG_RETURN(error_num);
@@ -5531,7 +5537,7 @@ int spider_db_seek_tmp_minimum_columns(
     else if (bitmap_is_set(table->read_set, (*field)->field_index))
     {
       DBUG_PRINT("info", ("spider bitmap is cleared %s",
-        (*field)->field_name));
+        (*field)->SPIDER_field_name_str));
       bitmap_clear_bit(table->read_set, (*field)->field_index);
     }
   }

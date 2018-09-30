@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -576,6 +576,17 @@ public:
     ha_rows *dup_key_found
   );
   int end_bulk_update();
+#ifdef SPIDER_UPDATE_ROW_HAS_CONST_NEW_DATA
+  int bulk_update_row(
+    const uchar *old_data,
+    const uchar *new_data,
+    ha_rows *dup_key_found
+  );
+  int update_row(
+    const uchar *old_data,
+    const uchar *new_data
+  );
+#else
   int bulk_update_row(
     const uchar *old_data,
     uchar *new_data,
@@ -585,6 +596,7 @@ public:
     const uchar *old_data,
     uchar *new_data
   );
+#endif
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
   inline int direct_update_rows_init()

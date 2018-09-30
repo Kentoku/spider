@@ -1201,7 +1201,8 @@ int spider_group_by_handler::init_scan()
     *field;
     field++
   ) {
-    DBUG_PRINT("info",("spider field_name=%s", (*field)->field_name));
+    DBUG_PRINT("info",("spider field_name=%s",
+      (*field)->SPIDER_field_name_str));
   }
 #endif
 
