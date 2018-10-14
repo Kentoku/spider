@@ -696,7 +696,7 @@ public:
   SPIDER_TABLE_HOLDER *add_table(
     ha_spider *spider_arg
   );
-  bool check_no_table_field();
+  bool all_query_fields_are_query_table_members();
   int create_table_holder(
     uint table_count_arg
   );

@@ -914,21 +914,33 @@ SPIDER_TABLE_HOLDER *spider_fields::add_table(
   DBUG_RETURN(return_table_holder);
 }
 
-bool spider_fields::check_no_table_field()
+/**
+  Verify that all fields in the query are members of tables that are in the
+  query.
+
+  @return TRUE              All fields in the query are members of tables
+                            that are in the query.
+          FALSE             At least one field in the query is not a
+                            member of a table that is in the query.
+*/
+
+bool spider_fields::all_query_fields_are_query_table_members()
 {
   SPIDER_FIELD_HOLDER *field_holder;
-  DBUG_ENTER("spider_fields::add_table");
+  DBUG_ENTER("spider_fields::all_query_fields_are_query_table_members");
   DBUG_PRINT("info",("spider this=%p", this));
+
   set_pos_to_first_field_holder();
   while ((field_holder = get_next_field_holder()))
   {
     if (!field_holder->spider)
     {
-      DBUG_PRINT("info",("spider field does not have table in subquery"));
-      DBUG_RETURN(TRUE);
+      DBUG_PRINT("info", ("spider field is not a member of a query table"));
+      DBUG_RETURN(FALSE);
     }
   }
-  DBUG_RETURN(FALSE);
+
+  DBUG_RETURN(TRUE);
 }
 
 int spider_fields::create_table_holder(
@@ -2043,9 +2055,9 @@ group_by_handler *spider_create_group_by_handler(
     }
   }
 
-  if (fields->check_no_table_field())
+  if (!fields->all_query_fields_are_query_table_members())
   {
-    DBUG_PRINT("info",("spider found no table field"));
+    DBUG_PRINT("info", ("spider found a query field that is not a query table member"));
     delete fields;
     DBUG_RETURN(NULL);
   }
