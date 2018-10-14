@@ -202,6 +202,8 @@
 #define SPIDER_alias_str alias.str
 #define SPIDER_alias_length alias.length
 #define SPIDER_field_name_str field_name.str
+#define SPIDER_item_name_str(A) (A)->name.str
+#define SPIDER_item_name_length(A) (A)->name.length
 const LEX_CSTRING SPIDER_empty_string = {"", 0};
 #else
 #define SPIDER_read_record_read_record(A) read_record(A)
@@ -212,6 +214,8 @@ const LEX_CSTRING SPIDER_empty_string = {"", 0};
 #define SPIDER_alias_str alias
 #define SPIDER_alias_length
 #define SPIDER_field_name_str field_name
+#define SPIDER_item_name_str(A) (A)->name
+#define SPIDER_item_name_length(A) strlen((A)->name)
 const char SPIDER_empty_string = "";
 #endif
 
