@@ -136,7 +136,7 @@ int spider_udf_direct_sql_create_table_list(
       &direct_sql->tables, sizeof(TABLE*) * table_count,
       &tmp_name_ptr, sizeof(char) * (
         table_name_list_length +
-        thd->SPIDER_db_length * table_count +
+        SPIDER_THD_db_length(thd) * table_count +
         2 * table_count
       ),
       &direct_sql->iop, sizeof(int) * table_count,
@@ -167,11 +167,11 @@ int spider_udf_direct_sql_create_table_list(
       tmp_name_ptr += length + 1;
       tmp_ptr = tmp_ptr3 + 1;
     } else {
-      if (thd->SPIDER_db_str)
+      if (SPIDER_THD_db_str(thd))
       {
-        memcpy(tmp_name_ptr, thd->SPIDER_db_str,
-          thd->SPIDER_db_length + 1);
-        tmp_name_ptr += thd->SPIDER_db_length + 1;
+        memcpy(tmp_name_ptr, SPIDER_THD_db_str(thd),
+          SPIDER_THD_db_length(thd) + 1);
+        tmp_name_ptr += SPIDER_THD_db_length(thd) + 1;
       } else {
         direct_sql->db_names[roop_count] = (char *) "";
       }
@@ -1340,10 +1340,10 @@ int spider_udf_set_direct_sql_param_default(
   if (!direct_sql->tgt_default_db_name)
   {
     DBUG_PRINT("info",("spider create default tgt_default_db_name"));
-    direct_sql->tgt_default_db_name_length = trx->thd->SPIDER_db_length;
+    direct_sql->tgt_default_db_name_length = SPIDER_THD_db_length(trx->thd);
     if (
       !(direct_sql->tgt_default_db_name = spider_create_string(
-        trx->thd->SPIDER_db_str,
+        SPIDER_THD_db_str(trx->thd),
         direct_sql->tgt_default_db_name_length))
     ) {
       my_error(ER_OUT_OF_RESOURCES, MYF(0), HA_ERR_OUT_OF_MEM);
@@ -1716,8 +1716,9 @@ long long spider_direct_sql_body(
       direct_sql->table_names[roop_count], TL_WRITE);
 #endif
 #else
-    table_list.db = direct_sql->db_names[roop_count];
-    table_list.table_name = direct_sql->table_names[roop_count];
+    SPIDER_TABLE_LIST_db_str(&table_list) = direct_sql->db_names[roop_count];
+    SPIDER_TABLE_LIST_table_name_str(&table_list) =
+      direct_sql->table_names[roop_count];
 #endif
     if (!(direct_sql->tables[roop_count] =
       SPIDER_find_temporary_table(thd, &table_list)))
@@ -1730,7 +1731,8 @@ long long spider_direct_sql_body(
         error_num = ER_SPIDER_UDF_TMP_TABLE_NOT_FOUND_NUM;
         my_printf_error(ER_SPIDER_UDF_TMP_TABLE_NOT_FOUND_NUM,
           ER_SPIDER_UDF_TMP_TABLE_NOT_FOUND_STR,
-          MYF(0), table_list.db, table_list.table_name);
+          MYF(0), SPIDER_TABLE_LIST_db_str(&table_list),
+          SPIDER_TABLE_LIST_table_name_str(&table_list));
         goto error;
 #if MYSQL_VERSION_ID < 50500
 #else
@@ -1740,12 +1742,17 @@ long long spider_direct_sql_body(
       table_list.init_one_table(
         &table_list.db, &table_list.table_name, 0, TL_WRITE);
 #else
-      tables->init_one_table(table_list.db, strlen(table_list.db),
-        table_list.table_name, strlen(table_list.table_name),
-        table_list.table_name, TL_WRITE);
+      tables->init_one_table(
+        SPIDER_TABLE_LIST_db_str(&table_list),
+        SPIDER_TABLE_LIST_db_length(&table_list),
+        SPIDER_TABLE_LIST_table_name_str(&table_list),
+        SPIDER_TABLE_LIST_table_name_length(&table_list),
+        SPIDER_TABLE_LIST_table_name_str(&table_list), TL_WRITE);
 #endif
-      tables->mdl_request.init(MDL_key::TABLE, table_list.SPIDER_db_str,
-        table_list.SPIDER_table_name_str, MDL_SHARED_WRITE, MDL_TRANSACTION);
+      tables->mdl_request.init(MDL_key::TABLE,
+        SPIDER_TABLE_LIST_db_str(&table_list),
+        SPIDER_TABLE_LIST_table_name_str(&table_list),
+        MDL_SHARED_WRITE, MDL_TRANSACTION);
       if (!direct_sql->table_list_first)
       {
         direct_sql->table_list_first = tables;

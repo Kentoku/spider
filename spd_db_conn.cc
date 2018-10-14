@@ -2903,7 +2903,7 @@ int spider_db_fetch_row(
   THD *thd = field->table->in_use;
   Time_zone *saved_time_zone = thd->variables.time_zone;
   DBUG_ENTER("spider_db_fetch_row");
-  DBUG_PRINT("info", ("spider field_name %s", field->SPIDER_field_name_str));
+  DBUG_PRINT("info", ("spider field_name %s", SPIDER_field_name_str(field)));
   DBUG_PRINT("info", ("spider fieldcharset %s", field->charset()->csname));
 
   thd->variables.time_zone = UTC;
@@ -3040,7 +3040,7 @@ int spider_db_fetch_table(
           dbug_tmp_use_all_columns(table, table->write_set);
 #endif
         DBUG_PRINT("info", ("spider bitmap is set %s",
-          (*field)->SPIDER_field_name_str));
+          SPIDER_field_name_str(*field)));
         if ((error_num =
           spider_db_fetch_row(share, *field, row, ptr_diff)))
           DBUG_RETURN(error_num);
@@ -3212,7 +3212,7 @@ int spider_db_fetch_key(
         dbug_tmp_use_all_columns(table, table->write_set);
 #endif
       DBUG_PRINT("info", ("spider bitmap is set %s",
-        field->SPIDER_field_name_str));
+        SPIDER_field_name_str(field)));
       if ((error_num =
         spider_db_fetch_row(share, field, row, ptr_diff)))
         DBUG_RETURN(error_num);
@@ -3331,7 +3331,7 @@ int spider_db_fetch_minimum_columns(
           dbug_tmp_use_all_columns(table, table->write_set);
 #endif
         DBUG_PRINT("info", ("spider bitmap is set %s",
-          (*field)->SPIDER_field_name_str));
+          SPIDER_field_name_str(*field)));
         if ((error_num = spider_db_fetch_row(share, *field, row, ptr_diff)))
           DBUG_RETURN(error_num);
 #ifndef DBUG_OFF
@@ -5361,7 +5361,7 @@ int spider_db_seek_tmp_table(
         dbug_tmp_use_all_columns(table, table->write_set);
 #endif
       DBUG_PRINT("info", ("spider bitmap is set %s",
-        (*field)->SPIDER_field_name_str));
+        SPIDER_field_name_str(*field)));
       if ((error_num =
         spider_db_fetch_row(spider->share, *field, row, ptr_diff)))
         DBUG_RETURN(error_num);
@@ -5449,7 +5449,7 @@ int spider_db_seek_tmp_key(
         dbug_tmp_use_all_columns(table, table->write_set);
 #endif
       DBUG_PRINT("info", ("spider bitmap is set %s",
-        field->SPIDER_field_name_str));
+        SPIDER_field_name_str(field)));
       if ((error_num =
         spider_db_fetch_row(spider->share, field, row, ptr_diff)))
         DBUG_RETURN(error_num);
@@ -5540,7 +5540,7 @@ int spider_db_seek_tmp_minimum_columns(
         dbug_tmp_use_all_columns(table, table->write_set);
 #endif
       DBUG_PRINT("info", ("spider bitmap is set %s",
-        (*field)->SPIDER_field_name_str));
+        SPIDER_field_name_str(*field)));
       if ((error_num =
         spider_db_fetch_row(spider->share, *field, row, ptr_diff)))
         DBUG_RETURN(error_num);
@@ -5552,7 +5552,7 @@ int spider_db_seek_tmp_minimum_columns(
     else if (bitmap_is_set(table->read_set, (*field)->field_index))
     {
       DBUG_PRINT("info", ("spider bitmap is cleared %s",
-        (*field)->SPIDER_field_name_str));
+        SPIDER_field_name_str(*field)));
       bitmap_clear_bit(table->read_set, (*field)->field_index);
     }
   }

@@ -12636,7 +12636,8 @@ int spider_oracle_handler::append_list_item_select(
   uint dbton_id = spider_dbton_oracle.dbton_id, length;
   List_iterator_fast<Item> it(*select);
   Item *item;
-  Field **field_ptr;
+  Field *field;
+  const char *item_name;
   DBUG_ENTER("spider_oracle_handler::append_list_item_select");
   DBUG_PRINT("info",("spider this=%p", this));
   while ((item = it++))
@@ -12646,25 +12647,23 @@ int spider_oracle_handler::append_list_item_select(
     {
       DBUG_RETURN(error_num);
     }
-    field_ptr = fields->get_next_field_ptr();
-#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
-    length = (*field_ptr)->field_name.length;
-#else
-    length = strlen((*field_ptr)->field_name);
-#endif
+    field = *(fields->get_next_field_ptr());
+    if (field)
+    {
+      item_name = SPIDER_field_name_str(field);
+      length = SPIDER_field_name_length(field);
+    } else {
+      item_name = SPIDER_item_name_str(item);
+      length = SPIDER_item_name_length(item);
+    }
     if (str->reserve(
       SPIDER_SQL_COMMA_LEN + /* SPIDER_SQL_NAME_QUOTE_LEN */ 2 +
       SPIDER_SQL_SPACE_LEN + length
     ))
       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
     str->q_append(SPIDER_SQL_SPACE_STR, SPIDER_SQL_SPACE_LEN);
-#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
     if ((error_num = spider_db_oracle_utility.append_name(str,
-      (*field_ptr)->field_name.str, length)))
-#else
-    if ((error_num = spider_db_oracle_utility.append_name(str,
-      (*field_ptr)->field_name, length)))
-#endif
+      item_name, length)))
     {
       DBUG_RETURN(error_num);
     }

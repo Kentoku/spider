@@ -13414,7 +13414,7 @@ int spider_mysql_handler::append_list_item_select(
   uint dbton_id = spider_dbton_mysql.dbton_id, length;
   List_iterator_fast<Item> it(*select);
   Item *item;
-  Field **field;
+  Field *field;
   const char *item_name;
   DBUG_ENTER("spider_mysql_handler::append_list_item_select");
   DBUG_PRINT("info",("spider this=%p", this));
@@ -13428,13 +13428,8 @@ int spider_mysql_handler::append_list_item_select(
     field = *(fields->get_next_field_ptr());
     if (field)
     {
-#ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
-      item_name = field->field_name.str;
-      length = field->field_name.length;
-#else
-      item_name = field->field_name;
-      length = strlen(field->field_name);
-#endif
+      item_name = SPIDER_field_name_str(field);
+      length = SPIDER_field_name_length(field);
     } else {
       item_name = SPIDER_item_name_str(item);
       length = SPIDER_item_name_length(item);

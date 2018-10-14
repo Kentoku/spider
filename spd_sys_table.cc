@@ -154,10 +154,11 @@ TABLE *spider_open_sys_table(
 
 #if MYSQL_VERSION_ID < 50500
   memset(&tables, 0, sizeof(TABLE_LIST));
-  tables.db = (char*)"mysql";
-  tables.db_length = sizeof("mysql") - 1;
-  tables.alias = tables.table_name = (char *) table_name;
-  tables.table_name_length = table_name_length;
+  SPIDER_TABLE_LIST_db_str(&tables) = (char*)"mysql";
+  SPIDER_TABLE_LIST_db_length(&tables) = sizeof("mysql") - 1;
+  SPIDER_TABLE_LIST_alias_str(&tables) =
+    SPIDER_TABLE_LIST_table_name_str(&tables) = (char *) table_name;
+  SPIDER_TABLE_LIST_table_name_length(&tables) = table_name_length;
   tables.lock_type = (write ? TL_WRITE : TL_READ);
 #else
 #ifdef SPIDER_use_LEX_CSTRING_for_database_tablename_alias

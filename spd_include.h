@@ -195,25 +195,31 @@
 #define SPIDER_use_LEX_CSTRING_for_KEY_Field_name
 #define SPIDER_use_LEX_CSTRING_for_Field_blob_constructor
 #define SPIDER_use_LEX_CSTRING_for_database_tablename_alias
-#define SPIDER_db_str db.str
-#define SPIDER_db_length db.length
-#define SPIDER_table_name_str table_name.str
-#define SPIDER_table_name_length table_name.length
-#define SPIDER_alias_str alias.str
-#define SPIDER_alias_length alias.length
-#define SPIDER_field_name_str field_name.str
+#define SPIDER_THD_db_str(A) (A)->db.str
+#define SPIDER_THD_db_length(A) (A)->db.length
+#define SPIDER_TABLE_LIST_db_str(A) (A)->db.str
+#define SPIDER_TABLE_LIST_db_length(A) (A)->db.length
+#define SPIDER_TABLE_LIST_table_name_str(A) (A)->table_name.str
+#define SPIDER_TABLE_LIST_table_name_length(A) (A)->table_name.length
+#define SPIDER_TABLE_LIST_alias_str(A) (A)->alias.str
+#define SPIDER_TABLE_LIST_alias_length(A) (A)->alias.length
+#define SPIDER_field_name_str(A) (A)->field_name.str
+#define SPIDER_field_name_length(A) (A)->field_name.length
 #define SPIDER_item_name_str(A) (A)->name.str
 #define SPIDER_item_name_length(A) (A)->name.length
 const LEX_CSTRING SPIDER_empty_string = {"", 0};
 #else
 #define SPIDER_read_record_read_record(A) read_record(A)
-#define SPIDER_db_str db
-#define SPIDER_db_length db_length
-#define SPIDER_table_name_str table_name
-#define SPIDER_table_name_length
-#define SPIDER_alias_str alias
-#define SPIDER_alias_length
-#define SPIDER_field_name_str field_name
+#define SPIDER_THD_db_str(A) (A)->db
+#define SPIDER_THD_db_length(A) (A)->db_length
+#define SPIDER_TABLE_LIST_db_str(A) (A)->db
+#define SPIDER_TABLE_LIST_db_length(A) (A)->db_length
+#define SPIDER_TABLE_LIST_table_name_str(A) (A)->table_name
+#define SPIDER_TABLE_LIST_table_name_length(A) (A)->table_name_length
+#define SPIDER_TABLE_LIST_alias_str(A) (A)->alias
+#define SPIDER_TABLE_LIST_alias_length(A) strlen((A)->alias)
+#define SPIDER_field_name_str(A) (A)->field_name
+#define SPIDER_field_name_length(A) strlen((A)->field_name)
 #define SPIDER_item_name_str(A) (A)->name
 #define SPIDER_item_name_length(A) strlen((A)->name)
 const char SPIDER_empty_string = "";

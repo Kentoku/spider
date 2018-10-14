@@ -53,10 +53,10 @@ int spider_udf_set_copy_tables_param_default(
   if (!copy_tables->database)
   {
     DBUG_PRINT("info",("spider create default database"));
-    copy_tables->database_length = copy_tables->trx->thd->SPIDER_db_length;
+    copy_tables->database_length = SPIDER_THD_db_length(copy_tables->trx->thd);
     if (
       !(copy_tables->database = spider_create_string(
-        copy_tables->trx->thd->SPIDER_db_str,
+        SPIDER_THD_db_str(copy_tables->trx->thd),
         copy_tables->database_length))
     ) {
       my_error(ER_OUT_OF_RESOURCES, MYF(0), HA_ERR_OUT_OF_MEM);
@@ -968,23 +968,25 @@ long long spider_copy_tables_body(
     goto error;
 
   table_list = &copy_tables->spider_table_list;
-  table_list->SPIDER_db_str = copy_tables->spider_db_name;
-  table_list->SPIDER_db_length = copy_tables->spider_db_name_length;
-  table_list->SPIDER_alias_str = table_list->SPIDER_table_name_str =
+  SPIDER_TABLE_LIST_db_str(table_list) = copy_tables->spider_db_name;
+  SPIDER_TABLE_LIST_db_length(table_list) = copy_tables->spider_db_name_length;
+  SPIDER_TABLE_LIST_alias_str(table_list) =
+    SPIDER_TABLE_LIST_table_name_str(table_list) =
     copy_tables->spider_real_table_name;
-  table_list->SPIDER_table_name_length =
+  SPIDER_TABLE_LIST_table_name_length(table_list) =
     copy_tables->spider_real_table_name_length;
 #ifdef SPIDER_use_LEX_CSTRING_for_database_tablename_alias
-  table_list->SPIDER_alias_length = table_list->SPIDER_table_name_length;
+  SPIDER_TABLE_LIST_alias_length(table_list) =
+    SPIDER_TABLE_LIST_table_name_length(table_list);
 #endif
   table_list->lock_type = TL_READ;
 
-  DBUG_PRINT("info",("spider db=%s", table_list->SPIDER_db_str));
-  DBUG_PRINT("info",("spider db_length=%zd", table_list->SPIDER_db_length));
+  DBUG_PRINT("info",("spider db=%s", SPIDER_TABLE_LIST_db_str(table_list)));
+  DBUG_PRINT("info",("spider db_length=%zd", SPIDER_TABLE_LIST_db_length(table_list)));
   DBUG_PRINT("info",("spider table_name=%s",
-    table_list->SPIDER_table_name_str));
+    SPIDER_TABLE_LIST_table_name_str(table_list)));
   DBUG_PRINT("info",("spider table_name_length=%zd",
-    table_list->SPIDER_table_name_length));
+    SPIDER_TABLE_LIST_table_name_length(table_list)));
   reprepare_observer_backup = thd->m_reprepare_observer;
   thd->m_reprepare_observer = NULL;
   copy_tables->trx->trx_start = TRUE;
@@ -995,8 +997,8 @@ long long spider_copy_tables_body(
 #else
   table_list->mdl_request.init(
     MDL_key::TABLE,
-    table_list->SPIDER_db_str,
-    table_list->SPIDER_table_name_str,
+    SPIDER_TABLE_LIST_db_str(table_list),
+    SPIDER_TABLE_LIST_table_name_str(table_list),
     MDL_SHARED_READ,
     MDL_TRANSACTION
   );
@@ -1008,8 +1010,9 @@ long long spider_copy_tables_body(
     copy_tables->trx->updated_in_this_trx = FALSE;
     DBUG_PRINT("info",("spider trx->updated_in_this_trx=FALSE"));
     my_printf_error(ER_SPIDER_UDF_CANT_OPEN_TABLE_NUM,
-      ER_SPIDER_UDF_CANT_OPEN_TABLE_STR, MYF(0), table_list->db,
-      table_list->table_name);
+      ER_SPIDER_UDF_CANT_OPEN_TABLE_STR, MYF(0),
+      SPIDER_TABLE_LIST_db_str(table_list),
+      SPIDER_TABLE_LIST_table_name_str(table_list));
     goto error;
   }
   thd->m_reprepare_observer = reprepare_observer_backup;
@@ -1023,7 +1026,8 @@ long long spider_copy_tables_body(
   {
     my_printf_error(ER_SPIDER_UDF_COPY_TABLE_NEED_PK_NUM,
       ER_SPIDER_UDF_COPY_TABLE_NEED_PK_STR, MYF(0),
-      table_list->db, table_list->table_name);
+      SPIDER_TABLE_LIST_db_str(table_list),
+      SPIDER_TABLE_LIST_table_name_str(table_list));
     goto error;
   }
   key_info = &table->key_info[table_share->primary_key];
