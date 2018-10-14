@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software); you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -105,9 +105,6 @@ int spider_param_selupd_lock_mode(
   int selupd_lock_mode
 );
 bool spider_param_sync_autocommit(
-  THD *thd
-);
-bool spider_param_sync_time_zone(
   THD *thd
 );
 bool spider_param_use_default_database(

@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -1838,7 +1838,6 @@ int spider_internal_start_trx(
   SPIDER_TRX *trx = spider->trx;
   THD *thd = trx->thd;
   bool sync_autocommit = spider_param_sync_autocommit(thd);
-  bool sync_time_zone = spider_param_sync_time_zone(thd);
   double ping_interval_at_trx_start =
     spider_param_ping_interval_at_trx_start(thd);
   bool xa_lock = FALSE;
@@ -1865,9 +1864,6 @@ int spider_internal_start_trx(
   if (
     (error_num = spider_check_and_set_sql_log_off(thd, conn,
       &spider->need_mons[link_idx])) ||
-    (sync_time_zone &&
-      (error_num = spider_check_and_set_time_zone(thd, conn,
-        &spider->need_mons[link_idx]))) ||
     (sync_autocommit &&
       (error_num = spider_check_and_set_autocommit(thd, conn,
         &spider->need_mons[link_idx])))

@@ -27,6 +27,7 @@
 #include "sql_partition.h"
 #include "sql_base.h"
 #include "sql_servers.h"
+#include "tztime.h"
 #endif
 #include "spd_err.h"
 #include "spd_param.h"
@@ -64,6 +65,9 @@ extern pthread_mutex_t spider_conn_mutex;
 extern pthread_mutex_t spider_conn_id_mutex;
 extern pthread_mutex_t spider_ipport_conn_mutex;
 extern ulonglong spider_conn_id;
+
+/* UTC time zone for timestamp columns */
+extern Time_zone *UTC;
 
 uint spider_udf_calc_hash(
   char *key,
@@ -394,6 +398,13 @@ SPIDER_CONN *spider_udf_direct_sql_create_conn(
   char *tmp_ssl_cipher, *tmp_ssl_key, *tmp_default_file, *tmp_default_group;
   int *need_mon;
   DBUG_ENTER("spider_udf_direct_sql_create_conn");
+
+  if (unlikely(!UTC))
+  {
+    /* UTC time zone for timestamp columns */
+    String tz_00_name(STRING_WITH_LEN("+00:00"), &my_charset_bin);
+    UTC = my_tz_find(current_thd, &tz_00_name);
+  }
 
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   if (direct_sql->access_mode == 0)

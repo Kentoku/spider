@@ -152,6 +152,9 @@ static const int spider_db_table_lock_len[] =
   sizeof(" in exclusive mode") - 1
 };
 
+/* UTC time zone for timestamp columns */
+extern Time_zone *UTC;
+
 int spider_db_oracle_get_error(
   sword res,
   dvoid *hndlp,
@@ -2534,8 +2537,11 @@ int spider_db_oracle_util::append_column_value(
   spider_string tmp_str(buf, MAX_FIELD_WIDTH, &my_charset_bin);
   String *ptr;
   uint length;
+  Time_zone *saved_time_zone = thd->variables.time_zone;
   DBUG_ENTER("spider_db_oracle_util::append_column_value");
   tmp_str.init_calc_mem(181);
+
+  thd->variables.time_zone = UTC;
 
   if (new_ptr)
   {
@@ -2630,6 +2636,9 @@ int spider_db_oracle_util::append_column_value(
     ptr = field->val_str(tmp_str.get_str());
     tmp_str.mem_calc();
   }
+
+  thd->variables.time_zone = saved_time_zone;
+
   DBUG_PRINT("info", ("spider field->type() is %d", field->type()));
   DBUG_PRINT("info", ("spider ptr->length() is %d", ptr->length()));
 /*
@@ -2914,6 +2923,7 @@ int spider_db_oracle_util::open_item_func(
   uint dbton_id = spider_dbton_oracle.dbton_id;
   int error_num;
   Item *item, **item_list = item_func->arguments();
+  Field *field;
   uint roop_count, item_count = item_func->argument_count(), start_item = 0;
   const char *func_name = SPIDER_SQL_NULL_CHAR_STR,
     *separete_str = SPIDER_SQL_NULL_CHAR_STR,
@@ -2985,7 +2995,7 @@ int spider_db_oracle_util::open_item_func(
         ) {
           if (str)
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-          DBUG_RETURN(spider_db_open_item_int(item_func, spider, str,
+          DBUG_RETURN(spider_db_open_item_int(item_func, NULL, spider, str,
             alias, alias_length, dbton_id, use_fields, fields));
         } else if (
           !strncasecmp("case", func_name, func_name_length)
@@ -3001,7 +3011,7 @@ int spider_db_oracle_util::open_item_func(
           if (item_func_case->first_expr_num != -1)
           {
             if ((error_num = spider_db_print_item_type(
-              item_list[item_func_case->first_expr_num], spider, str,
+              item_list[item_func_case->first_expr_num], NULL, spider, str,
               alias, alias_length, dbton_id, use_fields, fields)))
               DBUG_RETURN(error_num);
           }
@@ -3015,7 +3025,7 @@ int spider_db_oracle_util::open_item_func(
               str->q_append(SPIDER_SQL_WHEN_STR, SPIDER_SQL_WHEN_LEN);
             }
             if ((error_num = spider_db_print_item_type(
-              item_list[roop_count], spider, str,
+              item_list[roop_count], NULL, spider, str,
               alias, alias_length, dbton_id, use_fields, fields)))
               DBUG_RETURN(error_num);
             if (str)
@@ -3025,7 +3035,7 @@ int spider_db_oracle_util::open_item_func(
               str->q_append(SPIDER_SQL_THEN_STR, SPIDER_SQL_THEN_LEN);
             }
             if ((error_num = spider_db_print_item_type(
-              item_list[roop_count + 1], spider, str,
+              item_list[roop_count + 1], NULL, spider, str,
               alias, alias_length, dbton_id, use_fields, fields)))
               DBUG_RETURN(error_num);
           }
@@ -3038,7 +3048,7 @@ int spider_db_oracle_util::open_item_func(
               str->q_append(SPIDER_SQL_ELSE_STR, SPIDER_SQL_ELSE_LEN);
             }
             if ((error_num = spider_db_print_item_type(
-              item_list[item_func_case->else_expr_num], spider, str,
+              item_list[item_func_case->else_expr_num], NULL,spider, str,
               alias, alias_length, dbton_id, use_fields, fields)))
               DBUG_RETURN(error_num);
           }
@@ -3075,7 +3085,7 @@ int spider_db_oracle_util::open_item_func(
         ) {
           if (str)
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-          DBUG_RETURN(spider_db_open_item_string(item_func, spider, str,
+          DBUG_RETURN(spider_db_open_item_string(item_func, NULL, spider, str,
             alias, alias_length, dbton_id, use_fields, fields));
         } else if (
           !strncasecmp("convert", func_name, func_name_length)
@@ -3100,7 +3110,7 @@ int spider_db_oracle_util::open_item_func(
       ) {
         if (str)
           str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-        DBUG_RETURN(spider_db_open_item_string(item_func, spider, str,
+        DBUG_RETURN(spider_db_open_item_string(item_func, NULL, spider, str,
           alias, alias_length, dbton_id, use_fields, fields));
       } else if (func_name_length == 9 &&
         !strncasecmp("isnottrue", func_name, func_name_length)
@@ -3216,7 +3226,7 @@ int spider_db_oracle_util::open_item_func(
         {
           if (str)
             str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-          DBUG_RETURN(spider_db_open_item_string(item_func, spider, str,
+          DBUG_RETURN(spider_db_open_item_string(item_func, NULL, spider, str,
             alias, alias_length, dbton_id, use_fields, fields));
         } else if (!strncasecmp("timestampdiff", func_name, func_name_length))
         {
@@ -3279,7 +3289,7 @@ int spider_db_oracle_util::open_item_func(
             str->q_append(interval_str, interval_len);
             str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
           }
-          if ((error_num = spider_db_print_item_type(item_list[0], spider,
+          if ((error_num = spider_db_print_item_type(item_list[0], NULL, spider,
             str, alias, alias_length, dbton_id, use_fields, fields)))
             DBUG_RETURN(error_num);
           if (str)
@@ -3288,7 +3298,7 @@ int spider_db_oracle_util::open_item_func(
               DBUG_RETURN(HA_ERR_OUT_OF_MEM);
             str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
           }
-          if ((error_num = spider_db_print_item_type(item_list[1], spider,
+          if ((error_num = spider_db_print_item_type(item_list[1], NULL, spider,
             str, alias, alias_length, dbton_id, use_fields, fields)))
             DBUG_RETURN(error_num);
           if (str)
@@ -3554,8 +3564,9 @@ int spider_db_oracle_util::open_item_func(
                 str->q_append(SPIDER_SQL_OPEN_PAREN_STR,
                   SPIDER_SQL_OPEN_PAREN_LEN);
               }
-              if ((error_num = spider_db_print_item_type(item_list[0], spider,
-                str, alias, alias_length, dbton_id, use_fields, fields)))
+              if ((error_num = spider_db_print_item_type(item_list[0], NULL,
+                spider, str, alias, alias_length, dbton_id, use_fields,
+                fields)))
                 DBUG_RETURN(error_num);
               if (str)
               {
@@ -3572,8 +3583,9 @@ int spider_db_oracle_util::open_item_func(
                   str->q_append(SPIDER_SQL_COMMA_STR, SPIDER_SQL_COMMA_LEN);
                 }
               }
-              if ((error_num = spider_db_print_item_type(item_list[1], spider,
-                str, alias, alias_length, dbton_id, use_fields, fields)))
+              if ((error_num = spider_db_print_item_type(item_list[1], NULL,
+                spider, str, alias, alias_length, dbton_id, use_fields,
+                fields)))
                 DBUG_RETURN(error_num);
               if (str)
               {
@@ -3618,8 +3630,9 @@ int spider_db_oracle_util::open_item_func(
             case INTERVAL_MINUTE:
             case INTERVAL_SECOND:
             case INTERVAL_MICROSECOND:
-              if ((error_num = spider_db_print_item_type(item_list[0], spider,
-                str, alias, alias_length, dbton_id, use_fields, fields)))
+              if ((error_num = spider_db_print_item_type(item_list[0], NULL,
+                spider, str, alias, alias_length, dbton_id, use_fields,
+                fields)))
                 DBUG_RETURN(error_num);
               if (str)
               {
@@ -3634,8 +3647,9 @@ int spider_db_oracle_util::open_item_func(
                   str->q_append(SPIDER_SQL_PLUS_STR, SPIDER_SQL_PLUS_LEN);
                 }
               }
-              if ((error_num = spider_db_print_item_type(item_list[1], spider,
-                str, alias, alias_length, dbton_id, use_fields, fields)))
+              if ((error_num = spider_db_print_item_type(item_list[1], NULL,
+                spider, str, alias, alias_length, dbton_id, use_fields,
+                fields)))
                 DBUG_RETURN(error_num);
               if (str)
               {
@@ -3722,7 +3736,7 @@ int spider_db_oracle_util::open_item_func(
     case Item_func::NOW_FUNC:
       if (str)
         str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
-      DBUG_RETURN(spider_db_open_item_string(item_func, spider, str,
+      DBUG_RETURN(spider_db_open_item_string(item_func, NULL, spider, str,
         alias, alias_length, dbton_id, use_fields, fields));
     case Item_func::CHAR_TYPECAST_FUNC:
       DBUG_PRINT("info",("spider CHAR_TYPECAST_FUNC"));
@@ -3914,10 +3928,10 @@ int spider_db_oracle_util::open_item_func(
       if (str)
         str->length(str->length() - SPIDER_SQL_OPEN_PAREN_LEN);
       if (item_func->result_type() == STRING_RESULT)
-        DBUG_RETURN(spider_db_open_item_string(item_func, spider, str,
+        DBUG_RETURN(spider_db_open_item_string(item_func, NULL, spider, str,
           alias, alias_length, dbton_id, use_fields, fields));
       else
-        DBUG_RETURN(spider_db_open_item_int(item_func, spider, str,
+        DBUG_RETURN(spider_db_open_item_int(item_func, NULL, spider, str,
           alias, alias_length, dbton_id, use_fields, fields));
     case Item_func::FT_FUNC:
       if (spider_db_check_ft_idx(item_func, spider) == MAX_KEY)
@@ -4019,11 +4033,16 @@ int spider_db_oracle_util::open_item_func(
   DBUG_PRINT("info",("spider last_str_length = %d", last_str_length));
   if (item_count)
   {
+    /* Find the field in the list of items of the expression tree */
+    field = spider_db_find_field_in_item_list(item_list,
+                                              item_count, start_item,
+                                              str,
+                                              func_name, func_name_length);
     item_count--;
     for (roop_count = start_item; roop_count < item_count; roop_count++)
     {
       item = item_list[roop_count];
-      if ((error_num = spider_db_print_item_type(item, spider, str,
+      if ((error_num = spider_db_print_item_type(item, field, spider, str,
         alias, alias_length, dbton_id, use_fields, fields)))
         DBUG_RETURN(error_num);
       if (roop_count == 1)
@@ -4041,7 +4060,7 @@ int spider_db_oracle_util::open_item_func(
       }
     }
     item = item_list[roop_count];
-    if ((error_num = spider_db_print_item_type(item, spider, str,
+    if ((error_num = spider_db_print_item_type(item, field, spider, str,
       alias, alias_length, dbton_id, use_fields, fields)))
       DBUG_RETURN(error_num);
   }
@@ -4055,7 +4074,7 @@ int spider_db_oracle_util::open_item_func(
       str->q_append(SPIDER_SQL_AGAINST_STR, SPIDER_SQL_AGAINST_LEN);
     }
     item = item_list[0];
-    if ((error_num = spider_db_print_item_type(item, spider, str,
+    if ((error_num = spider_db_print_item_type(item, NULL, spider, str,
       alias, alias_length, dbton_id, use_fields, fields)))
       DBUG_RETURN(error_num);
     if (str)
@@ -4143,7 +4162,7 @@ int spider_db_oracle_util::open_item_sum_func(
           for (roop_count = 0; roop_count < item_count; roop_count++)
           {
             item = args[roop_count];
-            if ((error_num = spider_db_print_item_type(item, spider, str,
+            if ((error_num = spider_db_print_item_type(item, NULL, spider, str,
               alias, alias_length, dbton_id, use_fields, fields)))
               DBUG_RETURN(error_num);
             if (str)
@@ -4154,7 +4173,7 @@ int spider_db_oracle_util::open_item_sum_func(
             }
           }
           item = args[roop_count];
-          if ((error_num = spider_db_print_item_type(item, spider, str,
+          if ((error_num = spider_db_print_item_type(item, NULL, spider, str,
             alias, alias_length, dbton_id, use_fields, fields)))
             DBUG_RETURN(error_num);
         }
@@ -6430,7 +6449,7 @@ int spider_oracle_handler::append_update_columns(
   {
     value = vi++;
     if ((error_num = spider_db_print_item_type(
-      (Item *) field, spider, str, alias, alias_length,
+      (Item *) field, NULL, spider, str, alias, alias_length,
       spider_dbton_oracle.dbton_id, FALSE, NULL)))
     {
       if (
@@ -6448,8 +6467,8 @@ int spider_oracle_handler::append_update_columns(
       str->q_append(SPIDER_SQL_EQUAL_STR, SPIDER_SQL_EQUAL_LEN);
     }
     if ((error_num = spider_db_print_item_type(
-      (Item *) value, spider, str, alias, alias_length,
-      spider_dbton_oracle.dbton_id, FALSE, NULL)))
+      (Item *) value, ((Item_field *) field)->field, spider, str,
+      alias, alias_length, spider_dbton_oracle.dbton_id, FALSE, NULL)))
       DBUG_RETURN(error_num);
     if (str)
     {
@@ -6850,7 +6869,7 @@ int spider_oracle_handler::check_item_type(
   int error_num;
   DBUG_ENTER("spider_oracle_handler::check_item_type");
   DBUG_PRINT("info",("spider this=%p", this));
-  error_num = spider_db_print_item_type(item, spider, NULL, NULL, 0,
+  error_num = spider_db_print_item_type(item, NULL, spider, NULL, NULL, 0,
     spider_dbton_oracle.dbton_id, FALSE, NULL);
   DBUG_RETURN(error_num);
 }
@@ -7631,7 +7650,7 @@ int spider_oracle_handler::append_condition(
       }
     }
     if ((error_num = spider_db_print_item_type(
-      (Item *) tmp_cond->cond, spider, str, alias, alias_length,
+      (Item *) tmp_cond->cond, NULL, spider, str, alias, alias_length,
       spider_dbton_oracle.dbton_id, FALSE, NULL)))
     {
       if (str && error_num == ER_SPIDER_COND_SKIP_NUM)
@@ -7953,8 +7972,8 @@ int spider_oracle_handler::append_group_by(
     str->q_append(SPIDER_SQL_GROUP_STR, SPIDER_SQL_GROUP_LEN);
     for (; group; group = group->next)
     {
-      if ((error_num = spider_db_print_item_type((*group->item), spider, str,
-        alias, alias_length, spider_dbton_oracle.dbton_id, FALSE, NULL)))
+      if ((error_num = spider_db_print_item_type((*group->item), NULL, spider,
+        str, alias, alias_length, spider_dbton_oracle.dbton_id, FALSE, NULL)))
       {
         DBUG_RETURN(error_num);
       }
@@ -8292,8 +8311,8 @@ int spider_oracle_handler::append_key_order_for_direct_order_limit_with_alias(
         order = order->next)
       {
         if ((error_num =
-          spider_db_print_item_type((*order->item), spider, &sql_part, alias,
-            alias_length, spider_dbton_oracle.dbton_id, FALSE, NULL)))
+          spider_db_print_item_type((*order->item), NULL, spider, &sql_part,
+            alias, alias_length, spider_dbton_oracle.dbton_id, FALSE, NULL)))
         {
           DBUG_PRINT("info",("spider error=%d", error_num));
           DBUG_RETURN(error_num);
@@ -8383,7 +8402,7 @@ int spider_oracle_handler::append_key_order_for_direct_order_limit_with_alias(
       order = order->next)
     {
       if ((error_num =
-        spider_db_print_item_type((*order->item), spider, str, alias,
+        spider_db_print_item_type((*order->item), NULL, spider, str, alias,
           alias_length, spider_dbton_oracle.dbton_id, FALSE, NULL)))
       {
         DBUG_PRINT("info",("spider error=%d", error_num));
@@ -12575,8 +12594,8 @@ int spider_oracle_handler::append_item_type_part(
     default:
       DBUG_RETURN(0);
   }
-  error_num = spider_db_print_item_type(item, spider, str, alias, alias_length,
-    spider_dbton_oracle.dbton_id, use_fields, fields);
+  error_num = spider_db_print_item_type(item, NULL, spider, str,
+    alias, alias_length, spider_dbton_oracle.dbton_id, use_fields, fields);
   DBUG_RETURN(error_num);
 }
 
@@ -12622,7 +12641,7 @@ int spider_oracle_handler::append_list_item_select(
   DBUG_PRINT("info",("spider this=%p", this));
   while ((item = it++))
   {
-    if ((error_num = spider_db_print_item_type(item, spider, str,
+    if ((error_num = spider_db_print_item_type(item, NULL, spider, str,
       alias, alias_length, dbton_id, use_fields, fields)))
     {
       DBUG_RETURN(error_num);
@@ -12699,8 +12718,8 @@ int spider_oracle_handler::append_group_by(
     str->q_append(SPIDER_SQL_GROUP_STR, SPIDER_SQL_GROUP_LEN);
     for (; order; order = order->next)
     {
-      if ((error_num = spider_db_print_item_type((*order->item), spider, str,
-        alias, alias_length, dbton_id, use_fields, fields)))
+      if ((error_num = spider_db_print_item_type((*order->item), NULL, spider,
+        str, alias, alias_length, dbton_id, use_fields, fields)))
       {
         DBUG_RETURN(error_num);
       }
@@ -12757,8 +12776,8 @@ int spider_oracle_handler::append_order_by(
     str->q_append(SPIDER_SQL_ORDER_STR, SPIDER_SQL_ORDER_LEN);
     for (; order; order = order->next)
     {
-      if ((error_num = spider_db_print_item_type((*order->item), spider, str,
-        alias, alias_length, dbton_id, use_fields, fields)))
+      if ((error_num = spider_db_print_item_type((*order->item), NULL, spider,
+        str, alias, alias_length, dbton_id, use_fields, fields)))
       {
         DBUG_RETURN(error_num);
       }
