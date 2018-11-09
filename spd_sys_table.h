@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2016 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -169,6 +169,11 @@ int spider_sys_index_next_same(
 );
 
 int spider_sys_index_first(
+  TABLE *table,
+  const int idx
+);
+
+int spider_sys_index_last(
   TABLE *table,
   const int idx
 );

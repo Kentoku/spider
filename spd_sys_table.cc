@@ -609,6 +609,28 @@ int spider_sys_index_first(
   DBUG_RETURN(0);
 }
 
+int spider_sys_index_last(
+  TABLE *table,
+  const int idx
+) {
+  int error_num;
+  DBUG_ENTER("spider_sys_index_last");
+  if ((error_num = spider_sys_index_init(table, idx, FALSE)))
+    DBUG_RETURN(error_num);
+
+  if (
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 50200
+    (error_num = table->file->ha_index_last(table->record[0]))
+#else
+    (error_num = table->file->index_last(table->record[0]))
+#endif
+  ) {
+    spider_sys_index_end(table);
+    DBUG_RETURN(error_num);
+  }
+  DBUG_RETURN(0);
+}
+
 int spider_sys_index_next(
   TABLE *table
 ) {
