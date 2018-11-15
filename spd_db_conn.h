@@ -872,6 +872,12 @@ int spider_db_print_item_type(
   spider_fields *fields
 );
 
+int spider_db_print_item_type_default(
+  Item *item,
+  ha_spider *spider,
+  spider_string *str
+);
+
 int spider_db_open_item_cond(
   Item_cond *item_cond,
   ha_spider *spider,
