@@ -2926,10 +2926,10 @@ int spider_db_oracle_util::open_item_func(
   Field *field;
   uint roop_count, item_count = item_func->argument_count(), start_item = 0;
   const char *func_name = SPIDER_SQL_NULL_CHAR_STR,
-    *separete_str = SPIDER_SQL_NULL_CHAR_STR,
+    *separator_str = SPIDER_SQL_NULL_CHAR_STR,
     *last_str = SPIDER_SQL_NULL_CHAR_STR;
   int func_name_length = SPIDER_SQL_NULL_CHAR_LEN,
-    separete_str_length = SPIDER_SQL_NULL_CHAR_LEN,
+    separator_str_length = SPIDER_SQL_NULL_CHAR_LEN,
     last_str_length = SPIDER_SQL_NULL_CHAR_LEN;
   int use_pushdown_udf;
   bool merge_func = FALSE;
@@ -3048,7 +3048,7 @@ int spider_db_oracle_util::open_item_func(
               str->q_append(SPIDER_SQL_ELSE_STR, SPIDER_SQL_ELSE_LEN);
             }
             if ((error_num = spider_db_print_item_type(
-              item_list[item_func_case->else_expr_num], NULL,spider, str,
+              item_list[item_func_case->else_expr_num], NULL, spider, str,
               alias, alias_length, dbton_id, use_fields, fields)))
               DBUG_RETURN(error_num);
           }
@@ -3137,8 +3137,8 @@ int spider_db_oracle_util::open_item_func(
           }
           func_name = SPIDER_SQL_COMMA_STR;
           func_name_length = SPIDER_SQL_COMMA_LEN;
-          separete_str = SPIDER_SQL_COMMA_STR;
-          separete_str_length = SPIDER_SQL_COMMA_LEN;
+          separator_str = SPIDER_SQL_COMMA_STR;
+          separator_str_length = SPIDER_SQL_COMMA_LEN;
           break;
         }
       } else if (func_name_length == 12)
@@ -3728,8 +3728,8 @@ int spider_db_oracle_util::open_item_func(
       }
       func_name = SPIDER_SQL_COMMA_STR;
       func_name_length = SPIDER_SQL_COMMA_LEN;
-      separete_str = SPIDER_SQL_COMMA_STR;
-      separete_str_length = SPIDER_SQL_COMMA_LEN;
+      separator_str = SPIDER_SQL_COMMA_STR;
+      separator_str_length = SPIDER_SQL_COMMA_LEN;
       last_str = SPIDER_SQL_CLOSE_PAREN_STR;
       last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       break;
@@ -3862,15 +3862,15 @@ int spider_db_oracle_util::open_item_func(
       {
         func_name = SPIDER_SQL_NOT_IN_STR;
         func_name_length = SPIDER_SQL_NOT_IN_LEN;
-        separete_str = SPIDER_SQL_COMMA_STR;
-        separete_str_length = SPIDER_SQL_COMMA_LEN;
+        separator_str = SPIDER_SQL_COMMA_STR;
+        separator_str_length = SPIDER_SQL_COMMA_LEN;
         last_str = SPIDER_SQL_CLOSE_PAREN_STR;
         last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       } else {
         func_name = SPIDER_SQL_IN_STR;
         func_name_length = SPIDER_SQL_IN_LEN;
-        separete_str = SPIDER_SQL_COMMA_STR;
-        separete_str_length = SPIDER_SQL_COMMA_LEN;
+        separator_str = SPIDER_SQL_COMMA_STR;
+        separator_str_length = SPIDER_SQL_COMMA_LEN;
         last_str = SPIDER_SQL_CLOSE_PAREN_STR;
         last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       }
@@ -3880,13 +3880,13 @@ int spider_db_oracle_util::open_item_func(
       {
         func_name = SPIDER_SQL_NOT_BETWEEN_STR;
         func_name_length = SPIDER_SQL_NOT_BETWEEN_LEN;
-        separete_str = SPIDER_SQL_AND_STR;
-        separete_str_length = SPIDER_SQL_AND_LEN;
+        separator_str = SPIDER_SQL_AND_STR;
+        separator_str_length = SPIDER_SQL_AND_LEN;
       } else {
         func_name = (char*) item_func->func_name();
         func_name_length = strlen(func_name);
-        separete_str = SPIDER_SQL_AND_STR;
-        separete_str_length = SPIDER_SQL_AND_LEN;
+        separator_str = SPIDER_SQL_AND_STR;
+        separator_str_length = SPIDER_SQL_AND_LEN;
       }
       break;
     case Item_func::UDF_FUNC:
@@ -3907,8 +3907,8 @@ int spider_db_oracle_util::open_item_func(
       }
       func_name = SPIDER_SQL_COMMA_STR;
       func_name_length = SPIDER_SQL_COMMA_LEN;
-      separete_str = SPIDER_SQL_COMMA_STR;
-      separete_str_length = SPIDER_SQL_COMMA_LEN;
+      separator_str = SPIDER_SQL_COMMA_STR;
+      separator_str_length = SPIDER_SQL_COMMA_LEN;
       last_str = SPIDER_SQL_CLOSE_PAREN_STR;
       last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       break;
@@ -3943,8 +3943,8 @@ int spider_db_oracle_util::open_item_func(
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         str->q_append(SPIDER_SQL_MATCH_STR, SPIDER_SQL_MATCH_LEN);
       }
-      separete_str = SPIDER_SQL_COMMA_STR;
-      separete_str_length = SPIDER_SQL_COMMA_LEN;
+      separator_str = SPIDER_SQL_COMMA_STR;
+      separator_str_length = SPIDER_SQL_COMMA_LEN;
       last_str = SPIDER_SQL_CLOSE_PAREN_STR;
       last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       break;
@@ -3961,8 +3961,8 @@ int spider_db_oracle_util::open_item_func(
       }
       func_name = SPIDER_SQL_COMMA_STR;
       func_name_length = SPIDER_SQL_COMMA_LEN;
-      separete_str = SPIDER_SQL_COMMA_STR;
-      separete_str_length = SPIDER_SQL_COMMA_LEN;
+      separator_str = SPIDER_SQL_COMMA_STR;
+      separator_str_length = SPIDER_SQL_COMMA_LEN;
       last_str = SPIDER_SQL_CLOSE_PAREN_STR;
       last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       break;
@@ -3993,8 +3993,8 @@ int spider_db_oracle_util::open_item_func(
       }
       func_name = SPIDER_SQL_COMMA_STR;
       func_name_length = SPIDER_SQL_COMMA_LEN;
-      separete_str = SPIDER_SQL_COMMA_STR;
-      separete_str_length = SPIDER_SQL_COMMA_LEN;
+      separator_str = SPIDER_SQL_COMMA_STR;
+      separator_str_length = SPIDER_SQL_COMMA_LEN;
       last_str = SPIDER_SQL_CLOSE_PAREN_STR;
       last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       break;
@@ -4027,8 +4027,8 @@ int spider_db_oracle_util::open_item_func(
   }
   DBUG_PRINT("info",("spider func_name = %s", func_name));
   DBUG_PRINT("info",("spider func_name_length = %d", func_name_length));
-  DBUG_PRINT("info",("spider separete_str = %s", separete_str));
-  DBUG_PRINT("info",("spider separete_str_length = %d", separete_str_length));
+  DBUG_PRINT("info",("spider separator_str = %s", separator_str));
+  DBUG_PRINT("info",("spider separator_str_length = %d", separator_str_length));
   DBUG_PRINT("info",("spider last_str = %s", last_str));
   DBUG_PRINT("info",("spider last_str_length = %d", last_str_length));
   if (item_count)
@@ -4047,8 +4047,8 @@ int spider_db_oracle_util::open_item_func(
         DBUG_RETURN(error_num);
       if (roop_count == 1)
       {
-        func_name = separete_str;
-        func_name_length = separete_str_length;
+        func_name = separator_str;
+        func_name_length = separator_str_length;
       }
       if (str)
       {
@@ -7472,17 +7472,64 @@ int spider_oracle_handler::append_update_where(
 ) {
   uint field_name_length;
   Field **field;
+  THD *thd = spider->trx->thd;
   SPIDER_SHARE *share = spider->share;
+  bool no_pk = (table->s->primary_key == MAX_KEY);
   DBUG_ENTER("spider_oracle_handler::append_update_where");
+  uint str_len_bakup = str->length();
   if (str->reserve(SPIDER_SQL_WHERE_LEN))
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   str->q_append(SPIDER_SQL_WHERE_STR, SPIDER_SQL_WHERE_LEN);
-  for (field = table->field; *field; field++)
-  {
-    if (
-      table->s->primary_key == MAX_KEY ||
-      bitmap_is_set(table->read_set, (*field)->field_index)
+  if (
+    no_pk ||
+    spider_param_use_cond_other_than_pk_for_update(thd)
+  ) {
+    for (field = table->field; *field; field++)
+    {
+      if (
+        no_pk ||
+        bitmap_is_set(table->read_set, (*field)->field_index)
+      ) {
+        field_name_length =
+          oracle_share->column_name_str[(*field)->field_index].length();
+        if ((*field)->is_null(ptr_diff))
+        {
+          if (str->reserve(field_name_length +
+            /* SPIDER_SQL_NAME_QUOTE_LEN */ 2 +
+            SPIDER_SQL_IS_NULL_LEN + SPIDER_SQL_AND_LEN))
+            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+          oracle_share->append_column_name(str, (*field)->field_index);
+          str->q_append(SPIDER_SQL_IS_NULL_STR, SPIDER_SQL_IS_NULL_LEN);
+        } else {
+          if (str->reserve(field_name_length +
+            /* SPIDER_SQL_NAME_QUOTE_LEN */ 2 +
+            SPIDER_SQL_EQUAL_LEN))
+            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+          oracle_share->append_column_name(str, (*field)->field_index);
+          str->q_append(SPIDER_SQL_EQUAL_STR, SPIDER_SQL_EQUAL_LEN);
+          (*field)->move_field_offset(ptr_diff);
+          if (
+            spider_db_oracle_utility.
+              append_column_value(spider, str, *field, NULL,
+                share->access_charset) ||
+            str->reserve(SPIDER_SQL_AND_LEN)
+          )
+            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+          (*field)->move_field_offset(-ptr_diff);
+        }
+        str->q_append(SPIDER_SQL_AND_STR, SPIDER_SQL_AND_LEN);
+      }
+    }
+  } else {
+    KEY *key_info = &table->key_info[table->s->primary_key];
+    KEY_PART_INFO *key_part;
+    uint part_num;
+    for (
+      key_part = key_info->key_part, part_num = 0;
+      part_num < spider_user_defined_key_parts(key_info);
+      key_part++, part_num++
     ) {
+      field = &key_part->field;
       field_name_length =
         oracle_share->column_name_str[(*field)->field_index].length();
       if ((*field)->is_null(ptr_diff))
@@ -7513,9 +7560,13 @@ int spider_oracle_handler::append_update_where(
       str->q_append(SPIDER_SQL_AND_STR, SPIDER_SQL_AND_LEN);
     }
   }
-/*
-  str->length(str->length() - SPIDER_SQL_AND_LEN);
-*/
+  if (str->length() == str_len_bakup + SPIDER_SQL_WHERE_LEN)
+  {
+    /* no condition */
+    str->length(str_len_bakup);
+  } else {
+    str->length(str->length() - SPIDER_SQL_AND_LEN);
+  }
   if (str->reserve(SPIDER_SQL_LIMIT1_LEN))
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   str->q_append(SPIDER_SQL_LIMIT1_STR, SPIDER_SQL_LIMIT1_LEN);

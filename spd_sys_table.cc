@@ -1424,8 +1424,9 @@ int spider_insert_or_update_table_sts(
       DBUG_RETURN(error_num);
     }
   } else {
-    if ((error_num = spider_update_sys_table_row(table)))
+    if ((error_num = spider_update_sys_table_row(table, FALSE)))
     {
+      table->file->print_error(error_num, MYF(0));
       DBUG_RETURN(error_num);
     }
   }
@@ -1462,8 +1463,9 @@ int spider_insert_or_update_table_crd(
         DBUG_RETURN(error_num);
       }
     } else {
-      if ((error_num = spider_update_sys_table_row(table)))
+      if ((error_num = spider_update_sys_table_row(table, FALSE)))
       {
+        table->file->print_error(error_num, MYF(0));
         DBUG_RETURN(error_num);
       }
     }
@@ -1887,10 +1889,9 @@ int spider_delete_table_crd(
     DBUG_RETURN(0);
   } else {
     do {
-      if ((error_num = spider_delete_sys_table_row(table, 0, FALSE)))
+      if ((error_num = spider_delete_sys_table_row(table)))
       {
         spider_sys_index_end(table);
-        table->file->print_error(error_num, MYF(0));
         DBUG_RETURN(error_num);
       }
       error_num = spider_sys_index_next_same(table, table_key);

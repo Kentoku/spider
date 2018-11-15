@@ -87,7 +87,7 @@ int spider_udf_set_copy_tables_param_default(
     if (!copy_tables->param_name) \
     { \
       if ((copy_tables->param_name = spider_get_string_between_quote( \
-        start_ptr, TRUE))) \
+        start_ptr, TRUE, &param_string_parse))) \
         copy_tables->SPIDER_PARAM_STR_LEN(param_name) = \
           strlen(copy_tables->param_name); \
       else { \
@@ -125,7 +125,6 @@ int spider_udf_set_copy_tables_param_default(
           copy_tables->param_name[hint_num] = max_val; \
       } else { \
         error_num = param_string_parse.print_param_error(); \
-          MYF(0), tmp_ptr); \
         goto error; \
       } \
       DBUG_PRINT("info",("spider " title_name "[%d]=%d", hint_num, \

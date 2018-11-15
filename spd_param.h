@@ -397,6 +397,9 @@ int spider_param_bka_table_name_type(
   THD *thd,
   int bka_table_name_type
 );
+int spider_param_use_cond_other_than_pk_for_update(
+  THD *thd
+);
 int spider_param_store_last_sts(
   int store_last_sts
 );

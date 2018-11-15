@@ -3631,10 +3631,10 @@ int spider_db_mysql_util::open_item_func(
   Field *field;
   uint roop_count, item_count = item_func->argument_count(), start_item = 0;
   const char *func_name = SPIDER_SQL_NULL_CHAR_STR,
-    *separete_str = SPIDER_SQL_NULL_CHAR_STR,
+    *separator_str = SPIDER_SQL_NULL_CHAR_STR,
     *last_str = SPIDER_SQL_NULL_CHAR_STR;
   int func_name_length = SPIDER_SQL_NULL_CHAR_LEN,
-    separete_str_length = SPIDER_SQL_NULL_CHAR_LEN,
+    separator_str_length = SPIDER_SQL_NULL_CHAR_LEN,
     last_str_length = SPIDER_SQL_NULL_CHAR_LEN;
   int use_pushdown_udf;
   bool merge_func = FALSE;
@@ -3842,8 +3842,8 @@ int spider_db_mysql_util::open_item_func(
           }
           func_name = SPIDER_SQL_COMMA_STR;
           func_name_length = SPIDER_SQL_COMMA_LEN;
-          separete_str = SPIDER_SQL_COMMA_STR;
-          separete_str_length = SPIDER_SQL_COMMA_LEN;
+          separator_str = SPIDER_SQL_COMMA_STR;
+          separator_str_length = SPIDER_SQL_COMMA_LEN;
           break;
         }
       } else if (func_name_length == 12)
@@ -4297,8 +4297,8 @@ int spider_db_mysql_util::open_item_func(
       }
       func_name = SPIDER_SQL_COMMA_STR;
       func_name_length = SPIDER_SQL_COMMA_LEN;
-      separete_str = SPIDER_SQL_COMMA_STR;
-      separete_str_length = SPIDER_SQL_COMMA_LEN;
+      separator_str = SPIDER_SQL_COMMA_STR;
+      separator_str_length = SPIDER_SQL_COMMA_LEN;
       last_str = SPIDER_SQL_CLOSE_PAREN_STR;
       last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       break;
@@ -4431,15 +4431,15 @@ int spider_db_mysql_util::open_item_func(
       {
         func_name = SPIDER_SQL_NOT_IN_STR;
         func_name_length = SPIDER_SQL_NOT_IN_LEN;
-        separete_str = SPIDER_SQL_COMMA_STR;
-        separete_str_length = SPIDER_SQL_COMMA_LEN;
+        separator_str = SPIDER_SQL_COMMA_STR;
+        separator_str_length = SPIDER_SQL_COMMA_LEN;
         last_str = SPIDER_SQL_CLOSE_PAREN_STR;
         last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       } else {
         func_name = SPIDER_SQL_IN_STR;
         func_name_length = SPIDER_SQL_IN_LEN;
-        separete_str = SPIDER_SQL_COMMA_STR;
-        separete_str_length = SPIDER_SQL_COMMA_LEN;
+        separator_str = SPIDER_SQL_COMMA_STR;
+        separator_str_length = SPIDER_SQL_COMMA_LEN;
         last_str = SPIDER_SQL_CLOSE_PAREN_STR;
         last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       }
@@ -4449,13 +4449,13 @@ int spider_db_mysql_util::open_item_func(
       {
         func_name = SPIDER_SQL_NOT_BETWEEN_STR;
         func_name_length = SPIDER_SQL_NOT_BETWEEN_LEN;
-        separete_str = SPIDER_SQL_AND_STR;
-        separete_str_length = SPIDER_SQL_AND_LEN;
+        separator_str = SPIDER_SQL_AND_STR;
+        separator_str_length = SPIDER_SQL_AND_LEN;
       } else {
         func_name = (char*) item_func->func_name();
         func_name_length = strlen(func_name);
-        separete_str = SPIDER_SQL_AND_STR;
-        separete_str_length = SPIDER_SQL_AND_LEN;
+        separator_str = SPIDER_SQL_AND_STR;
+        separator_str_length = SPIDER_SQL_AND_LEN;
       }
       break;
     case Item_func::UDF_FUNC:
@@ -4476,8 +4476,8 @@ int spider_db_mysql_util::open_item_func(
       }
       func_name = SPIDER_SQL_COMMA_STR;
       func_name_length = SPIDER_SQL_COMMA_LEN;
-      separete_str = SPIDER_SQL_COMMA_STR;
-      separete_str_length = SPIDER_SQL_COMMA_LEN;
+      separator_str = SPIDER_SQL_COMMA_STR;
+      separator_str_length = SPIDER_SQL_COMMA_LEN;
       last_str = SPIDER_SQL_CLOSE_PAREN_STR;
       last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       break;
@@ -4512,8 +4512,8 @@ int spider_db_mysql_util::open_item_func(
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         str->q_append(SPIDER_SQL_MATCH_STR, SPIDER_SQL_MATCH_LEN);
       }
-      separete_str = SPIDER_SQL_COMMA_STR;
-      separete_str_length = SPIDER_SQL_COMMA_LEN;
+      separator_str = SPIDER_SQL_COMMA_STR;
+      separator_str_length = SPIDER_SQL_COMMA_LEN;
       last_str = SPIDER_SQL_CLOSE_PAREN_STR;
       last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       break;
@@ -4530,8 +4530,8 @@ int spider_db_mysql_util::open_item_func(
       }
       func_name = SPIDER_SQL_COMMA_STR;
       func_name_length = SPIDER_SQL_COMMA_LEN;
-      separete_str = SPIDER_SQL_COMMA_STR;
-      separete_str_length = SPIDER_SQL_COMMA_LEN;
+      separator_str = SPIDER_SQL_COMMA_STR;
+      separator_str_length = SPIDER_SQL_COMMA_LEN;
       last_str = SPIDER_SQL_CLOSE_PAREN_STR;
       last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       break;
@@ -4562,8 +4562,8 @@ int spider_db_mysql_util::open_item_func(
       }
       func_name = SPIDER_SQL_COMMA_STR;
       func_name_length = SPIDER_SQL_COMMA_LEN;
-      separete_str = SPIDER_SQL_COMMA_STR;
-      separete_str_length = SPIDER_SQL_COMMA_LEN;
+      separator_str = SPIDER_SQL_COMMA_STR;
+      separator_str_length = SPIDER_SQL_COMMA_LEN;
       last_str = SPIDER_SQL_CLOSE_PAREN_STR;
       last_str_length = SPIDER_SQL_CLOSE_PAREN_LEN;
       break;
@@ -4596,8 +4596,8 @@ int spider_db_mysql_util::open_item_func(
   }
   DBUG_PRINT("info",("spider func_name = %s", func_name));
   DBUG_PRINT("info",("spider func_name_length = %d", func_name_length));
-  DBUG_PRINT("info",("spider separete_str = %s", separete_str));
-  DBUG_PRINT("info",("spider separete_str_length = %d", separete_str_length));
+  DBUG_PRINT("info",("spider separator_str = %s", separator_str));
+  DBUG_PRINT("info",("spider separator_str_length = %d", separator_str_length));
   DBUG_PRINT("info",("spider last_str = %s", last_str));
   DBUG_PRINT("info",("spider last_str_length = %d", last_str_length));
   if (item_count)
@@ -4621,8 +4621,8 @@ int spider_db_mysql_util::open_item_func(
       if (roop_count == 1)
       {
         /* Remaining operands need to be preceded by the separator */
-        func_name = separete_str;
-        func_name_length = separete_str_length;
+        func_name = separator_str;
+        func_name_length = separator_str_length;
       }
       if (str)
       {
@@ -8774,46 +8774,56 @@ int spider_mysql_handler::append_update_where(
 ) {
   uint field_name_length;
   Field **field;
+  THD *thd = spider->trx->thd;
   SPIDER_SHARE *share = spider->share;
+  bool no_pk = (table->s->primary_key == MAX_KEY);
   DBUG_ENTER("spider_mysql_handler::append_update_where");
   DBUG_PRINT("info", ("spider table->s->primary_key=%s",
     table->s->primary_key != MAX_KEY ? "TRUE" : "FALSE"));
+  uint str_len_bakup = str->length();
   if (str->reserve(SPIDER_SQL_WHERE_LEN))
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   str->q_append(SPIDER_SQL_WHERE_STR, SPIDER_SQL_WHERE_LEN);
 
-  if (table->s->primary_key == MAX_KEY)
-  {
+  if (
+    no_pk ||
+    spider_param_use_cond_other_than_pk_for_update(thd)
+  ) {
     for (field = table->field; *field; field++)
     {
-      field_name_length =
-        mysql_share->column_name_str[(*field)->field_index].length();
-      if ((*field)->is_null(ptr_diff))
-      {
-        if (str->reserve(field_name_length +
-          /* SPIDER_SQL_NAME_QUOTE_LEN */ 2 +
-          SPIDER_SQL_IS_NULL_LEN + SPIDER_SQL_AND_LEN))
-          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-        mysql_share->append_column_name(str, (*field)->field_index);
-        str->q_append(SPIDER_SQL_IS_NULL_STR, SPIDER_SQL_IS_NULL_LEN);
-      } else {
-        if (str->reserve(field_name_length +
-          /* SPIDER_SQL_NAME_QUOTE_LEN */ 2 +
-          SPIDER_SQL_EQUAL_LEN))
-          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-        mysql_share->append_column_name(str, (*field)->field_index);
-        str->q_append(SPIDER_SQL_EQUAL_STR, SPIDER_SQL_EQUAL_LEN);
-        (*field)->move_field_offset(ptr_diff);
-        if (
-          spider_db_mysql_utility.
-            append_column_value(spider, str, *field, NULL,
-              share->access_charset) ||
-          str->reserve(SPIDER_SQL_AND_LEN)
-        )
-          DBUG_RETURN(HA_ERR_OUT_OF_MEM);
-        (*field)->move_field_offset(-ptr_diff);
+      if (
+        no_pk ||
+        bitmap_is_set(table->read_set, (*field)->field_index)
+      ) {
+        field_name_length =
+          mysql_share->column_name_str[(*field)->field_index].length();
+        if ((*field)->is_null(ptr_diff))
+        {
+          if (str->reserve(field_name_length +
+            /* SPIDER_SQL_NAME_QUOTE_LEN */ 2 +
+            SPIDER_SQL_IS_NULL_LEN + SPIDER_SQL_AND_LEN))
+            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+          mysql_share->append_column_name(str, (*field)->field_index);
+          str->q_append(SPIDER_SQL_IS_NULL_STR, SPIDER_SQL_IS_NULL_LEN);
+        } else {
+          if (str->reserve(field_name_length +
+            /* SPIDER_SQL_NAME_QUOTE_LEN */ 2 +
+            SPIDER_SQL_EQUAL_LEN))
+            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+          mysql_share->append_column_name(str, (*field)->field_index);
+          str->q_append(SPIDER_SQL_EQUAL_STR, SPIDER_SQL_EQUAL_LEN);
+          (*field)->move_field_offset(ptr_diff);
+          if (
+            spider_db_mysql_utility.
+              append_column_value(spider, str, *field, NULL,
+                share->access_charset) ||
+            str->reserve(SPIDER_SQL_AND_LEN)
+          )
+            DBUG_RETURN(HA_ERR_OUT_OF_MEM);
+          (*field)->move_field_offset(-ptr_diff);
+        }
+        str->q_append(SPIDER_SQL_AND_STR, SPIDER_SQL_AND_LEN);
       }
-      str->q_append(SPIDER_SQL_AND_STR, SPIDER_SQL_AND_LEN);
     }
   } else {
     KEY *key_info = &table->key_info[table->s->primary_key];
@@ -8855,7 +8865,13 @@ int spider_mysql_handler::append_update_where(
       str->q_append(SPIDER_SQL_AND_STR, SPIDER_SQL_AND_LEN);
     }
   }
-  str->length(str->length() - SPIDER_SQL_AND_LEN);
+  if (str->length() == str_len_bakup + SPIDER_SQL_WHERE_LEN)
+  {
+    /* no condition */
+    str->length(str_len_bakup);
+  } else {
+    str->length(str->length() - SPIDER_SQL_AND_LEN);
+  }
   if (str->reserve(SPIDER_SQL_LIMIT1_LEN))
     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
   str->q_append(SPIDER_SQL_LIMIT1_STR, SPIDER_SQL_LIMIT1_LEN);
