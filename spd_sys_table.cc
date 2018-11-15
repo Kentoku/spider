@@ -385,14 +385,15 @@ TABLE *spider_sys_open_table(
   TABLE *table;
   ulonglong utime_after_lock_backup = thd->utime_after_lock;
   DBUG_ENTER("spider_sys_open_table");
-  thd->reset_n_backup_open_tables_state(open_tables_backup);
+  if (open_tables_backup)
+    thd->reset_n_backup_open_tables_state(open_tables_backup);
   if ((table = open_ltable(thd, tables, tables->lock_type,
     MYSQL_OPEN_IGNORE_GLOBAL_READ_LOCK | MYSQL_LOCK_IGNORE_GLOBAL_READ_ONLY |
     MYSQL_OPEN_IGNORE_FLUSH | MYSQL_LOCK_IGNORE_TIMEOUT | MYSQL_LOCK_LOG_TABLE
   ))) {
     table->use_all_columns();
     table->s->no_replicate = 1;
-  } else
+  } else if (open_tables_backup)
     thd->restore_backup_open_tables_state(open_tables_backup);
   thd->utime_after_lock = utime_after_lock_backup;
   DBUG_RETURN(table);
@@ -518,7 +519,7 @@ int spider_get_sys_table_by_idx(
 ) {
   int error_num;
   uint key_length;
-  KEY *key_info = table->key_info;
+  KEY *key_info = table->key_info + idx;
   DBUG_ENTER("spider_get_sys_table_by_idx");
   if ((error_num = spider_sys_index_init(table, idx, FALSE)))
     DBUG_RETURN(error_num);
@@ -1377,11 +1378,8 @@ int spider_insert_sys_table(
 ) {
   int error_num;
   DBUG_ENTER("spider_insert_sys_table");
-  if ((error_num = spider_write_sys_table_row(table)))
-  {
-    DBUG_RETURN(error_num);
-  }
-  DBUG_RETURN(0);
+  error_num = spider_write_sys_table_row(table);
+  DBUG_RETURN(error_num);
 }
 
 int spider_insert_or_update_table_sts(
@@ -1727,6 +1725,15 @@ int spider_update_tables_link_status(
   }
 
   DBUG_RETURN(0);
+}
+
+int spider_update_sys_table(
+  TABLE *table
+) {
+  int error_num;
+  DBUG_ENTER("spider_update_sys_table");
+  error_num = spider_update_sys_table_row(table);
+  DBUG_RETURN(error_num);
 }
 
 int spider_delete_xa(

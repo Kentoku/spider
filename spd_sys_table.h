@@ -391,6 +391,10 @@ int spider_update_tables_link_status(
   long link_status
 );
 
+int spider_update_sys_table(
+  TABLE *table
+);
+
 int spider_delete_xa(
   TABLE *table,
   XID *xid
