@@ -229,6 +229,12 @@ const char SPIDER_empty_string = "";
 #define SPIDER_HAS_HASH_VALUE_TYPE
 #endif
 
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >=	100400
+#define SPIDER_date_mode_t(A) date_mode_t(A)
+#else
+#define SPIDER_date_mode_t(A) A
+#endif
+
 #define spider_bitmap_size(A) ((A + 7) / 8)
 #define spider_set_bit(BITMAP, BIT) \
   ((BITMAP)[(BIT) / 8] |= (1 << ((BIT) & 7)))
