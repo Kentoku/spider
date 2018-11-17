@@ -722,8 +722,8 @@ int spider_db_mysql_result::fetch_table_status(
 #ifdef SPIDER_HAS_TIME_STATUS
       my_time_status_init(&time_status);
 #endif
-      str_to_datetime(mysql_row[11], strlen(mysql_row[11]), &mysql_time, 0,
-        &time_status);
+      SPIDER_str_to_datetime(mysql_row[11], strlen(mysql_row[11]),
+        &mysql_time, 0, &time_status);
 #ifdef MARIADB_BASE_VERSION
       create_time = (time_t) my_system_gmt_sec(&mysql_time,
         &not_used_long, &not_used_uint);
@@ -747,8 +747,8 @@ int spider_db_mysql_result::fetch_table_status(
 #ifdef SPIDER_HAS_TIME_STATUS
       my_time_status_init(&time_status);
 #endif
-      str_to_datetime(mysql_row[12], strlen(mysql_row[12]), &mysql_time, 0,
-        &time_status);
+      SPIDER_str_to_datetime(mysql_row[12], strlen(mysql_row[12]),
+        &mysql_time, 0, &time_status);
 #ifdef MARIADB_BASE_VERSION
       update_time = (time_t) my_system_gmt_sec(&mysql_time,
         &not_used_long, &not_used_uint);
@@ -772,8 +772,8 @@ int spider_db_mysql_result::fetch_table_status(
 #ifdef SPIDER_HAS_TIME_STATUS
       my_time_status_init(&time_status);
 #endif
-      str_to_datetime(mysql_row[13], strlen(mysql_row[13]), &mysql_time, 0,
-        &time_status);
+      SPIDER_str_to_datetime(mysql_row[13], strlen(mysql_row[13]),
+        &mysql_time, 0, &time_status);
 #ifdef MARIADB_BASE_VERSION
       check_time = (time_t) my_system_gmt_sec(&mysql_time,
         &not_used_long, &not_used_uint);
@@ -840,8 +840,8 @@ int spider_db_mysql_result::fetch_table_status(
 #ifdef SPIDER_HAS_TIME_STATUS
       my_time_status_init(&time_status);
 #endif
-      str_to_datetime(mysql_row[6], strlen(mysql_row[6]), &mysql_time, 0,
-        &time_status);
+      SPIDER_str_to_datetime(mysql_row[6], strlen(mysql_row[6]),
+        &mysql_time, 0, &time_status);
 #ifdef MARIADB_BASE_VERSION
       create_time = (time_t) my_system_gmt_sec(&mysql_time,
         &not_used_long, &not_used_uint);
@@ -865,8 +865,8 @@ int spider_db_mysql_result::fetch_table_status(
 #ifdef SPIDER_HAS_TIME_STATUS
       my_time_status_init(&time_status);
 #endif
-      str_to_datetime(mysql_row[7], strlen(mysql_row[7]), &mysql_time, 0,
-        &time_status);
+      SPIDER_str_to_datetime(mysql_row[7], strlen(mysql_row[7]),
+        &mysql_time, 0, &time_status);
 #ifdef MARIADB_BASE_VERSION
       update_time = (time_t) my_system_gmt_sec(&mysql_time,
         &not_used_long, &not_used_uint);
@@ -890,8 +890,8 @@ int spider_db_mysql_result::fetch_table_status(
 #ifdef SPIDER_HAS_TIME_STATUS
       my_time_status_init(&time_status);
 #endif
-      str_to_datetime(mysql_row[8], strlen(mysql_row[8]), &mysql_time, 0,
-        &time_status);
+      SPIDER_str_to_datetime(mysql_row[8], strlen(mysql_row[8]),
+        &mysql_time, 0, &time_status);
 #ifdef MARIADB_BASE_VERSION
       check_time = (time_t) my_system_gmt_sec(&mysql_time,
         &not_used_long, &not_used_uint);
