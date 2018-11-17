@@ -13602,6 +13602,7 @@ void ha_spider::check_pre_call(
   bool use_parallel
 ) {
   THD* thd = ha_thd();
+  LEX *lex = thd->lex;
   st_select_lex *select_lex = spider_get_select_lex(this);
   int skip_parallel_search =
     spider_param_skip_parallel_search(thd, share->skip_parallel_search);
@@ -13610,11 +13611,15 @@ void ha_spider::check_pre_call(
   if (
     (
       (skip_parallel_search & 1) &&
-      thd->lex && thd->lex->sql_command != SQLCOM_SELECT // such like insert .. select ..
+      lex->sql_command != SQLCOM_SELECT // such like insert .. select ..
     ) ||
     (
       (skip_parallel_search & 2) &&
+#ifdef SPIDER_SQL_CACHE_IS_IN_LEX
+      lex->sql_cache == LEX::SQL_NO_CACHE //  for mysqldump
+#else
       select_lex && select_lex->sql_cache == SELECT_LEX::SQL_NO_CACHE //  for mysqldump
+#endif
     )
   ) {
     use_pre_call = FALSE;

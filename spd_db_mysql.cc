@@ -7775,16 +7775,28 @@ int spider_mysql_handler::append_select(
     if (result_list->lock_type != F_WRLCK && spider->lock_mode < 1)
     {
       /* no lock */
+#ifdef SPIDER_SQL_CACHE_IS_IN_LEX
+      LEX *lex = spider->trx->thd->lex;
+#else
       st_select_lex *select_lex = &spider->trx->thd->lex->select_lex;
+#endif
       if (
+#ifdef SPIDER_SQL_CACHE_IS_IN_LEX
+        lex->sql_cache == LEX::SQL_CACHE &&
+#else
         select_lex->sql_cache == SELECT_LEX::SQL_CACHE &&
+#endif
         (spider->share->query_cache_sync & 1)
       ) {
         if (str->reserve(SPIDER_SQL_SQL_CACHE_LEN))
           DBUG_RETURN(HA_ERR_OUT_OF_MEM);
         str->q_append(SPIDER_SQL_SQL_CACHE_STR, SPIDER_SQL_SQL_CACHE_LEN);
       } else if (
+#ifdef SPIDER_SQL_CACHE_IS_IN_LEX
+        lex->sql_cache == LEX::SQL_NO_CACHE &&
+#else
         select_lex->sql_cache == SELECT_LEX::SQL_NO_CACHE &&
+#endif
         (spider->share->query_cache_sync & 2)
       ) {
         if (str->reserve(SPIDER_SQL_SQL_NO_CACHE_LEN))
