@@ -8611,21 +8611,19 @@ int spider_db_print_item_type(
     case Item::CONST_ITEM:
     {
       switch (item->cmp_type()) {
-      case ROW_RESULT:
-        DBUG_ASSERT(0);
-        // fall through
-      case TIME_RESULT:
-        DBUG_RETURN(spider_db_print_item_type_default(item, spider, str));
-      case STRING_RESULT:
-        DBUG_RETURN(spider_db_open_item_string(item, spider, str,
-          alias, alias_length, dbton_id, use_fields, fields));
-      case INT_RESULT:
-      case REAL_RESULT:
-      case DECIMAL_RESULT:
-        DBUG_RETURN(spider_db_open_item_int(item, spider, str,
-          alias, alias_length, dbton_id, use_fields, fields));
+        case TIME_RESULT:
+        case STRING_RESULT:
+          DBUG_RETURN(spider_db_open_item_string(item, spider, str,
+            alias, alias_length, dbton_id, use_fields, fields));
+        case INT_RESULT:
+        case REAL_RESULT:
+        case DECIMAL_RESULT:
+          DBUG_RETURN(spider_db_open_item_int(item, spider, str,
+            alias, alias_length, dbton_id, use_fields, fields));
+        default:
+          DBUG_ASSERT(FALSE);
+          DBUG_RETURN(spider_db_print_item_type_default(item, spider, str));
       }
-      DBUG_ASSERT(0);
     }
 #else
     case Item::STRING_ITEM:
