@@ -8969,7 +8969,9 @@ bool spider_check_direct_order_limit(
 int spider_set_direct_limit_offset(
   ha_spider *spider
 ) {
+#ifndef SPIDER_ENGINE_CONDITION_PUSHDOWN_IS_ALWAYS_ON
   THD *thd = spider->trx->thd;
+#endif
   st_select_lex *select_lex;
   longlong select_limit;
   longlong offset_limit;
