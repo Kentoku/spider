@@ -3088,7 +3088,7 @@ void spider_db_mysql::set_dup_key_idx(
   uint roop_count, pk_idx = table->s->primary_key;
   int key_name_length;
   int max_length = 0;
-  char *key_name;
+  const char *key_name;
   DBUG_ENTER("spider_db_mysql::set_dup_key_idx");
   DBUG_PRINT("info",("spider this=%p", this));
   DBUG_PRINT("info",("spider error_str=%s", conn->error_str));
@@ -3102,7 +3102,7 @@ void spider_db_mysql::set_dup_key_idx(
       key_name_length = spider->share->tgt_pk_names_lengths[all_link_idx];
     } else {
 #ifdef SPIDER_use_LEX_CSTRING_for_KEY_Field_name
-      key_name = (char *) table->s->key_info[roop_count].name.str;
+      key_name = table->s->key_info[roop_count].name.str;
       key_name_length = table->s->key_info[roop_count].name.length;
 #else
       key_name = table->s->key_info[roop_count].name;
