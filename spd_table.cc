@@ -9057,7 +9057,7 @@ int spider_set_direct_limit_offset(
     DBUG_RETURN(FALSE);
 
   // must not be derived table
-  if (select_lex->linkage == DERIVED_TABLE_TYPE)
+  if (select_lex->get_linkage() == DERIVED_TABLE_TYPE)
     DBUG_RETURN(FALSE);
 
   spider->direct_select_offset = offset_limit;
