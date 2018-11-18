@@ -8613,12 +8613,12 @@ int spider_db_print_item_type(
       switch (item->cmp_type()) {
         case TIME_RESULT:
         case STRING_RESULT:
-          DBUG_RETURN(spider_db_open_item_string(item, spider, str,
+          DBUG_RETURN(spider_db_open_item_string(item, field, spider, str,
             alias, alias_length, dbton_id, use_fields, fields));
         case INT_RESULT:
         case REAL_RESULT:
         case DECIMAL_RESULT:
-          DBUG_RETURN(spider_db_open_item_int(item, spider, str,
+          DBUG_RETURN(spider_db_open_item_int(item, field, spider, str,
             alias, alias_length, dbton_id, use_fields, fields));
         default:
           DBUG_ASSERT(FALSE);
