@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -135,6 +135,10 @@ void spider_conn_queue_sql_log_off(
 void spider_conn_queue_time_zone(
   SPIDER_CONN *conn,
   Time_zone *time_zone
+);
+
+void spider_conn_queue_UTC_time_zone(
+  SPIDER_CONN *conn
 );
 
 void spider_conn_queue_start_transaction(
@@ -347,15 +351,15 @@ bool spider_conn_need_open_handler(
   int link_idx
 );
 
-SPIDER_IP_PORT_CONN *spider_create_ipport_conn(SPIDER_CONN *conn) ;
+SPIDER_IP_PORT_CONN *spider_create_ipport_conn(SPIDER_CONN *conn);
 SPIDER_CONN* spider_get_conn_from_idle_connection
 (
- SPIDER_SHARE *share, 
- int link_idx, 
- char *conn_key, 
- ha_spider *spider, 
- uint conn_kind, 
- int base_link_idx, 
+ SPIDER_SHARE *share,
+ int link_idx,
+ char *conn_key,
+ ha_spider *spider,
+ uint conn_kind,
+ int base_link_idx,
  int *error_num
  );
 void spider_free_ipport_conn(void *info);

@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
 #define MYSQL_SERVER 1
 #include <my_global.h>
 #include "mysql_version.h"
+#include "spd_environ.h"
 #if MYSQL_VERSION_ID < 50500
 #include "mysql_priv.h"
 #include <mysql/plugin.h>
@@ -24,6 +25,7 @@
 #include "probes_mysql.h"
 #include "sql_class.h"
 #include "sql_partition.h"
+#include "ha_partition.h"
 #endif
 #include "sql_common.h"
 #include <errmsg.h>
@@ -170,6 +172,7 @@ int spider_fields::make_link_idx_chain(
           add_link_idx_holder->table_link_idx_holder =
             dup_link_idx_holder->table_link_idx_holder;
           add_link_idx_holder->link_idx = dup_link_idx_holder->link_idx;
+          add_link_idx_holder->link_status = dup_link_idx_holder->link_status;
           link_idx_holder->next = add_link_idx_holder;
         }
         link_idx_holder = link_idx_holder->next;
@@ -444,6 +447,8 @@ bool spider_fields::check_link_ok_chain(
   for (current_link_idx_chain = first_link_idx_chain; current_link_idx_chain;
     current_link_idx_chain = current_link_idx_chain->next)
   {
+    DBUG_PRINT("info",("spider current_link_idx_chain=%p", current_link_idx_chain));
+    DBUG_PRINT("info",("spider current_link_idx_chain->link_status=%d", current_link_idx_chain->link_status));
     if (current_link_idx_chain->link_status == SPIDER_LINK_STATUS_OK)
     {
       first_ok_link_idx_chain = current_link_idx_chain;
@@ -909,6 +914,35 @@ SPIDER_TABLE_HOLDER *spider_fields::add_table(
   DBUG_RETURN(return_table_holder);
 }
 
+/**
+  Verify that all fields in the query are members of tables that are in the
+  query.
+
+  @return TRUE              All fields in the query are members of tables
+                            that are in the query.
+          FALSE             At least one field in the query is not a
+                            member of a table that is in the query.
+*/
+
+bool spider_fields::all_query_fields_are_query_table_members()
+{
+  SPIDER_FIELD_HOLDER *field_holder;
+  DBUG_ENTER("spider_fields::all_query_fields_are_query_table_members");
+  DBUG_PRINT("info",("spider this=%p", this));
+
+  set_pos_to_first_field_holder();
+  while ((field_holder = get_next_field_holder()))
+  {
+    if (!field_holder->spider)
+    {
+      DBUG_PRINT("info", ("spider field is not a member of a query table"));
+      DBUG_RETURN(FALSE);
+    }
+  }
+
+  DBUG_RETURN(TRUE);
+}
+
 int spider_fields::create_table_holder(
   uint table_count_arg
 ) {
@@ -946,6 +980,25 @@ SPIDER_TABLE_HOLDER *spider_fields::get_next_table_holder(
   DBUG_RETURN(return_table_holder);
 }
 
+SPIDER_TABLE_HOLDER *spider_fields::get_table_holder(TABLE *table)
+{
+  uint table_num;
+  DBUG_ENTER("spider_fields::get_table_holder");
+  DBUG_PRINT("info",("spider this=%p", this));
+  for (table_num = 0; table_num < table_count; ++table_num)
+  {
+    if (table_holder[table_num].table == table)
+      DBUG_RETURN(&table_holder[table_num]);
+  }
+  DBUG_RETURN(NULL);
+}
+
+uint spider_fields::get_table_count()
+{
+  DBUG_ENTER("spider_fields::get_table_count");
+  DBUG_RETURN(table_count);
+}
+
 int spider_fields::add_field(
   Field *field_arg
 ) {
@@ -953,6 +1006,7 @@ int spider_fields::add_field(
   SPIDER_FIELD_CHAIN *field_chain;
   DBUG_ENTER("spider_fields::add_field");
   DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_PRINT("info",("spider field=%p", field_arg));
   if (!first_field_holder)
   {
     field_holder = create_field_holder();
@@ -1054,6 +1108,7 @@ void spider_fields::set_field_ptr(
 ) {
   DBUG_ENTER("spider_fields::set_field_ptr");
   DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_PRINT("info",("spider field_ptr=%p", field_arg));
   first_field_ptr = field_arg;
   current_field_ptr = field_arg;
   DBUG_VOID_RETURN;
@@ -1066,6 +1121,7 @@ Field **spider_fields::get_next_field_ptr(
   DBUG_PRINT("info",("spider this=%p", this));
   if (*current_field_ptr)
     current_field_ptr++;
+  DBUG_PRINT("info",("spider field_ptr=%p", return_field_ptr));
   DBUG_RETURN(return_field_ptr);
 }
 
@@ -1157,7 +1213,8 @@ int spider_group_by_handler::init_scan()
     *field;
     field++
   ) {
-    DBUG_PRINT("info",("spider field_name=%s", (*field)->field_name));
+    DBUG_PRINT("info",("spider field_name=%s",
+      SPIDER_field_name_str(*field)));
   }
 #endif
 
@@ -1561,20 +1618,72 @@ group_by_handler *spider_create_group_by_handler(
   long tgt_link_status;
   DBUG_ENTER("spider_create_group_by_handler");
 
+  switch (thd_sql_command(thd))
+  {
+    case SQLCOM_UPDATE:
+    case SQLCOM_UPDATE_MULTI:
+    case SQLCOM_DELETE:
+    case SQLCOM_DELETE_MULTI:
+      DBUG_PRINT("info",("spider update and delete does not support this feature"));
+      DBUG_RETURN(NULL);
+    default:
+      break;
+  }
+
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   from = query->from;
   do {
+    DBUG_PRINT("info",("spider from=%p", from));
+    if (from->table->const_table)
+      continue;
     if (from->table->part_info)
     {
-      DBUG_PRINT("info",("spider partition is not support by this feature yet"));
-      DBUG_RETURN(NULL);
+      DBUG_PRINT("info",("spider partition handler"));
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+      ha_partition *partition = (ha_partition *) from->table->file;
+      part_id_range *part_spec = partition->get_part_spec();
+      DBUG_PRINT("info",("spider part_spec->start_part=%u", part_spec->start_part));
+      DBUG_PRINT("info",("spider part_spec->end_part=%u", part_spec->end_part));
+      if (
+        part_spec->start_part == partition->get_no_current_part_id() ||
+        part_spec->start_part != part_spec->end_part
+      ) {
+        DBUG_PRINT("info",("spider using multiple partitions is not supported by this feature yet"));
+#else
+        DBUG_PRINT("info",("spider partition is not supported by this feature yet"));
+#endif
+        DBUG_RETURN(NULL);
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+      }
+#endif
     }
   } while ((from = from->next_local));
 #endif
 
   table_idx = 0;
   from = query->from;
-  spider = (ha_spider *) from->table->file;
+  while (from && from->table->const_table)
+  {
+    from = from->next_local;
+  }
+  if (!from)
+  {
+    /* all tables are const_table */
+    DBUG_RETURN(NULL);
+  }
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+  if (from->table->part_info)
+  {
+    ha_partition *partition = (ha_partition *) from->table->file;
+    part_id_range *part_spec = partition->get_part_spec();
+    handler **handlers = partition->get_child_handlers();
+    spider = (ha_spider *) handlers[part_spec->start_part];
+  } else {
+#endif
+    spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+  }
+#endif
   share = spider->share;
   spider->idx_for_direct_join = table_idx;
   ++table_idx;
@@ -1591,7 +1700,21 @@ group_by_handler *spider_create_group_by_handler(
   }
   while ((from = from->next_local))
   {
-    spider = (ha_spider *) from->table->file;
+    if (from->table->const_table)
+      continue;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    if (from->table->part_info)
+    {
+      ha_partition *partition = (ha_partition *) from->table->file;
+      part_id_range *part_spec = partition->get_part_spec();
+      handler **handlers = partition->get_child_handlers();
+      spider = (ha_spider *) handlers[part_spec->start_part];
+    } else {
+#endif
+      spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    }
+#endif
     share = spider->share;
     spider->idx_for_direct_join = table_idx;
     ++table_idx;
@@ -1615,7 +1738,21 @@ group_by_handler *spider_create_group_by_handler(
 
   from = query->from;
   do {
-    spider = (ha_spider *) from->table->file;
+    if (from->table->const_table)
+      continue;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    if (from->table->part_info)
+    {
+      ha_partition *partition = (ha_partition *) from->table->file;
+      part_id_range *part_spec = partition->get_part_spec();
+      handler **handlers = partition->get_child_handlers();
+      spider = (ha_spider *) handlers[part_spec->start_part];
+    } else {
+#endif
+      spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    }
+#endif
     share = spider->share;
     if (spider_param_skip_default_condition(thd,
       share->skip_default_condition))
@@ -1641,7 +1778,8 @@ group_by_handler *spider_create_group_by_handler(
       it.init(*query->select);
       while ((item = it++))
       {
-        if (spider_db_print_item_type(item, spider, NULL, NULL, 0,
+        DBUG_PRINT("info",("spider select item=%p", item));
+        if (spider_db_print_item_type(item, NULL, spider, NULL, NULL, 0,
           roop_count, TRUE, fields_arg))
         {
           DBUG_PRINT("info",("spider dbton_id=%d can't create select", roop_count));
@@ -1652,9 +1790,20 @@ group_by_handler *spider_create_group_by_handler(
       }
       if (keep_going)
       {
+        if (spider_dbton[roop_count].db_util->append_from_and_tables(
+          spider, fields_arg, NULL, query->from, table_idx))
+        {
+          DBUG_PRINT("info",("spider dbton_id=%d can't create from", roop_count));
+          spider_clear_bit(dbton_bitmap, roop_count);
+          keep_going = FALSE;
+        }
+      }
+      if (keep_going)
+      {
+        DBUG_PRINT("info",("spider query->where=%p", query->where));
         if (query->where)
         {
-          if (spider_db_print_item_type(query->where, spider, NULL, NULL, 0,
+          if (spider_db_print_item_type(query->where, NULL, spider, NULL, NULL, 0,
             roop_count, TRUE, fields_arg))
           {
             DBUG_PRINT("info",("spider dbton_id=%d can't create where", roop_count));
@@ -1665,11 +1814,12 @@ group_by_handler *spider_create_group_by_handler(
       }
       if (keep_going)
       {
+        DBUG_PRINT("info",("spider query->group_by=%p", query->group_by));
         if (query->group_by)
         {
           for (order = query->group_by; order; order = order->next)
           {
-            if (spider_db_print_item_type((*order->item), spider, NULL, NULL, 0,
+            if (spider_db_print_item_type((*order->item), NULL, spider, NULL, NULL, 0,
               roop_count, TRUE, fields_arg))
             {
               DBUG_PRINT("info",("spider dbton_id=%d can't create group by", roop_count));
@@ -1682,11 +1832,12 @@ group_by_handler *spider_create_group_by_handler(
       }
       if (keep_going)
       {
+        DBUG_PRINT("info",("spider query->order_by=%p", query->order_by));
         if (query->order_by)
         {
           for (order = query->order_by; order; order = order->next)
           {
-            if (spider_db_print_item_type((*order->item), spider, NULL, NULL, 0,
+            if (spider_db_print_item_type((*order->item), NULL, spider, NULL, NULL, 0,
               roop_count, TRUE, fields_arg))
             {
               DBUG_PRINT("info",("spider dbton_id=%d can't create order by", roop_count));
@@ -1699,9 +1850,10 @@ group_by_handler *spider_create_group_by_handler(
       }
       if (keep_going)
       {
+        DBUG_PRINT("info",("spider query->having=%p", query->having));
         if (query->having)
         {
-          if (spider_db_print_item_type(query->having, spider, NULL, NULL, 0,
+          if (spider_db_print_item_type(query->having, NULL, spider, NULL, NULL, 0,
             roop_count, TRUE, fields_arg))
           {
             DBUG_PRINT("info",("spider dbton_id=%d can't create having", roop_count));
@@ -1732,7 +1884,23 @@ group_by_handler *spider_create_group_by_handler(
   }
 
   from = query->from;
-  spider = (ha_spider *) from->table->file;
+  while (from->table->const_table)
+  {
+    from = from->next_local;
+  }
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+  if (from->table->part_info)
+  {
+    ha_partition *partition = (ha_partition *) from->table->file;
+    part_id_range *part_spec = partition->get_part_spec();
+    handler **handlers = partition->get_child_handlers();
+    spider = (ha_spider *) handlers[part_spec->start_part];
+  } else {
+#endif
+    spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+  }
+#endif
   share = spider->share;
   lock_mode = spider_conn_lock_mode(spider);
   if (lock_mode)
@@ -1804,9 +1972,23 @@ group_by_handler *spider_create_group_by_handler(
 
   while ((from = from->next_local))
   {
+    if (from->table->const_table)
+      continue;
     fields->clear_conn_holder_from_conn();
 
-    spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    if (from->table->part_info)
+    {
+      ha_partition *partition = (ha_partition *) from->table->file;
+      part_id_range *part_spec = partition->get_part_spec();
+      handler **handlers = partition->get_child_handlers();
+      spider = (ha_spider *) handlers[part_spec->start_part];
+    } else {
+#endif
+      spider = (ha_spider *) from->table->file;
+#if defined(PARTITION_HAS_GET_CHILD_HANDLERS) && defined(PARTITION_HAS_GET_PART_SPEC)
+    }
+#endif
     share = spider->share;
     if (!fields->add_table(spider))
     {
@@ -1871,6 +2053,13 @@ group_by_handler *spider_create_group_by_handler(
       delete fields;
       DBUG_RETURN(NULL);
     }
+  }
+
+  if (!fields->all_query_fields_are_query_table_members())
+  {
+    DBUG_PRINT("info", ("spider found a query field that is not a query table member"));
+    delete fields;
+    DBUG_RETURN(NULL);
   }
 
   fields->check_support_dbton(dbton_bitmap);

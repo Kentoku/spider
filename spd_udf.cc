@@ -15,6 +15,7 @@
 
 #define MYSQL_SERVER 1
 #include <my_global.h>
+#include "spd_environ.h"
 #include "mysql.h"
 #include "spd_udf.h"
 

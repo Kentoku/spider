@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -341,7 +341,7 @@ int spider_db_query_for_bulk_update(
   ha_spider *spider,
   SPIDER_CONN *conn,
   int link_idx,
-  uint *dup_key_found
+  ha_rows *dup_key_found
 );
 
 size_t spider_db_real_escape_string(
@@ -412,7 +412,20 @@ int spider_db_unlock_tables(
 
 int spider_db_append_name_with_quote_str(
   spider_string *str,
-  char *name,
+  const char *name,
+  uint dbton_id
+);
+
+int spider_db_append_name_with_quote_str(
+  spider_string *str,
+  LEX_CSTRING &name,
+  uint dbton_id
+);
+
+int spider_db_append_name_with_quote_str_internal(
+  spider_string *str,
+  const char *name,
+  int length,
   uint dbton_id
 );
 
@@ -563,6 +576,10 @@ void spider_db_free_one_result_for_start_next(
 
 void spider_db_free_one_result(
   SPIDER_RESULT_LIST *result_list,
+  SPIDER_RESULT *result
+);
+
+void spider_db_free_one_quick_result(
   SPIDER_RESULT *result
 );
 
@@ -729,7 +746,7 @@ int spider_db_bulk_update_size_limit(
 
 int spider_db_bulk_update_end(
   ha_spider *spider,
-  uint *dup_key_found
+  ha_rows *dup_key_found
 );
 
 int spider_db_bulk_update(
@@ -745,19 +762,27 @@ int spider_db_update(
 );
 
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
 int spider_db_direct_update(
   ha_spider *spider,
   TABLE *table,
   KEY_MULTI_RANGE *ranges,
   uint range_count,
-  uint *update_rows
+  ha_rows *update_rows
 );
+#else
+int spider_db_direct_update(
+  ha_spider *spider,
+  TABLE *table,
+  ha_rows *update_rows
+);
+#endif
 #endif
 
 #ifdef HA_CAN_BULK_ACCESS
 int spider_db_bulk_direct_update(
   ha_spider *spider,
-  uint *update_rows
+  ha_rows *update_rows
 );
 #endif
 
@@ -774,13 +799,21 @@ int spider_db_delete(
 );
 
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
 int spider_db_direct_delete(
   ha_spider *spider,
   TABLE *table,
   KEY_MULTI_RANGE *ranges,
   uint range_count,
-  uint *delete_rows
+  ha_rows *delete_rows
 );
+#else
+int spider_db_direct_delete(
+  ha_spider *spider,
+  TABLE *table,
+  ha_rows *delete_rows
+);
+#endif
 #endif
 
 int spider_db_delete_all_rows(
@@ -822,8 +855,18 @@ int spider_db_flush_logs(
   ha_spider *spider
 );
 
+Field *spider_db_find_field_in_item_list(
+  Item **item_list,
+  uint item_count,
+  uint start_item,
+  spider_string *str,
+  const char *func_name,
+  int func_name_length
+);
+
 int spider_db_print_item_type(
   Item *item,
+  Field *field,
   ha_spider *spider,
   spider_string *str,
   const char *alias,
@@ -831,6 +874,12 @@ int spider_db_print_item_type(
   uint dbton_id,
   bool use_fields,
   spider_fields *fields
+);
+
+int spider_db_print_item_type_default(
+  Item *item,
+  ha_spider *spider,
+  spider_string *str
 );
 
 int spider_db_open_item_cond(
@@ -914,6 +963,7 @@ int spider_db_open_item_row(
 
 int spider_db_open_item_string(
   Item *item,
+  Field *field,
   ha_spider *spider,
   spider_string *str,
   const char *alias,
@@ -925,6 +975,7 @@ int spider_db_open_item_string(
 
 int spider_db_open_item_int(
   Item *item,
+  Field *field,
   ha_spider *spider,
   spider_string *str,
   const char *alias,
@@ -936,6 +987,7 @@ int spider_db_open_item_int(
 
 int spider_db_open_item_cache(
   Item_cache *item_cache,
+  Field *field,
   ha_spider *spider,
   spider_string *str,
   const char *alias,
@@ -947,6 +999,7 @@ int spider_db_open_item_cache(
 
 int spider_db_open_item_insert_value(
   Item_insert_value *item_insert_value,
+  Field *field,
   ha_spider *spider,
   spider_string *str,
   const char *alias,

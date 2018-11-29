@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2018 Kentoku Shiba
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,6 +21,18 @@
 #define SPIDER_DBTON_SIZE 15
 
 #define SPIDER_DB_WRAPPER_MYSQL "mysql"
+
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100204
+#define PLUGIN_VAR_CAN_MEMALLOC
+/*
+#define ITEM_FUNC_CASE_PARAMS_ARE_PUBLIC
+#define HASH_UPDATE_WITH_HASH_VALUE
+*/
+#else
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+#define HANDLER_HAS_DIRECT_UPDATE_ROWS_WITH_HS
+#endif
+#endif
 
 #if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >= 100002
 #define SPIDER_HAS_DISCOVER_TABLE_STRUCTURE
@@ -684,11 +696,14 @@ public:
   SPIDER_TABLE_HOLDER *add_table(
     ha_spider *spider_arg
   );
+  bool all_query_fields_are_query_table_members();
   int create_table_holder(
     uint table_count_arg
   );
   void set_pos_to_first_table_holder();
   SPIDER_TABLE_HOLDER *get_next_table_holder();
+  SPIDER_TABLE_HOLDER *get_table_holder(TABLE *table);
+  uint get_table_count();
   int add_field(Field *field_arg);
   SPIDER_FIELD_HOLDER *create_field_holder();
   void set_pos_to_first_field_holder();
@@ -874,8 +889,11 @@ public:
   ) = 0;
 #ifdef SPIDER_HAS_GROUP_BY_HANDLER
   virtual int append_from_and_tables(
+    ha_spider *spider,
     spider_fields *fields,
-    spider_string *str
+    spider_string *str,
+    TABLE_LIST *table_list,
+    uint table_count
   ) = 0;
   virtual int reappend_tables(
     spider_fields *fields,
@@ -923,6 +941,7 @@ public:
     TABLE *tmp_table,
     spider_string *str
   ) = 0;
+  virtual uint get_byte_size() = 0;
 };
 
 class spider_db_result_buffer
@@ -1929,6 +1948,7 @@ typedef struct st_spider_result_list
   int                     max_order;
   int                     quick_mode;
   longlong                quick_page_size;
+  longlong                quick_page_byte;
   int                     low_mem_read;
   int                     bulk_update_mode;
   int                     bulk_update_size;
