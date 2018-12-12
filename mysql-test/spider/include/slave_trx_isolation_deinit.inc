@@ -6,10 +6,10 @@
 --let $USE_GENERAL_LOG= $USE_GENERAL_LOG_BACKUP
 --connection slave1_1
 set global spider_slave_trx_isolation= @old_spider_slave_trx_isolation;
---source ../include/deinit_spider.inc
 --disable_warnings
 --disable_query_log
 --disable_result_log
+--source ../include/deinit_spider.inc
 --source ../t/slave_test_deinit.inc
 --source ../t/test_deinit.inc
 --enable_result_log

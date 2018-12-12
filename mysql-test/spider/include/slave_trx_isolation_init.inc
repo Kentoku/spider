@@ -28,6 +28,12 @@ let $CHILD2_1_SELECT_ARGUMENT1=
 --let $USE_GENERAL_LOG_BACKUP= $USE_GENERAL_LOG
 --let $USE_GENERAL_LOG= 1
 --connection slave1_1
+--disable_warnings
+--disable_query_log
+--disable_result_log
 --source ../include/init_spider.inc
+--enable_result_log
+--enable_query_log
+--enable_warnings
 set @old_spider_slave_trx_isolation= @@spider_slave_trx_isolation;
 set global spider_slave_trx_isolation= 1;
