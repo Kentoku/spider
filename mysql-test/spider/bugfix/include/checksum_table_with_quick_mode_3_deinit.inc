@@ -4,6 +4,7 @@
 --let $CHILD2_1_SELECT_TABLES= $CHILD2_1_SELECT_TABLES_BACKUP
 --connection master_1
 set session spider_quick_mode= @old_spider_quick_mode;
+set session spider_quick_page_size= @old_spider_quick_page_size;
 --disable_warnings
 --disable_query_log
 --disable_result_log
