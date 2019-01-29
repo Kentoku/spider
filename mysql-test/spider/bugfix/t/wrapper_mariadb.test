@@ -1,4 +1,4 @@
---source ../include/mariadb_engine_init.inc
+--source ../include/wrapper_mariadb_init.inc
 --echo
 --echo this test is for MDEV-18313
 --echo
@@ -64,6 +64,6 @@ DROP DATABASE IF EXISTS auto_test_remote;
 SET GLOBAL log_output = @old_log_output;
 
 --enable_warnings
---source ../include/mariadb_engine_deinit.inc
+--source ../include/wrapper_mariadb_deinit.inc
 --echo
 --echo end of test
