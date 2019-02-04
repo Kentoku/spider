@@ -9397,6 +9397,9 @@ ulonglong ha_spider::table_flags() const
     HA_BINLOG_ROW_CAPABLE |
     HA_BINLOG_STMT_CAPABLE |
     HA_PARTIAL_COLUMN_READ |
+#ifdef HA_SLOW_CMP_REF
+    HA_SLOW_CMP_REF |
+#endif
 #ifdef HA_CMP_REF_IS_EXPENSIVE
     HA_CMP_REF_IS_EXPENSIVE |
 #endif
