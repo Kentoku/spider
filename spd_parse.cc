@@ -967,9 +967,9 @@ int spider_parse_sql::send_sql_to_data_nodes()
   tmp = spider;
   do {
     uint roop_count;
-    SPIDER_SHARE *share = spider->share;
+    SPIDER_SHARE *share = tmp->share;
 #ifndef WITHOUT_SPIDER_BG_SEARCH
-    if ((error_num = spider_set_conn_bg_param(spider)))
+    if ((error_num = spider_set_conn_bg_param(tmp)))
       goto end;
 #endif
     for (roop_count = 0; roop_count < share->all_link_count; ++roop_count)
@@ -1034,7 +1034,7 @@ end:
     if (tmp->result_list.bgs_phase > 0)
     {
       uint roop_count;
-      SPIDER_SHARE *share = spider->share;
+      SPIDER_SHARE *share = tmp->share;
       for (roop_count = 0; roop_count < share->all_link_count; ++roop_count)
       {
         SPIDER_CONN *conn = tmp->conns[roop_count];
