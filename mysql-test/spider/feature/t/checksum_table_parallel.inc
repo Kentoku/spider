@@ -1,5 +1,5 @@
 --echo
---echo this test is for MDEV-16279
+--echo this test is for MDEV-16967
 --echo
 --echo drop and create databases
 
