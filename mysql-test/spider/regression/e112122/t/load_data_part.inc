@@ -52,7 +52,10 @@ eval CREATE TABLE tbl_a (
 ) $MASTER_1_ENGINE $MASTER_1_CHARSET $MASTER_1_COMMENT_2_1;
 --enable_query_log
 INSERT INTO tbl_a (pkey,val) VALUES (0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9);
+--disable_query_log
+--echo SELECT pkey,val INTO OUTFILE 'MYSQLTEST_VARDIR/tmp/spider_outfile.tsv' FROM tbl_a ORDER BY pkey;
 eval SELECT pkey,val INTO OUTFILE '$MYSQLTEST_VARDIR/tmp/spider_outfile.tsv' FROM tbl_a ORDER BY pkey;
+--enable_query_log
 eval $COMMAND_BEFORE_LOAD_DATA;
 
 --echo
@@ -65,7 +68,10 @@ TRUNCATE TABLE mysql.general_log;
 TRUNCATE TABLE mysql.general_log;
 
 --connection master_1
+--disable_query_log
+--echo LOAD DATA $OPTION_LOCAL INFILE 'MYSQLTEST_VARDIR/tmp/spider_outfile.tsv' $OPTION_WORD INTO TABLE tbl_a;
 eval LOAD DATA $OPTION_LOCAL INFILE '$MYSQLTEST_VARDIR/tmp/spider_outfile.tsv' $OPTION_WORD INTO TABLE tbl_a;
+--enable_query_log
 --remove_file $MYSQLTEST_VARDIR/tmp/spider_outfile.tsv
 
 --connection child2_1
