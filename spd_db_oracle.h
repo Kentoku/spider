@@ -1,4 +1,5 @@
-/* Copyright (C) 2012-2018 Kentoku Shiba
+/* Copyright (C) 2012-2019 Kentoku Shiba
+   Copyright (C) 2019 MariaDB corp
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -13,6 +14,17 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
+class spider_oracle_sql: public spider_db_sql
+{
+public:
+  spider_oracle_sql();
+  ~spider_oracle_sql();
+  int append_create_or_replace();
+  int append_create_or_replace_table();
+  int append_if_not_exists();
+};
+
+#ifdef HAVE_ORACLE_OCI
 class spider_db_oracle;
 class spider_db_oracle_result;
 
@@ -66,6 +78,14 @@ public:
   int append_sql_log_off(
     spider_string *str,
     bool sql_log_off
+  );
+  int append_wait_timeout(
+    spider_string *str,
+    int wait_timeout
+  );
+  int append_sql_mode(
+    spider_string *str,
+    sql_mode_t sql_mode
   );
   int append_time_zone(
     spider_string *str,
@@ -430,6 +450,16 @@ public:
     bool sql_log_off,
     int *need_mon
   );
+  bool set_wait_timeout_in_bulk_sql();
+  int set_wait_timeout(
+    int wait_timeout,
+    int *need_mon
+  );
+  bool set_sql_mode_in_bulk_sql();
+  int set_sql_mode(
+    sql_mode_t sql_mode,
+    int *need_mon
+  );
   bool set_time_zone_in_bulk_sql();
   int set_time_zone(
     Time_zone *time_zone,
@@ -647,6 +677,7 @@ private:
   int                     tmp_sql_pos4; /* insert val pos at tmp_table_join */
   int                     tmp_sql_pos5; /* end of drop tbl at tmp_table_join */
   spider_string           dup_update_sql;
+  spider_string           **query;
   spider_string           *exec_sql;
   spider_string           *exec_insert_sql;
   spider_string           *exec_update_sql;
@@ -1338,6 +1369,10 @@ public:
     spider_db_copy_table *tgt_ct,
     ulong sql_type
   );
+  int set_sql_for_exec(
+    spider_db_sql *db_sql,
+    int link_idx
+  );
   int execute_sql(
     ulong sql_type,
     SPIDER_CONN *conn,
@@ -1606,3 +1641,4 @@ public:
     spider_db_copy_table *source_ct
   );
 };
+#endif

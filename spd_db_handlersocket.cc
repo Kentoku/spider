@@ -1,4 +1,5 @@
-/* Copyright (C) 2012-2018 Kentoku Shiba
+/* Copyright (C) 2012-2019 Kentoku Shiba
+   Copyright (C) 2019 MariaDB corp
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -126,6 +127,7 @@ SPIDER_DBTON spider_dbton_handlersocket = {
   spider_handlersocket_create_handler,
   NULL,
   spider_handlersocket_create_conn,
+  NULL,
   spider_handlersocket_support_direct_join,
   &spider_db_handlersocket_utility
 };
@@ -500,7 +502,7 @@ SPIDER_DB_ROW *spider_db_handlersocket_row::clone()
   uint i;
   DBUG_ENTER("spider_db_handlersocket_row::clone");
   DBUG_PRINT("info",("spider this=%p", this));
-  if (!(clone_row = new spider_db_handlersocket_row()))
+  if (!(clone_row = new spider_db_handlersocket_row(dbton_id)))
   {
     DBUG_RETURN(NULL);
   }
@@ -603,7 +605,7 @@ bool spider_db_handlersocket_result_buffer::check_size(
 
 spider_db_handlersocket_result::spider_db_handlersocket_result(
   SPIDER_DB_CONN *in_db_conn
-) : spider_db_result(in_db_conn, spider_dbton_handlersocket.dbton_id)
+) : spider_db_result(in_db_conn), row(in_db_conn->dbton_id)
 {
   DBUG_ENTER("spider_db_handlersocket_result::spider_db_handlersocket_result");
   DBUG_PRINT("info",("spider this=%p", this));
@@ -1839,6 +1841,40 @@ int spider_db_handlersocket::set_sql_log_off(
   DBUG_RETURN(0);
 }
 
+bool spider_db_handlersocket::set_wait_timeout_in_bulk_sql()
+{
+  DBUG_ENTER("spider_db_handlersocket::set_wait_timeout_in_bulk_sql");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_RETURN(FALSE);
+}
+
+int spider_db_handlersocket::set_wait_timeout(
+  int wait_timeout,
+  int *need_mon
+) {
+  DBUG_ENTER("spider_db_handlersocket::set_wait_timeout");
+  DBUG_PRINT("info",("spider this=%p", this));
+  /* nothing to do */
+  DBUG_RETURN(0);
+}
+
+bool spider_db_handlersocket::set_sql_mode_in_bulk_sql()
+{
+  DBUG_ENTER("spider_db_handlersocket::set_sql_mode_in_bulk_sql");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_RETURN(FALSE);
+}
+
+int spider_db_handlersocket::set_sql_mode(
+  sql_mode_t sql_mode,
+  int *need_mon
+) {
+  DBUG_ENTER("spider_db_handlersocket::set_sql_mode");
+  DBUG_PRINT("info",("spider this=%p", this));
+  /* nothing to do */
+  DBUG_RETURN(0);
+}
+
 bool spider_db_handlersocket::set_time_zone_in_bulk_sql()
 {
   DBUG_ENTER("spider_db_handlersocket::set_time_zone_in_bulk_sql");
@@ -2670,6 +2706,26 @@ int spider_db_handlersocket_util::append_sql_log_off(
   bool sql_log_off
 ) {
   DBUG_ENTER("spider_db_handlersocket_util::append_sql_log_off");
+  DBUG_PRINT("info",("spider this=%p", this));
+  /* nothing to do */
+  DBUG_RETURN(0);
+}
+
+int spider_db_handlersocket_util::append_wait_timeout(
+  spider_string *str,
+  int wait_timeout
+) {
+  DBUG_ENTER("spider_db_handlersocket_util::append_wait_timeout");
+  DBUG_PRINT("info",("spider this=%p", this));
+  /* nothing to do */
+  DBUG_RETURN(0);
+}
+
+int spider_db_handlersocket_util::append_sql_mode(
+  spider_string *str,
+  sql_mode_t sql_mode
+) {
+  DBUG_ENTER("spider_db_handlersocket_util::append_sql_mode");
   DBUG_PRINT("info",("spider this=%p", this));
   /* nothing to do */
   DBUG_RETURN(0);
@@ -3953,7 +4009,8 @@ int spider_db_handlersocket_util::append_having(
 spider_handlersocket_share::spider_handlersocket_share(
   st_spider_share *share
 ) : spider_db_share(
-  share
+  share,
+  spider_dbton_handlersocket.dbton_id
 ),
   table_names_str(NULL),
   db_names_str(NULL),
@@ -5730,6 +5787,16 @@ int spider_handlersocket_handler::set_sql_for_exec(
 int spider_handlersocket_handler::set_sql_for_exec(
   spider_db_copy_table *tgt_ct,
   ulong sql_type
+) {
+  DBUG_ENTER("spider_handlersocket_handler::set_sql_for_exec");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_ASSERT(0);
+  DBUG_RETURN(0);
+}
+
+int spider_handlersocket_handler::set_sql_for_exec(
+  spider_db_sql *db_sql,
+  int link_idx
 ) {
   DBUG_ENTER("spider_handlersocket_handler::set_sql_for_exec");
   DBUG_PRINT("info",("spider this=%p", this));

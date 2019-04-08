@@ -1,4 +1,5 @@
-/* Copyright (C) 2008-2018 Kentoku Shiba
+/* Copyright (C) 2008-2019 Kentoku Shiba
+   Copyright (C) 2019 MariaDB corp
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -1667,6 +1668,32 @@ int spider_check_and_set_sql_log_off(
   DBUG_RETURN(0);
 }
 
+int spider_check_and_set_wait_timeout(
+  THD *thd,
+  SPIDER_CONN *conn,
+  int *need_mon
+) {
+  int wait_timeout;
+  DBUG_ENTER("spider_check_and_set_wait_timeout");
+
+  wait_timeout = spider_param_wait_timeout(thd);
+  if (wait_timeout > 0)
+  {
+    spider_conn_queue_wait_timeout(conn, wait_timeout);
+  }
+  DBUG_RETURN(0);
+}
+
+int spider_check_and_set_sql_mode(
+  THD *thd,
+  SPIDER_CONN *conn,
+  int *need_mon
+) {
+  DBUG_ENTER("spider_check_and_set_sql_mode");
+  spider_conn_queue_sql_mode(conn, thd->variables.sql_mode);
+  DBUG_RETURN(0);
+}
+
 int spider_check_and_set_time_zone(
   THD *thd,
   SPIDER_CONN *conn,
@@ -1866,6 +1893,11 @@ int spider_internal_start_trx(
   if (
     (error_num = spider_check_and_set_sql_log_off(thd, conn,
       &spider->need_mons[link_idx])) ||
+    (error_num = spider_check_and_set_wait_timeout(thd, conn,
+      &spider->need_mons[link_idx])) ||
+    (spider_param_sync_sql_mode(thd) &&
+      (error_num = spider_check_and_set_sql_mode(thd, conn,
+        &spider->need_mons[link_idx]))) ||
     (sync_autocommit &&
       (error_num = spider_check_and_set_autocommit(thd, conn,
         &spider->need_mons[link_idx])))

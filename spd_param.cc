@@ -1,4 +1,5 @@
-/* Copyright (C) 2008-2018 Kentoku Shiba
+/* Copyright (C) 2008-2019 Kentoku Shiba
+   Copyright (C) 2019 MariaDB corp
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,6 +38,12 @@
 extern struct st_mysql_plugin spider_i_s_alloc_mem;
 #ifdef MARIADB_BASE_VERSION
 extern struct st_maria_plugin spider_i_s_alloc_mem_maria;
+#endif
+#ifdef SPIDER_REWRITE_AVAILABLE
+extern struct st_mysql_plugin spider_audit_rewrite;
+#ifdef MARIADB_BASE_VERSION
+extern struct st_maria_plugin spider_audit_rewrite_maria;
+#endif
 #endif
 
 extern volatile ulonglong spider_mon_table_cache_version;
@@ -3355,6 +3362,76 @@ int spider_param_slave_trx_isolation()
   DBUG_RETURN(spider_slave_trx_isolation);
 }
 
+/*
+ -1 :not set
+  0-:seconds of timeout
+ */
+static MYSQL_THDVAR_INT(
+  remote_wait_timeout, /* name */
+  PLUGIN_VAR_RQCMDARG, /* opt */
+  "Wait timeout on remote server", /* comment */
+  NULL, /* check */
+  NULL, /* update */
+  -1, /* def */
+  -1, /* min */
+  2147483647, /* max */
+  0 /* blk */
+);
+
+int spider_param_remote_wait_timeout(
+  THD *thd
+) {
+  DBUG_ENTER("spider_param_remote_wait_timeout");
+  if (likely(thd))
+    DBUG_RETURN(THDVAR(thd, remote_wait_timeout));
+  DBUG_RETURN(-1);
+}
+
+/*
+ -1 :not set
+  0-:seconds of timeout
+ */
+static MYSQL_THDVAR_INT(
+  wait_timeout, /* name */
+  PLUGIN_VAR_RQCMDARG, /* opt */
+  "Wait timeout of setting to remote server", /* comment */
+  NULL, /* check */
+  NULL, /* update */
+  604800, /* def */
+  -1, /* min */
+  2147483647, /* max */
+  0 /* blk */
+);
+
+int spider_param_wait_timeout(
+  THD *thd
+) {
+  DBUG_ENTER("spider_param_wait_timeout");
+  if (likely(thd))
+    DBUG_RETURN(THDVAR(thd, wait_timeout));
+  DBUG_RETURN(604800);
+}
+
+/*
+  FALSE: no sync
+  TRUE:  sync
+ */
+static MYSQL_THDVAR_BOOL(
+  sync_sql_mode, /* name */
+  PLUGIN_VAR_OPCMDARG, /* opt */
+  "Sync sql_mode", /* comment */
+  NULL, /* check */
+  NULL, /* update */
+  TRUE /* def */
+);
+
+bool spider_param_sync_sql_mode(
+  THD *thd
+) {
+  DBUG_ENTER("spider_param_sync_sql_mode");
+  DBUG_RETURN(THDVAR(thd, sync_sql_mode));
+}
+
 static struct st_mysql_storage_engine spider_storage_engine =
 { MYSQL_HANDLERTON_INTERFACE_VERSION };
 
@@ -3505,6 +3582,9 @@ static struct st_mysql_sys_var* spider_system_variables[] = {
   MYSQL_SYSVAR(table_crd_thread_count),
 #endif
   MYSQL_SYSVAR(slave_trx_isolation),
+  MYSQL_SYSVAR(remote_wait_timeout),
+  MYSQL_SYSVAR(wait_timeout),
+  MYSQL_SYSVAR(sync_sql_mode),
   NULL
 };
 
@@ -3526,6 +3606,9 @@ mysql_declare_plugin(spider)
   0,
 #endif
 },
+#ifdef SPIDER_REWRITE_AVAILABLE
+spider_audit_rewrite,
+#endif
 spider_i_s_alloc_mem
 mysql_declare_plugin_end;
 
@@ -3546,6 +3629,9 @@ maria_declare_plugin(spider)
   SPIDER_DETAIL_VERSION,
   MariaDB_PLUGIN_MATURITY_STABLE
 },
+#ifdef SPIDER_REWRITE_AVAILABLE
+spider_audit_rewrite_maria,
+#endif
 spider_i_s_alloc_mem_maria
 maria_declare_plugin_end;
 #endif

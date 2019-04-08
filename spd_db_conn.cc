@@ -1,4 +1,5 @@
-/* Copyright (C) 2008-2018 Kentoku Shiba
+/* Copyright (C) 2008-2019 Kentoku Shiba
+   Copyright (C) 2019 MariaDB corp
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -381,6 +382,20 @@ int spider_db_conn_queue_action(
           append_sql_log_off(&sql_str, conn->queued_sql_log_off_val))
       ) ||
       (
+        conn->queued_wait_timeout &&
+        conn->queued_wait_timeout_val != conn->wait_timeout &&
+        conn->db_conn->set_wait_timeout_in_bulk_sql() &&
+        (error_num = spider_dbton[conn->dbton_id].db_util->
+          append_wait_timeout(&sql_str, conn->queued_wait_timeout_val))
+      ) ||
+      (
+        conn->queued_sql_mode &&
+        conn->queued_sql_mode_val != conn->sql_mode &&
+        conn->db_conn->set_sql_mode_in_bulk_sql() &&
+        (error_num = spider_dbton[conn->dbton_id].db_util->
+          append_sql_mode(&sql_str, conn->queued_sql_mode_val))
+      ) ||
+      (
         conn->queued_time_zone &&
         conn->queued_time_zone_val != conn->time_zone &&
         conn->db_conn->set_time_zone_in_bulk_sql() &&
@@ -453,6 +468,24 @@ int spider_db_conn_queue_action(
       DBUG_RETURN(error_num);
     }
     if (
+      conn->queued_wait_timeout &&
+      conn->queued_wait_timeout_val != conn->wait_timeout &&
+      !conn->db_conn->set_wait_timeout_in_bulk_sql() &&
+      (error_num = spider_dbton[conn->dbton_id].db_util->
+        append_wait_timeout(&sql_str, conn->queued_wait_timeout_val))
+    ) {
+      DBUG_RETURN(error_num);
+    }
+    if (
+      conn->queued_sql_mode &&
+      conn->queued_sql_mode_val != conn->sql_mode &&
+      !conn->db_conn->set_sql_mode_in_bulk_sql() &&
+      (error_num = spider_dbton[conn->dbton_id].db_util->
+        append_sql_mode(&sql_str, conn->queued_sql_mode_val))
+    ) {
+      DBUG_RETURN(error_num);
+    }
+    if (
       conn->queued_time_zone &&
       conn->queued_time_zone_val != conn->time_zone &&
       !conn->db_conn->set_time_zone_in_bulk_sql() &&
@@ -517,6 +550,20 @@ int spider_db_conn_queue_action(
       conn->trx_isolation = thd_tx_isolation(conn->thd);
       DBUG_PRINT("info", ("spider conn->trx_isolation=%d",
         conn->trx_isolation));
+    }
+
+    if (
+      conn->queued_wait_timeout &&
+      conn->queued_wait_timeout_val != conn->wait_timeout
+    ) {
+      conn->wait_timeout = conn->queued_wait_timeout_val;
+    }
+
+    if (
+      conn->queued_sql_mode &&
+      conn->queued_sql_mode_val != conn->sql_mode
+    ) {
+      conn->sql_mode = conn->queued_sql_mode_val;
     }
 
     if (conn->queued_autocommit)
@@ -948,23 +995,29 @@ int spider_db_query_with_set_names(
   int link_idx
 ) {
   int error_num;
+  bool mta_conn_mutex_lock_already = conn->mta_conn_mutex_lock_already;
+  bool mta_conn_mutex_unlock_later = conn->mta_conn_mutex_unlock_later;
   SPIDER_SHARE *share = spider->share;
   spider_db_handler *dbton_hdl = spider->dbton_handler[conn->dbton_id];
   DBUG_ENTER("spider_db_query_with_set_names");
 
-/*
-  pthread_mutex_lock(&conn->mta_conn_mutex);
-  SPIDER_SET_FILE_POS(&conn->mta_conn_mutex_file_pos);
-*/
-  conn->need_mon = &spider->need_mons[link_idx];
-  conn->mta_conn_mutex_lock_already = TRUE;
+  if (!mta_conn_mutex_lock_already)
+  {
+    pthread_mutex_lock(&conn->mta_conn_mutex);
+    SPIDER_SET_FILE_POS(&conn->mta_conn_mutex_file_pos);
+    conn->need_mon = &spider->need_mons[link_idx];
+    conn->mta_conn_mutex_lock_already = TRUE;
+  }
   conn->mta_conn_mutex_unlock_later = TRUE;
   if ((error_num = spider_db_set_names(spider, conn, link_idx)))
   {
-    conn->mta_conn_mutex_lock_already = FALSE;
-    conn->mta_conn_mutex_unlock_later = FALSE;
-    SPIDER_CLEAR_FILE_POS(&conn->mta_conn_mutex_file_pos);
-    pthread_mutex_unlock(&conn->mta_conn_mutex);
+    conn->mta_conn_mutex_lock_already = mta_conn_mutex_lock_already;
+    if (!mta_conn_mutex_unlock_later)
+    {
+      conn->mta_conn_mutex_unlock_later = FALSE;
+      SPIDER_CLEAR_FILE_POS(&conn->mta_conn_mutex_file_pos);
+      pthread_mutex_unlock(&conn->mta_conn_mutex);
+    }
     if (
       share->monitoring_kind[link_idx] &&
       spider->need_mons[link_idx]
@@ -996,8 +1049,8 @@ int spider_db_query_with_set_names(
     -1,
     &spider->need_mons[link_idx])
   ) {
-    conn->mta_conn_mutex_lock_already = FALSE;
-    conn->mta_conn_mutex_unlock_later = FALSE;
+    conn->mta_conn_mutex_lock_already = mta_conn_mutex_lock_already;
+    conn->mta_conn_mutex_unlock_later = mta_conn_mutex_unlock_later;
     error_num = spider_db_errorno(conn);
     if (
       share->monitoring_kind[link_idx] &&
@@ -1022,10 +1075,13 @@ int spider_db_query_with_set_names(
     }
     DBUG_RETURN(error_num);
   }
-  conn->mta_conn_mutex_lock_already = FALSE;
-  conn->mta_conn_mutex_unlock_later = FALSE;
-  SPIDER_CLEAR_FILE_POS(&conn->mta_conn_mutex_file_pos);
-  pthread_mutex_unlock(&conn->mta_conn_mutex);
+  conn->mta_conn_mutex_lock_already = mta_conn_mutex_lock_already;
+  if (!mta_conn_mutex_unlock_later)
+  {
+    conn->mta_conn_mutex_unlock_later = FALSE;
+    SPIDER_CLEAR_FILE_POS(&conn->mta_conn_mutex_file_pos);
+    pthread_mutex_unlock(&conn->mta_conn_mutex);
+  }
   DBUG_RETURN(0);
 }
 
@@ -5644,7 +5700,38 @@ int spider_db_show_table_status(
   DBUG_RETURN(error_num);
 }
 
-int spider_db_show_records(
+int spider_db_simple_action(
+  uint simple_action,
+  spider_db_handler *db_handler,
+  int link_idx
+) {
+  int error_num;
+  DBUG_ENTER("spider_db_simple_action");
+  switch (simple_action)
+  {
+    case SPIDER_SIMPLE_RECORDS:
+      DBUG_PRINT("info",("spider simple records"));
+      error_num = db_handler->show_records(
+        link_idx
+      );
+      break;
+#ifdef HA_HAS_CHECKSUM_EXTENDED
+    case SPIDER_SIMPLE_CHECKSUM_TABLE:
+      DBUG_PRINT("info",("spider simple checksum_table"));
+      error_num = db_handler->checksum_table(
+        link_idx
+      );
+      break;
+#endif
+    default:
+      DBUG_ASSERT(0);
+      break;
+  }
+  DBUG_RETURN(error_num);
+}
+
+int spider_db_simple_action(
+  uint simple_action,
   ha_spider *spider,
   int link_idx,
   bool pre_call
@@ -5652,7 +5739,7 @@ int spider_db_show_records(
   int error_num;
   THD *thd = spider->trx->thd;
   SPIDER_CONN *conn;
-  DBUG_ENTER("spider_db_show_records");
+  DBUG_ENTER("spider_db_simple_action");
   if (pre_call)
   {
     if (spider_param_bgs_mode(thd, spider->share->bgs_mode))
@@ -5665,18 +5752,20 @@ int spider_db_show_records(
       conn = spider->conns[link_idx];
       if (!(error_num = spider_create_conn_thread(conn)))
       {
-        spider_bg_conn_simple_action(conn, SPIDER_BG_SIMPLE_RECORDS, FALSE,
+        spider_bg_conn_simple_action(conn, simple_action, FALSE,
           spider, link_idx, (int *) &spider->result_list.bgs_error);
       }
     } else {
       conn = spider->conns[link_idx];
-      error_num = spider->dbton_handler[conn->dbton_id]->show_records(
+      error_num = spider_db_simple_action(
+        simple_action,
+        spider->dbton_handler[conn->dbton_id],
         link_idx
       );
     }
   } else {
     conn = spider->conns[link_idx];
-    if (spider->use_pre_records)
+    if (spider->use_pre_action)
     {
       if (spider_param_bgs_mode(thd, spider->share->bgs_mode))
       {
@@ -5690,7 +5779,9 @@ int spider_db_show_records(
         error_num = 0;
       }
     } else {
-      error_num = spider->dbton_handler[conn->dbton_id]->show_records(
+      error_num = spider_db_simple_action(
+        simple_action,
+        spider->dbton_handler[conn->dbton_id],
         link_idx
       );
     }
@@ -7509,9 +7600,15 @@ int spider_db_delete(
       pthread_mutex_lock(&conn->mta_conn_mutex);
       SPIDER_SET_FILE_POS(&conn->mta_conn_mutex_file_pos);
     }
+    conn->mta_conn_mutex_lock_already = TRUE;
+    conn->need_mon = &spider->need_mons[roop_count];
     if ((error_num = spider_db_query_with_set_names(
       SPIDER_SQL_TYPE_DELETE_SQL, spider, conn, roop_count)))
+    {
+      conn->mta_conn_mutex_lock_already = FALSE;
       DBUG_RETURN(error_num);
+    }
+    conn->mta_conn_mutex_lock_already = FALSE;
     result_list->update_sqls[roop_count].length(0);
   }
   if ((error_num = spider->reset_sql_sql(SPIDER_SQL_TYPE_DELETE_SQL)))

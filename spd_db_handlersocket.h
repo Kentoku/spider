@@ -1,4 +1,5 @@
-/* Copyright (C) 2012-2018 Kentoku Shiba
+/* Copyright (C) 2012-2019 Kentoku Shiba
+   Copyright (C) 2019 MariaDB corp
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -58,6 +59,14 @@ public:
   int append_sql_log_off(
     spider_string *str,
     bool sql_log_off
+  );
+  int append_wait_timeout(
+    spider_string *str,
+    int wait_timeout
+  );
+  int append_sql_mode(
+    spider_string *str,
+    sql_mode_t sql_mode
   );
   int append_time_zone(
     spider_string *str,
@@ -378,6 +387,16 @@ public:
   bool set_sql_log_off_in_bulk_sql();
   int set_sql_log_off(
     bool sql_log_off,
+    int *need_mon
+  );
+  bool set_wait_timeout_in_bulk_sql();
+  int set_wait_timeout(
+    int wait_timeout,
+    int *need_mon
+  );
+  bool set_sql_mode_in_bulk_sql();
+  int set_sql_mode(
+    sql_mode_t sql_mode,
     int *need_mon
   );
   bool set_time_zone_in_bulk_sql();
@@ -909,6 +928,10 @@ public:
   int set_sql_for_exec(
     spider_db_copy_table *tgt_ct,
     ulong sql_type
+  );
+  int set_sql_for_exec(
+    spider_db_sql *db_sql,
+    int link_idx
   );
   int execute_sql(
     ulong sql_type,
