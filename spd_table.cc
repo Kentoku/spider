@@ -7715,7 +7715,9 @@ int spider_get_sts(
   int sts_sync_level,
   uint flag
 ) {
+#ifdef WITH_PARTITION_STORAGE_ENGINE
   int get_type;
+#endif
   int error_num = 0;
   bool need_to_get = TRUE;
   DBUG_ENTER("spider_get_sts");
@@ -7724,10 +7726,8 @@ int spider_get_sts(
   if (
     sts_sync == 0
   ) {
-#endif
     /* get */
     get_type = 1;
-#ifdef WITH_PARTITION_STORAGE_ENGINE
   } else if (
     !share->wide_share->sts_init
   ) {
@@ -7872,7 +7872,9 @@ int spider_get_crd(
 #endif
   int crd_sync_level
 ) {
+#ifdef WITH_PARTITION_STORAGE_ENGINE
   int get_type;
+#endif
   int error_num = 0;
   bool need_to_get = TRUE;
   DBUG_ENTER("spider_get_crd");
@@ -7881,10 +7883,8 @@ int spider_get_crd(
   if (
     crd_sync == 0
   ) {
-#endif
     /* get */
     get_type = 1;
-#ifdef WITH_PARTITION_STORAGE_ENGINE
   } else if (
     !share->wide_share->crd_init
   ) {
@@ -9380,7 +9380,9 @@ int spider_discover_table_structure(
 #endif
   Open_tables_backup open_tables_backup;
   TABLE *table_tables;
+#ifdef WITH_PARTITION_STORAGE_ENGINE
   uint str_len;
+#endif
   char buf[MAX_FIELD_WIDTH];
   spider_string str(buf, sizeof(buf), system_charset_info);
   DBUG_ENTER("spider_discover_table_structure");
@@ -9402,7 +9404,9 @@ int spider_discover_table_structure(
   str.q_append(share->table_name.str, share->table_name.length);
   str.q_append(SPIDER_SQL_LCL_NAME_QUOTE_STR, SPIDER_SQL_LCL_NAME_QUOTE_LEN);
   str.q_append(SPIDER_SQL_OPEN_PAREN_STR, SPIDER_SQL_OPEN_PAREN_LEN);
+#ifdef WITH_PARTITION_STORAGE_ENGINE
   str_len = str.length();
+#endif
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
   my_hash_value_type hash_value = my_calc_hash(&spider_open_tables,
     (uchar*) table_name, table_name_length);
