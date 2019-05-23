@@ -4586,7 +4586,6 @@ SPIDER_SHARE *spider_create_share(
   if (checksum_support)
   {
     share->additional_table_flags |=
-      HA_HAS_CHECKSUM_EXTENDED |
       HA_HAS_OLD_CHECKSUM |
       HA_HAS_NEW_CHECKSUM;
   }
@@ -5835,14 +5834,7 @@ int spider_free_share(
         thd,
         share->lgtm_tblhnd_share->table_name,
         share->lgtm_tblhnd_share->table_name_length,
-        &share->data_file_length,
-        &share->max_data_file_length,
-        &share->index_file_length,
-        &share->records,
-        &share->mean_rec_length,
-        &share->check_time,
-        &share->create_time,
-        &share->update_time,
+        &share->stat,
         FALSE
       );
     }
@@ -6221,9 +6213,7 @@ void spider_copy_sts_to_wide_share(
   SPIDER_SHARE *share
 ) {
   DBUG_ENTER("spider_copy_sts_to_wide_share");
-  memcpy(&wide_share->data_file_length, &share->data_file_length,
-    sizeof(ulonglong) * 4 + sizeof(ha_rows) +
-    sizeof(ulong) + sizeof(time_t) * 3);
+  wide_share->stat = share->stat;
   DBUG_VOID_RETURN;
 }
 
@@ -6232,9 +6222,7 @@ void spider_copy_sts_to_share(
   SPIDER_WIDE_SHARE *wide_share
 ) {
   DBUG_ENTER("spider_copy_sts_from_wide_share");
-  memcpy(&share->data_file_length, &wide_share->data_file_length,
-    sizeof(ulonglong) * 4 + sizeof(ha_rows) +
-    sizeof(ulong) + sizeof(time_t) * 3);
+  share->stat = wide_share->stat;
   DBUG_VOID_RETURN;
 }
 
@@ -7766,14 +7754,7 @@ int spider_get_sts(
       current_thd,
       share->lgtm_tblhnd_share->table_name,
       share->lgtm_tblhnd_share->table_name_length,
-      &share->data_file_length,
-      &share->max_data_file_length,
-      &share->index_file_length,
-      &share->records,
-      &share->mean_rec_length,
-      &share->check_time,
-      &share->create_time,
-      &share->update_time,
+      &share->stat,
       FALSE
     );
     if (
