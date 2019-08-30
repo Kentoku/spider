@@ -26,6 +26,44 @@
 #define SPIDER_SIMPLE_CHECKSUM_TABLE      4
 #endif
 
+#define SPIDER_CONN_LOOP_CHECK_ROUTE_TO_FLG_SENT (1 << 0)
+
+typedef struct st_spider_conn_loop_check_route_to
+{
+  LEX_CSTRING        name;
+  uchar              flag;
+#ifdef SPIDER_HAS_HASH_VALUE_TYPE
+  my_hash_value_type hash_value;
+#endif
+} SPIDER_CONN_LOOP_CHECK_ROUTE_TO;
+
+typedef struct st_spider_conn_loop_check_route_from
+{
+  LEX_CSTRING        name;
+  LEX_CSTRING        value;
+#ifdef SPIDER_HAS_HASH_VALUE_TYPE
+  my_hash_value_type hash_value;
+#endif
+} SPIDER_CONN_LOOP_CHECK_ROUTE_FROM;
+
+typedef struct st_spider_conn_loop_check
+{
+  LEX_CSTRING        lex_str;
+#ifdef SPIDER_HAS_HASH_VALUE_TYPE
+  my_hash_value_type hash_value;
+#endif
+  HASH               from;
+  uint               from_id;
+  const char         *from_func_name;
+  const char         *from_file_name;
+  ulong              from_line_no;
+  HASH               to;
+  uint               to_id;
+  const char         *to_func_name;
+  const char         *to_file_name;
+  ulong              to_line_no;
+} SPIDER_CONN_LOOP_CHECK;
+
 uchar *spider_conn_get_key(
   SPIDER_CONN *conn,
   size_t *length,
@@ -36,6 +74,14 @@ uchar *spider_ipport_conn_get_key(
   SPIDER_IP_PORT_CONN *ip_port,
   size_t *length,
   my_bool not_used __attribute__ ((unused))
+);
+
+int spider_conn_init(
+  SPIDER_CONN *conn
+);
+
+void spider_conn_done(
+  SPIDER_CONN *conn
 );
 
 int spider_reset_conn_setted_parameter(
@@ -153,6 +199,12 @@ void spider_conn_queue_time_zone(
 
 void spider_conn_queue_UTC_time_zone(
   SPIDER_CONN *conn
+);
+
+int spider_conn_queue_loop_check(
+  SPIDER_CONN *conn,
+  ha_spider *spider,
+  int link_idx
 );
 
 void spider_conn_queue_start_transaction(
