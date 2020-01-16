@@ -35,6 +35,17 @@ public:
     uint name_length,
     CHARSET_INFO *name_charset
   );
+  int append_escaped_name(
+    spider_string *str,
+    const char *name,
+    uint name_length
+  );
+  int append_escaped_name_with_charset(
+    spider_string *str,
+    const char *name,
+    uint name_length,
+    CHARSET_INFO *name_charset
+  );
   bool is_name_quote(
     const char head_code
   );
@@ -220,15 +231,7 @@ public:
   );
   int fetch_table_status(
     int mode,
-    ha_rows &records,
-    ulong &mean_rec_length,
-    ulonglong &data_file_length,
-    ulonglong &max_data_file_length,
-    ulonglong &index_file_length,
-    ulonglong &auto_increment_value,
-    time_t &create_time,
-    time_t &update_time,
-    time_t &check_time
+    ha_statistics &stat
   );
   int fetch_table_records(
     int mode,
@@ -333,6 +336,11 @@ public:
   );
   int next_result();
   uint affected_rows();
+  uint matched_rows();
+  bool inserted_info(
+    spider_db_handler *handler,
+    spider_copy_info *copy_info
+  );
   ulonglong last_insert_id();
   int set_character_set(
     const char *csname

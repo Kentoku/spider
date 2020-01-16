@@ -1,4 +1,4 @@
-/* Copyright (C) 2008-2018 Kentoku Shiba
+/* Copyright (C) 2008-2019 Kentoku Shiba
    Copyright (C) 2017-2019 MariaDB corp
 
   This program is free software; you can redistribute it and/or modify
@@ -27,6 +27,7 @@
 
 #if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >=	100100
 #define SPIDER_SUPPORT_CREATE_OR_REPLACE_TABLE
+#define SPIDER_NET_HAS_THD
 #endif
 
 #if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >=	100211
@@ -55,5 +56,7 @@
 #define SPIDER_SQL_CACHE_IS_IN_LEX
 #define SPIDER_REWRITE_AVAILABLE
 #define SPIDER_TOKEN_10_4
+#define SPIDER_LIKE_FUNC_HAS_GET_NEGATED
+#define HA_HAS_CHECKSUM_EXTENDED
 #endif
 #endif /* SPD_ENVIRON_INCLUDED */

@@ -1,4 +1,5 @@
-/* Copyright (C) 2008-2017 Kentoku Shiba
+/* Copyright (C) 2008-2019 Kentoku Shiba
+   Copyright (C) 2019 MariaDB corp
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -223,13 +224,13 @@ uchar *spider_tbl_get_key(
   my_bool not_used __attribute__ ((unused))
 );
 
-#ifdef WITH_PARTITION_STORAGE_ENGINE
-uchar *spider_pt_share_get_key(
-  SPIDER_PARTITION_SHARE *share,
+uchar *spider_wide_share_get_key(
+  SPIDER_WIDE_SHARE *share,
   size_t *length,
   my_bool not_used __attribute__ ((unused))
 );
 
+#ifdef WITH_PARTITION_STORAGE_ENGINE
 uchar *spider_pt_handler_share_get_key(
   SPIDER_PARTITION_HANDLER_SHARE *share,
   size_t *length,
@@ -419,39 +420,37 @@ void spider_update_link_status_for_share(
   long link_status
 );
 
-#ifdef WITH_PARTITION_STORAGE_ENGINE
-SPIDER_PARTITION_SHARE *spider_get_pt_share(
+SPIDER_WIDE_SHARE *spider_get_wide_share(
   SPIDER_SHARE *share,
   TABLE_SHARE *table_share,
   int *error_num
 );
 
-int spider_free_pt_share(
-  SPIDER_PARTITION_SHARE *partition_share
+int spider_free_wide_share(
+  SPIDER_WIDE_SHARE *wide_share
 );
 
-void spider_copy_sts_to_pt_share(
-  SPIDER_PARTITION_SHARE *partition_share,
+void spider_copy_sts_to_wide_share(
+  SPIDER_WIDE_SHARE *wide_share,
   SPIDER_SHARE *share
 );
 
 void spider_copy_sts_to_share(
   SPIDER_SHARE *share,
-  SPIDER_PARTITION_SHARE *partition_share
+  SPIDER_WIDE_SHARE *wide_share
 );
 
-void spider_copy_crd_to_pt_share(
-  SPIDER_PARTITION_SHARE *partition_share,
+void spider_copy_crd_to_wide_share(
+  SPIDER_WIDE_SHARE *wide_share,
   SPIDER_SHARE *share,
   int fields
 );
 
 void spider_copy_crd_to_share(
   SPIDER_SHARE *share,
-  SPIDER_PARTITION_SHARE *partition_share,
+  SPIDER_WIDE_SHARE *wide_share,
   int fields
 );
-#endif
 
 int spider_open_all_tables(
   SPIDER_TRX *trx,
@@ -637,6 +636,18 @@ void spider_next_split_read_param(
 bool spider_check_direct_order_limit(
   ha_spider *spider
 );
+
+#ifdef HANDLER_HAS_DIRECT_AGGREGATE
+bool spider_all_part_in_order(
+  ORDER *order,
+  TABLE *table
+);
+
+Field *spider_field_exchange(
+  handler *handler,
+  Field *field
+);
+#endif
 
 int spider_set_direct_limit_offset(
                                    ha_spider*		spider

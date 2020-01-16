@@ -1,4 +1,5 @@
-/* Copyright (C) 2008-2018 Kentoku Shiba
+/* Copyright (C) 2008-2019 Kentoku Shiba
+   Copyright (C) 2019 MariaDB corp
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -429,6 +430,14 @@ int spider_db_append_name_with_quote_str_internal(
   uint dbton_id
 );
 
+int spider_db_append_name_with_quote_str_internal(
+  spider_string *str,
+  const char *name,
+  int length,
+  CHARSET_INFO *cs,
+  uint dbton_id
+);
+
 int spider_db_append_select(
   ha_spider *spider
 );
@@ -470,6 +479,11 @@ int spider_db_append_key_where(
   const key_range *start_key,
   const key_range *end_key,
   ha_spider *spider
+);
+
+int spider_db_append_charset_name_before_string(
+  spider_string *str,
+  CHARSET_INFO *cs
 );
 
 #ifdef HANDLER_HAS_DIRECT_AGGREGATE
@@ -732,6 +746,7 @@ int spider_db_bulk_insert_init(
 int spider_db_bulk_insert(
   ha_spider *spider,
   TABLE *table,
+  ha_copy_info *copy_info,
   bool bulk_end
 );
 
@@ -775,13 +790,15 @@ int spider_db_direct_update(
   TABLE *table,
   KEY_MULTI_RANGE *ranges,
   uint range_count,
-  ha_rows *update_rows
+  ha_rows *update_rows,
+  ha_rows *found_rows
 );
 #else
 int spider_db_direct_update(
   ha_spider *spider,
   TABLE *table,
-  ha_rows *update_rows
+  ha_rows *update_rows,
+  ha_rows *found_rows
 );
 #endif
 #endif

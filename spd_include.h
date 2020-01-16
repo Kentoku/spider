@@ -15,10 +15,10 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
 
 #ifdef SPIDER_REWRITE_AVAILABLE
-#define SPIDER_DETAIL_VERSION "3.4.1"
+#define SPIDER_DETAIL_VERSION "3.4.2"
 #define SPIDER_HEX_VERSION 0x0304
 #else
-#define SPIDER_DETAIL_VERSION "3.3.14"
+#define SPIDER_DETAIL_VERSION "3.3.15"
 #define SPIDER_HEX_VERSION 0x0303
 #endif
 
@@ -266,7 +266,7 @@ const char SPIDER_empty_string = "";
 #define SPIDER_TMP_SHARE_LONG_COUNT         19
 #define SPIDER_TMP_SHARE_LONGLONG_COUNT      3
 
-#define SPIDER_MEM_CALC_LIST_NUM           266
+#define SPIDER_MEM_CALC_LIST_NUM           273
 #define SPIDER_CONN_META_BUF_LEN           64
 
 #define SPIDER_BACKUP_DASTATUS \
@@ -298,6 +298,7 @@ typedef struct st_spider_thread
   volatile bool         killed;
   volatile bool         thd_wait;
   volatile bool         first_free_wait;
+  volatile bool         init_command;
   pthread_t             thread;
   pthread_cond_t        cond;
   pthread_mutex_t       mutex;
@@ -415,6 +416,8 @@ typedef struct st_spider_alter_table
   uint               tmp_monitoring_binlog_pos_at_failing_length;
   uint               tmp_link_statuses_length;
 } SPIDER_ALTER_TABLE;
+
+typedef struct st_spider_conn_loop_check SPIDER_CONN_LOOP_CHECK;
 
 /* database connection */
 typedef struct st_spider_conn
@@ -606,6 +609,22 @@ typedef struct st_spider_conn
   SPIDER_LINK_IDX_CHAIN *link_idx_chain;
 #endif
   SPIDER_IP_PORT_CONN *ip_port_conn;
+
+  pthread_mutex_t    loop_check_mutex;
+  HASH               loop_checked;
+  uint               loop_checked_id;
+  const char         *loop_checked_func_name;
+  const char         *loop_checked_file_name;
+  ulong              loop_checked_line_no;
+  HASH               loop_check_queue;
+  uint               loop_check_queue_id;
+  const char         *loop_check_queue_func_name;
+  const char         *loop_check_queue_file_name;
+  ulong              loop_check_queue_line_no;
+  SPIDER_CONN_LOOP_CHECK *loop_check_ignored_first;
+  SPIDER_CONN_LOOP_CHECK *loop_check_ignored_last;
+  SPIDER_CONN_LOOP_CHECK *loop_check_meraged_first;
+  SPIDER_CONN_LOOP_CHECK *loop_check_meraged_last;
 } SPIDER_CONN;
 
 typedef struct st_spider_lgtm_tblhnd_share
@@ -624,26 +643,19 @@ typedef struct st_spider_lgtm_tblhnd_share
 #ifdef WITH_PARTITION_STORAGE_ENGINE
 typedef struct st_spider_patition_handler_share
 {
-  uint               use_count;
-  TABLE              *table;
+  bool               clone_bitmap_init;
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
   my_hash_value_type table_hash_value;
 #endif
-  void               *creator;
-  void               **handlers;
-  uchar              *searched_bitmap;
-  uchar              *ft_discard_bitmap;
-  uchar              *idx_read_bitmap;
-  uchar              *idx_write_bitmap;
-  uchar              *rnd_read_bitmap;
-  uchar              *rnd_write_bitmap;
-  bool               between_flg;
-  bool               idx_bitmap_is_set;
-  bool               rnd_bitmap_is_set;
   query_id_t         parallel_search_query_id;
+  uint               no_parts;
+  TABLE              *table;
+  ha_spider          *owner;
+  ha_spider          **handlers;
 } SPIDER_PARTITION_HANDLER_SHARE;
+#endif
 
-typedef struct st_spider_patition_share
+typedef struct st_spider_wide_share
 {
   char               *table_name;
   uint               table_name_length;
@@ -651,6 +663,7 @@ typedef struct st_spider_patition_share
   my_hash_value_type table_path_hash_value;
 #endif
   uint               use_count;
+  THR_LOCK           lock;
   pthread_mutex_t    sts_mutex;
   pthread_mutex_t    crd_mutex;
   pthread_mutex_t    pt_handler_mutex;
@@ -664,22 +677,92 @@ typedef struct st_spider_patition_share
   volatile bool      crd_init;
   volatile time_t    sts_get_time;
   volatile time_t    crd_get_time;
-  ulonglong          data_file_length;
-  ulonglong          max_data_file_length;
-  ulonglong          index_file_length;
-  ulonglong          auto_increment_value;
-  ha_rows            records;
-  ulong              mean_rec_length;
-  time_t             check_time;
-  time_t             create_time;
-  time_t             update_time;
+  ha_statistics      stat;
 
   longlong           *cardinality;
-/*
-  volatile SPIDER_PARTITION_HANDLER_SHARE *partition_handler_share;
-*/
-} SPIDER_PARTITION_SHARE;
+} SPIDER_WIDE_SHARE;
+
+typedef struct st_spider_wide_handler
+{
+  THR_LOCK_DATA      lock;
+  SPIDER_TRX         *trx;
+  uchar              *searched_bitmap;
+  uchar              *ft_discard_bitmap;
+  uchar              *position_bitmap;
+  uchar              *idx_read_bitmap;
+  uchar              *idx_write_bitmap;
+  uchar              *rnd_read_bitmap;
+  uchar              *rnd_write_bitmap;
+  SPIDER_CONDITION   *condition;
+  void               *owner;
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+  uint32             *hs_pushed_ret_fields;
 #endif
+#endif
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+  SPIDER_PARTITION_HANDLER_SHARE *partition_handler_share;
+#endif
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+  List<Item>         *direct_update_fields;
+  List<Item>         *direct_update_values;
+#endif
+  TABLE              *top_table;
+  Field              **top_table_field;
+  TABLE_SHARE        *top_share;
+  enum thr_lock_type lock_type;
+  uchar              lock_table_type;
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+  uint32             hs_pushed_strref_num;
+#endif
+#endif
+  int                lock_mode;
+  int                external_lock_type;
+  int                cond_check_error;
+  uint               sql_command;
+  uint               top_table_fields;
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+#ifdef INFO_KIND_FORCE_LIMIT_BEGIN
+  longlong           info_limit;
+#endif
+#endif
+#ifdef HA_CAN_BULK_ACCESS
+  ulonglong          external_lock_cnt;
+#endif
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+  size_t             hs_pushed_ret_fields_num;
+  size_t             hs_pushed_ret_fields_size;
+  size_t             hs_pushed_lcl_fields_num;
+#endif
+#endif
+  bool               between_flg;
+  bool               idx_bitmap_is_set;
+  bool               rnd_bitmap_is_set;
+  bool               position_bitmap_init;
+  bool               semi_trx_isolation_chk;
+  bool               semi_trx_chk;
+  bool               low_priority;
+  bool               high_priority;
+  bool               insert_delayed;
+  bool               consistent_snapshot;
+  bool               quick_mode;
+  bool               keyread;
+  bool               update_request;
+  bool               ignore_dup_key;
+  bool               write_can_replace;
+  bool               insert_with_update;
+  bool               cond_check;
+  bool               set_top_table_fields;
+#if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
+#ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS
+  bool               hs_increment;
+  bool               hs_decrement;
+#endif
+#endif
+  bool               semi_table_lock;
+} SPIDER_WIDE_HANDLER;
 
 typedef struct st_spider_transaction
 {
@@ -816,7 +899,6 @@ typedef struct st_spider_share
 /*
   pthread_mutex_t    auto_increment_mutex;
 */
-  THR_LOCK           lock;
   TABLE_SHARE        *table_share;
   SPIDER_LGTM_TBLHND_SHARE *lgtm_tblhnd_share;
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
@@ -899,17 +981,7 @@ typedef struct st_spider_share
   volatile bool      auto_increment_init;
   volatile ulonglong auto_increment_lclval;
 */
-  ulonglong          data_file_length;
-  ulonglong          max_data_file_length;
-  ulonglong          index_file_length;
-/*
-  ulonglong          auto_increment_value;
-*/
-  ha_rows            records;
-  ulong              mean_rec_length;
-  time_t             check_time;
-  time_t             create_time;
-  time_t             update_time;
+  ha_statistics      stat;
 
   longlong           static_records_for_status;
   longlong           static_mean_rec_length;
@@ -1198,9 +1270,7 @@ typedef struct st_spider_share
 #endif
 
   SPIDER_ALTER_TABLE alter_table;
-#ifdef WITH_PARTITION_STORAGE_ENGINE
-  SPIDER_PARTITION_SHARE *partition_share;
-#endif
+  SPIDER_WIDE_SHARE  *wide_share;
 } SPIDER_SHARE;
 
 typedef struct st_spider_link_pack
@@ -1519,7 +1589,7 @@ typedef struct st_spider_ip_port_conn {
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
   my_hash_value_type key_hash_value;
 #endif
-  char               remote_ip_str[SPIDER_CONN_META_BUF_LEN];
+  char               *remote_ip_str;
   long               remote_port;
   ulong              ip_port_count;
   volatile ulong     waiting_count;

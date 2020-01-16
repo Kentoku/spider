@@ -30,6 +30,17 @@ public:
     uint name_length,
     CHARSET_INFO *name_charset
   );
+  int append_escaped_name(
+    spider_string *str,
+    const char *name,
+    uint name_length
+  );
+  int append_escaped_name_with_charset(
+    spider_string *str,
+    const char *name,
+    uint name_length,
+    CHARSET_INFO *name_charset
+  );
   bool is_name_quote(
     const char head_code
   );
@@ -80,6 +91,10 @@ public:
   int append_time_zone(
     spider_string *str,
     Time_zone *time_zone
+  );
+  int append_loop_check(
+    spider_string *str,
+    SPIDER_CONN *conn
   );
   int append_start_transaction(
     spider_string *str
@@ -192,6 +207,13 @@ class spider_db_mysql_util: public spider_db_mbase_util
 public:
   spider_db_mysql_util();
   ~spider_db_mysql_util();
+  int append_column_value(
+    ha_spider *spider,
+    spider_string *str,
+    Field *field,
+    const uchar *new_ptr,
+    CHARSET_INFO *access_charset
+  );
 };
 
 class spider_db_mariadb_util: public spider_db_mbase_util
@@ -202,6 +224,13 @@ public:
   int append_sql_mode_internal(
     spider_string *str,
     sql_mode_t sql_mode
+  );
+  int append_column_value(
+    ha_spider *spider,
+    spider_string *str,
+    Field *field,
+    const uchar *new_ptr,
+    CHARSET_INFO *access_charset
   );
 };
 
@@ -326,15 +355,7 @@ public:
   );
   int fetch_table_status(
     int mode,
-    ha_rows &records,
-    ulong &mean_rec_length,
-    ulonglong &data_file_length,
-    ulonglong &max_data_file_length,
-    ulonglong &index_file_length,
-    ulonglong &auto_increment_value,
-    time_t &create_time,
-    time_t &update_time,
-    time_t &check_time
+    ha_statistics &stat
   );
   int fetch_simple_action(
     uint simple_action,
@@ -465,7 +486,7 @@ public:
   bool is_xa_nota_error(
     int error_num
   );
-  void print_warnings(
+  int print_warnings(
     struct tm *l_time
   );
   spider_db_result *store_result(
@@ -479,6 +500,11 @@ public:
   );
   int next_result();
   uint affected_rows();
+  uint matched_rows();
+  bool inserted_info(
+    spider_db_handler *handler,
+    ha_copy_info *copy_info
+  );
   ulonglong last_insert_id();
   int set_character_set(
     const char *csname
@@ -550,6 +576,11 @@ public:
     Time_zone *time_zone,
     int *need_mon
   );
+  bool set_loop_check_in_bulk_sql();
+  int set_loop_check(
+    int *need_mon
+  );
+  int fin_loop_check();
   int exec_simple_sql_with_result(
     SPIDER_TRX *trx,
     SPIDER_SHARE *share,
@@ -828,6 +859,7 @@ public:
   spider_mbase_share      *mysql_share;
   SPIDER_LINK_FOR_HASH    *link_for_hash;
   uchar                   *minimum_select_bitmap;
+  uchar                   direct_insert_kind;
   spider_mbase_handler(
     ha_spider *spider,
     spider_mbase_share *share,

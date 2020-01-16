@@ -97,6 +97,8 @@ typedef st_spider_result SPIDER_RESULT;
 
 #define SPIDER_SQL_DOT_STR "."
 #define SPIDER_SQL_DOT_LEN (sizeof(SPIDER_SQL_DOT_STR) - 1)
+#define SPIDER_SQL_HYPHEN_STR "-"
+#define SPIDER_SQL_HYPHEN_LEN (sizeof(SPIDER_SQL_HYPHEN_STR) - 1)
 
 #define SPIDER_SQL_EQUAL_STR " = "
 #define SPIDER_SQL_EQUAL_LEN (sizeof(SPIDER_SQL_EQUAL_STR) - 1)
@@ -160,10 +162,14 @@ typedef st_spider_result SPIDER_RESULT;
 #define SPIDER_SQL_MBR_DISJOINT_LEN (sizeof(SPIDER_SQL_MBR_DISJOINT_STR) - 1)
 #define SPIDER_SQL_NOT_BETWEEN_STR "not between"
 #define SPIDER_SQL_NOT_BETWEEN_LEN (sizeof(SPIDER_SQL_NOT_BETWEEN_STR) - 1)
+#define SPIDER_SQL_TO_FLOAT_STR "/* create function to_float(a decimal(20,6)) returns float return a */ to_float("
+#define SPIDER_SQL_TO_FLOAT_LEN (sizeof(SPIDER_SQL_TO_FLOAT_STR) - 1)
 #define SPIDER_SQL_IN_STR "in("
 #define SPIDER_SQL_IN_LEN (sizeof(SPIDER_SQL_IN_STR) - 1)
 #define SPIDER_SQL_NOT_IN_STR "not in("
 #define SPIDER_SQL_NOT_IN_LEN (sizeof(SPIDER_SQL_NOT_IN_STR) - 1)
+#define SPIDER_SQL_NOT_LIKE_STR "not like"
+#define SPIDER_SQL_NOT_LIKE_LEN (sizeof(SPIDER_SQL_NOT_LIKE_STR) - 1)
 #define SPIDER_SQL_AS_CHAR_STR " as char"
 #define SPIDER_SQL_AS_CHAR_LEN (sizeof(SPIDER_SQL_AS_CHAR_STR) - 1)
 #define SPIDER_SQL_CAST_STR "cast("
@@ -182,6 +188,8 @@ typedef st_spider_result SPIDER_RESULT;
 #define SPIDER_SQL_AS_TIME_LEN (sizeof(SPIDER_SQL_AS_TIME_STR) - 1)
 #define SPIDER_SQL_AS_BINARY_STR " as binary"
 #define SPIDER_SQL_AS_BINARY_LEN (sizeof(SPIDER_SQL_AS_BINARY_STR) - 1)
+#define SPIDER_SQL_AS_FLOAT_STR " as float"
+#define SPIDER_SQL_AS_FLOAT_LEN (sizeof(SPIDER_SQL_AS_FLOAT_STR) - 1)
 #define SPIDER_SQL_IS_TRUE_STR " is true"
 #define SPIDER_SQL_IS_TRUE_LEN (sizeof(SPIDER_SQL_IS_TRUE_STR) - 1)
 #define SPIDER_SQL_IS_NOT_TRUE_STR " is not true"
@@ -224,6 +232,9 @@ typedef st_spider_result SPIDER_RESULT;
 #define SPIDER_SQL_PARTITION_LEN (sizeof(SPIDER_SQL_PARTITION_STR) - 1)
 #define SPIDER_SQL_SUBPARTITION_STR " subpartition "
 #define SPIDER_SQL_SUBPARTITION_LEN (sizeof(SPIDER_SQL_SUBPARTITION_STR) - 1)
+
+#define SPIDER_SQL_LOP_CHK_PRM_PRF_STR "spider_lc_"
+#define SPIDER_SQL_LOP_CHK_PRM_PRF_LEN (sizeof(SPIDER_SQL_LOP_CHK_PRM_PRF_STR) - 1)
 
 #define SPIDER_CONN_KIND_MYSQL (1 << 0)
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
@@ -271,6 +282,7 @@ typedef struct st_spider_transaction SPIDER_TRX;
 typedef struct st_spider_share SPIDER_SHARE;
 class ha_spider;
 class spider_db_copy_table;
+class spider_db_handler;
 
 class spider_string
 {
@@ -553,6 +565,11 @@ public:
     const char *st,
     uint len
   );
+  void append_escape_string(
+    const char *st,
+    uint len,
+    CHARSET_INFO *cs
+  );
   bool append_for_single_quote(
     const char *st,
     uint len
@@ -832,6 +849,17 @@ public:
     uint name_length,
     CHARSET_INFO *name_charset
   ) = 0;
+  virtual int append_escaped_name(
+    spider_string *str,
+    const char *name,
+    uint name_length
+  ) = 0;
+  virtual int append_escaped_name_with_charset(
+    spider_string *str,
+    const char *name,
+    uint name_length,
+    CHARSET_INFO *name_charset
+  ) = 0;
   virtual bool is_name_quote(
     const char head_code
   ) = 0;
@@ -869,6 +897,10 @@ public:
     spider_string *str,
     Time_zone *time_zone
   ) = 0;
+  virtual int append_loop_check(
+    spider_string *str,
+    SPIDER_CONN *conn
+  );
   virtual int append_start_transaction(
     spider_string *str
   ) = 0;
@@ -1106,15 +1138,7 @@ public:
   ) = 0;
   virtual int fetch_table_status(
     int mode,
-    ha_rows &records,
-    ulong &mean_rec_length,
-    ulonglong &data_file_length,
-    ulonglong &max_data_file_length,
-    ulonglong &index_file_length,
-    ulonglong &auto_increment_value,
-    time_t &create_time,
-    time_t &update_time,
-    time_t &check_time
+    ha_statistics &stat
   ) = 0;
   virtual int fetch_table_records(
     int mode,
@@ -1212,6 +1236,11 @@ public:
   ) = 0;
   virtual int next_result() = 0;
   virtual uint affected_rows() = 0;
+  virtual uint matched_rows() = 0;
+  virtual bool inserted_info(
+    spider_db_handler *handler,
+    ha_copy_info *copy_info
+  ) = 0;
   virtual ulonglong last_insert_id() = 0;
   virtual int set_character_set(
     const char *csname
@@ -1283,6 +1312,11 @@ public:
     Time_zone *time_zone,
     int *need_mon
   ) = 0;
+  virtual bool set_loop_check_in_bulk_sql();
+  virtual int set_loop_check(
+    int *need_mon
+  );
+  virtual int fin_loop_check();
   virtual int show_master_status(
     SPIDER_TRX *trx,
     SPIDER_SHARE *share,
@@ -2150,7 +2184,6 @@ typedef struct st_spider_result_list
 #endif
     int                   quick_phase;
   bool                    keyread;
-  int                     lock_type;
   TABLE                   *table;
 #ifndef WITHOUT_SPIDER_BG_SEARCH
   volatile int            bgs_error;

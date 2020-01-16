@@ -33,6 +33,7 @@
 #include "spd_include.h"
 #include "spd_db_conn.h"
 #include "spd_malloc.h"
+#include "spd_conn.h"
 
 spider_db_sql::~spider_db_sql()
 {
@@ -3843,6 +3844,65 @@ spider_db_conn::spider_db_conn(
   DBUG_ENTER("spider_db_conn::spider_db_conn");
   DBUG_PRINT("info",("spider this=%p", this));
   DBUG_VOID_RETURN;
+}
+
+bool spider_db_conn::set_loop_check_in_bulk_sql()
+{
+  DBUG_ENTER("spider_db_conn::set_loop_check_in_bulk_sql");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_RETURN(FALSE);
+}
+
+int spider_db_conn::set_loop_check(
+  int *need_mon
+) {
+  DBUG_ENTER("spider_db_conn::set_loop_check");
+  DBUG_PRINT("info",("spider this=%p", this));
+  /* nothing to do */
+  DBUG_RETURN(0);
+}
+
+int spider_db_conn::fin_loop_check()
+{
+  st_spider_conn_loop_check *lcptr;
+  DBUG_ENTER("spider_db_conn::fin_loop_check");
+  DBUG_PRINT("info",("spider this=%p", this));
+  if (conn->loop_check_queue.records)
+  {
+    uint l = 0;
+    while ((lcptr = (SPIDER_CONN_LOOP_CHECK *) my_hash_element(
+      &conn->loop_check_queue, l)))
+    {
+      lcptr->flag = 0;
+      ++l;
+    }
+    my_hash_reset(&conn->loop_check_queue);
+  }
+  lcptr = conn->loop_check_ignored_first;
+  while (lcptr)
+  {
+    lcptr->flag = 0;
+    lcptr = lcptr->next;
+  }
+  conn->loop_check_ignored_first = NULL;
+  lcptr = conn->loop_check_meraged_first;
+  while (lcptr)
+  {
+    lcptr->flag = 0;
+    lcptr = lcptr->next;
+  }
+  conn->loop_check_meraged_first = NULL;
+  DBUG_RETURN(0);
+}
+
+int spider_db_util::append_loop_check(
+  spider_string *str,
+  SPIDER_CONN *conn
+) {
+  DBUG_ENTER("spider_db_util::append_loop_check");
+  DBUG_PRINT("info",("spider this=%p", this));
+  /* nothing to do */
+  DBUG_RETURN(0);
 }
 
 #ifdef HA_HAS_CHECKSUM_EXTENDED

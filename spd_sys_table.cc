@@ -260,85 +260,264 @@ TABLE *spider_open_sys_table(
     }
   }
 #endif
-  if (table_name_length == SPIDER_SYS_XA_TABLE_NAME_LEN)
+  switch (table_name_length)
   {
-    if (
-      !memcmp(table_name,
-        SPIDER_SYS_XA_TABLE_NAME_STR, SPIDER_SYS_XA_TABLE_NAME_LEN) &&
-      table->s->fields != SPIDER_SYS_XA_COL_CNT
-    ) {
-      spider_close_sys_table(thd, table, open_tables_backup, need_lock);
-      table = NULL;
-      my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
-        ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
-        SPIDER_SYS_XA_TABLE_NAME_STR);
-      *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
-      goto error_col_num_chk;
-    }
-  } else if (table_name_length == SPIDER_SYS_XA_MEMBER_TABLE_NAME_LEN)
-  {
-    if (
-      !memcmp(table_name,
-        SPIDER_SYS_XA_MEMBER_TABLE_NAME_STR,
-        SPIDER_SYS_XA_MEMBER_TABLE_NAME_LEN) &&
-      table->s->fields != SPIDER_SYS_XA_MEMBER_COL_CNT
-    ) {
-      spider_close_sys_table(thd, table, open_tables_backup, need_lock);
-      table = NULL;
-      my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
-        ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
-        SPIDER_SYS_XA_MEMBER_TABLE_NAME_STR);
-      *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
-      goto error_col_num_chk;
-    }
-  } else if (table_name_length == SPIDER_SYS_TABLES_TABLE_NAME_LEN)
-  {
-    if (
-      !memcmp(table_name,
-        SPIDER_SYS_TABLES_TABLE_NAME_STR,
-        SPIDER_SYS_TABLES_TABLE_NAME_LEN) &&
-      table->s->fields != SPIDER_SYS_TABLES_COL_CNT
-    ) {
-      spider_close_sys_table(thd, table, open_tables_backup, need_lock);
-      table = NULL;
-      my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
-        ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
-        SPIDER_SYS_TABLES_TABLE_NAME_STR);
-      *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
-      goto error_col_num_chk;
-    }
-  } else if (table_name_length == SPIDER_SYS_LINK_MON_TABLE_NAME_LEN)
-  {
-    if (
-      !memcmp(table_name,
-        SPIDER_SYS_LINK_MON_TABLE_NAME_STR,
-        SPIDER_SYS_LINK_MON_TABLE_NAME_LEN) &&
-      table->s->fields != SPIDER_SYS_LINK_MON_TABLE_COL_CNT
-    ) {
-      spider_close_sys_table(thd, table, open_tables_backup, need_lock);
-      table = NULL;
-      my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
-        ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
-        SPIDER_SYS_LINK_MON_TABLE_NAME_STR);
-      *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
-      goto error_col_num_chk;
-    }
-  } else if (table_name_length == SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_LEN)
-  {
-    if (
-      !memcmp(table_name,
-        SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_STR,
-        SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_LEN) &&
-      table->s->fields != SPIDER_SYS_POS_FOR_RECOVERY_TABLE_COL_CNT
-    ) {
-      spider_close_sys_table(thd, table, open_tables_backup, need_lock);
-      table = NULL;
-      my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
-        ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
-        SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_STR);
-      *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
-      goto error_col_num_chk;
-    }
+    case 9:
+      if (!memcmp(table_name, SPIDER_SYS_XA_TABLE_NAME_STR,
+        SPIDER_SYS_XA_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_XA"));
+        if (table->s->fields != SPIDER_SYS_XA_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_XA_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      DBUG_ASSERT(0);
+      break;
+    case 13:
+      if (!memcmp(table_name, SPIDER_SYS_TABLES_TABLE_NAME_STR,
+        SPIDER_SYS_TABLES_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_TABLES"));
+        if (table->s->fields != SPIDER_SYS_TABLES_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_TABLES_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      DBUG_ASSERT(0);
+      break;
+    case 16:
+      if (!memcmp(table_name, SPIDER_SYS_XA_MEMBER_TABLE_NAME_STR,
+        SPIDER_SYS_XA_MEMBER_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_XA_MEMBER"));
+        if (table->s->fields != SPIDER_SYS_XA_MEMBER_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_XA_MEMBER_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      if (!memcmp(table_name, SPIDER_SYS_TABLE_STS_TABLE_NAME_STR,
+        SPIDER_SYS_TABLE_STS_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_TABLE_STS"));
+        if (table->s->fields != SPIDER_SYS_TABLE_STS_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_TABLE_STS_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      if (!memcmp(table_name, SPIDER_SYS_TABLE_CRD_TABLE_NAME_STR,
+        SPIDER_SYS_TABLE_CRD_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_TABLE_CRD"));
+        if (table->s->fields != SPIDER_SYS_TABLE_CRD_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_TABLE_CRD_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      DBUG_ASSERT(0);
+      break;
+    case 20:
+      if (!memcmp(table_name, SPIDER_SYS_XA_FAILED_TABLE_NAME_STR,
+        SPIDER_SYS_XA_FAILED_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_XA_FAILED"));
+        if (table->s->fields != SPIDER_SYS_XA_FAILED_TABLE_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_XA_FAILED_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      DBUG_ASSERT(0);
+      break;
+    case 21:
+      if (!memcmp(table_name, SPIDER_SYS_RW_TBLS_TABLE_NAME_STR,
+        SPIDER_SYS_RW_TBLS_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_RW_TBLS"));
+        if (table->s->fields != SPIDER_SYS_RW_TBLS_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_RW_TBLS_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+      }
+      DBUG_ASSERT(0);
+      break;
+    case 22:
+      if (!memcmp(table_name, SPIDER_SYS_LINK_FAILED_TABLE_NAME_STR,
+        SPIDER_SYS_LINK_FAILED_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_LINK_FAILED"));
+        if (table->s->fields != SPIDER_SYS_LINK_FAILED_TABLE_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_LINK_FAILED_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      DBUG_ASSERT(0);
+      break;
+    case 23:
+      if (!memcmp(table_name, SPIDER_SYS_LINK_MON_TABLE_NAME_STR,
+        SPIDER_SYS_LINK_MON_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_LINK_MON"));
+        if (table->s->fields != SPIDER_SYS_LINK_MON_TABLE_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_LINK_MON_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      if (!memcmp(table_name, SPIDER_SYS_RWN_TBLS_TABLE_NAME_STR,
+        SPIDER_SYS_RWN_TBLS_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_RWN_TBLS"));
+        if (table->s->fields != SPIDER_SYS_RWN_TBLS_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_RWN_TBLS_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      DBUG_ASSERT(0);
+      break;
+    case 27:
+      if (!memcmp(table_name, SPIDER_SYS_RW_TBL_TBLS_TABLE_NAME_STR,
+        SPIDER_SYS_RW_TBL_TBLS_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_RW_TBL_TBLS"));
+        if (table->s->fields != SPIDER_SYS_RW_TBL_TBLS_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_RW_TBL_TBLS_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      DBUG_ASSERT(0);
+      break;
+    case 31:
+      if (!memcmp(table_name, SPIDER_SYS_RW_TBL_PTTS_TABLE_NAME_STR,
+        SPIDER_SYS_RW_TBL_PTTS_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_RW_TBL_PTTS"));
+        if (table->s->fields != SPIDER_SYS_RW_TBL_PTTS_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_RW_TBL_PTTS_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      DBUG_ASSERT(0);
+      break;
+    case 34:
+      if (!memcmp(table_name, SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_STR,
+        SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_POS_FOR_RECOVERY"));
+        if (table->s->fields != SPIDER_SYS_POS_FOR_RECOVERY_TABLE_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_POS_FOR_RECOVERY_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      if (!memcmp(table_name, SPIDER_SYS_RW_TBL_SPTTS_TABLE_NAME_STR,
+        SPIDER_SYS_RW_TBL_SPTTS_TABLE_NAME_LEN))
+      {
+        DBUG_PRINT("info",("spider checking for SYS_RW_TBL_SPTTS"));
+        if (table->s->fields != SPIDER_SYS_RW_TBL_SPTTS_COL_CNT)
+        {
+          spider_close_sys_table(thd, table, open_tables_backup, need_lock);
+          table = NULL;
+          my_printf_error(ER_SPIDER_SYS_TABLE_VERSION_NUM,
+            ER_SPIDER_SYS_TABLE_VERSION_STR, MYF(0),
+            SPIDER_SYS_RW_TBL_SPTTS_TABLE_NAME_STR);
+          *error_num = ER_SPIDER_SYS_TABLE_VERSION_NUM;
+          goto error_col_num_chk;
+        }
+        break;
+      }
+      DBUG_ASSERT(0);
+      break;
+    default:
+      DBUG_ASSERT(0);
+      break;
   }
   DBUG_RETURN(table);
 
@@ -1300,28 +1479,29 @@ void spider_store_binlog_pos_gtid(
 
 void spider_store_table_sts_info(
   TABLE *table,
-  ulonglong *data_file_length,
-  ulonglong *max_data_file_length,
-  ulonglong *index_file_length,
-  ha_rows *records,
-  ulong *mean_rec_length,
-  time_t *check_time,
-  time_t *create_time,
-  time_t *update_time
+  ha_statistics *stat
 ) {
   MYSQL_TIME mysql_time;
   DBUG_ENTER("spider_store_table_sts_info");
-  table->field[2]->store((longlong) *data_file_length, TRUE);
-  table->field[3]->store((longlong) *max_data_file_length, TRUE);
-  table->field[4]->store((longlong) *index_file_length, TRUE);
-  table->field[5]->store((longlong) *records, TRUE);
-  table->field[6]->store((longlong) *mean_rec_length, TRUE);
-  spd_tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) *check_time);
+  table->field[2]->store((longlong) stat->data_file_length, TRUE);
+  table->field[3]->store((longlong) stat->max_data_file_length, TRUE);
+  table->field[4]->store((longlong) stat->index_file_length, TRUE);
+  table->field[5]->store((longlong) stat->records, TRUE);
+  table->field[6]->store((longlong) stat->mean_rec_length, TRUE);
+  spd_tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) stat->check_time);
   table->field[7]->store_time(&mysql_time);
-  spd_tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) *create_time);
+  spd_tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) stat->create_time);
   table->field[8]->store_time(&mysql_time);
-  spd_tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) *update_time);
+  spd_tz_system->gmt_sec_to_TIME(&mysql_time, (my_time_t) stat->update_time);
   table->field[9]->store_time(&mysql_time);
+  if (stat->checksum_null)
+  {
+    table->field[10]->set_null();
+    table->field[10]->reset();
+  } else {
+    table->field[10]->set_notnull();
+    table->field[10]->store((longlong) stat->checksum, TRUE);
+  }
   DBUG_VOID_RETURN;
 }
 
@@ -1446,14 +1626,7 @@ int spider_insert_or_update_table_sts(
   TABLE *table,
   const char *name,
   uint name_length,
-  ulonglong *data_file_length,
-  ulonglong *max_data_file_length,
-  ulonglong *index_file_length,
-  ha_rows *records,
-  ulong *mean_rec_length,
-  time_t *check_time,
-  time_t *create_time,
-  time_t *update_time
+  ha_statistics *stat
 ) {
   int error_num;
   char table_key[MAX_KEY_LENGTH];
@@ -1462,14 +1635,7 @@ int spider_insert_or_update_table_sts(
   spider_store_tables_name(table, name, name_length);
   spider_store_table_sts_info(
     table,
-    data_file_length,
-    max_data_file_length,
-    index_file_length,
-    records,
-    mean_rec_length,
-    check_time,
-    create_time,
-    update_time
+    stat
   );
 
   if ((error_num = spider_check_sys_table_for_update_all_columns(table, table_key)))
@@ -2502,14 +2668,7 @@ int spider_get_sys_tables_static_link_id(
 
 void spider_get_sys_table_sts_info(
   TABLE *table,
-  ulonglong *data_file_length,
-  ulonglong *max_data_file_length,
-  ulonglong *index_file_length,
-  ha_rows *records,
-  ulong *mean_rec_length,
-  time_t *check_time,
-  time_t *create_time,
-  time_t *update_time
+  ha_statistics *stat
 ) {
   MYSQL_TIME mysql_time;
 #ifdef MARIADB_BASE_VERSION
@@ -2519,35 +2678,43 @@ void spider_get_sys_table_sts_info(
 #endif
   long not_used_long;
   DBUG_ENTER("spider_get_sys_table_sts_info");
-  *data_file_length = (ulonglong) table->field[2]->val_int();
-  *max_data_file_length = (ulonglong) table->field[3]->val_int();
-  *index_file_length = (ulonglong) table->field[4]->val_int();
-  *records = (ha_rows) table->field[5]->val_int();
-  *mean_rec_length = (ulong) table->field[6]->val_int();
+  stat->data_file_length = (ulonglong) table->field[2]->val_int();
+  stat->max_data_file_length = (ulonglong) table->field[3]->val_int();
+  stat->index_file_length = (ulonglong) table->field[4]->val_int();
+  stat->records = (ha_rows) table->field[5]->val_int();
+  stat->mean_rec_length = (ulong) table->field[6]->val_int();
   table->field[7]->get_date(&mysql_time, SPIDER_date_mode_t(0));
 #ifdef MARIADB_BASE_VERSION
-  *check_time = (time_t) my_system_gmt_sec(&mysql_time,
+  stat->check_time = (time_t) my_system_gmt_sec(&mysql_time,
     &not_used_long, &not_used_uint);
 #else
-  *check_time = (time_t) my_system_gmt_sec(&mysql_time,
+  stat->check_time = (time_t) my_system_gmt_sec(&mysql_time,
     &not_used_long, &not_used_my_bool);
 #endif
   table->field[8]->get_date(&mysql_time, SPIDER_date_mode_t(0));
 #ifdef MARIADB_BASE_VERSION
-  *create_time = (time_t) my_system_gmt_sec(&mysql_time,
+  stat->create_time = (time_t) my_system_gmt_sec(&mysql_time,
     &not_used_long, &not_used_uint);
 #else
-  *create_time = (time_t) my_system_gmt_sec(&mysql_time,
+  stat->create_time = (time_t) my_system_gmt_sec(&mysql_time,
     &not_used_long, &not_used_my_bool);
 #endif
   table->field[9]->get_date(&mysql_time, SPIDER_date_mode_t(0));
 #ifdef MARIADB_BASE_VERSION
-  *update_time = (time_t) my_system_gmt_sec(&mysql_time,
+  stat->update_time = (time_t) my_system_gmt_sec(&mysql_time,
     &not_used_long, &not_used_uint);
 #else
-  *update_time = (time_t) my_system_gmt_sec(&mysql_time,
+  stat->update_time = (time_t) my_system_gmt_sec(&mysql_time,
     &not_used_long, &not_used_my_bool);
 #endif
+  if (table->field[10]->is_null())
+  {
+    stat->checksum_null = TRUE;
+    stat->checksum = 0;
+  } else {
+    stat->checksum_null = FALSE;
+    stat->checksum = (ha_checksum) table->field[10]->val_int();
+  }
   DBUG_VOID_RETURN;
 }
 
@@ -2968,14 +3135,7 @@ int spider_sys_insert_or_update_table_sts(
   THD *thd,
   const char *name,
   uint name_length,
-  ulonglong *data_file_length,
-  ulonglong *max_data_file_length,
-  ulonglong *index_file_length,
-  ha_rows *records,
-  ulong *mean_rec_length,
-  time_t *check_time,
-  time_t *create_time,
-  time_t *update_time,
+  ha_statistics *stat,
   bool need_lock
 ) {
   int error_num;
@@ -2998,14 +3158,7 @@ int spider_sys_insert_or_update_table_sts(
     table_sts,
     name,
     name_length,
-    data_file_length,
-    max_data_file_length,
-    index_file_length,
-    records,
-    mean_rec_length,
-    check_time,
-    create_time,
-    update_time
+    stat
   )))
     goto error;
   spider_close_sys_table(thd, table_sts, &open_tables_backup, need_lock);
@@ -3140,14 +3293,7 @@ int spider_sys_get_table_sts(
   THD *thd,
   const char *name,
   uint name_length,
-  ulonglong *data_file_length,
-  ulonglong *max_data_file_length,
-  ulonglong *index_file_length,
-  ha_rows *records,
-  ulong *mean_rec_length,
-  time_t *check_time,
-  time_t *create_time,
-  time_t *update_time,
+  ha_statistics *stat,
   bool need_lock
 ) {
   int error_num;
@@ -3180,14 +3326,7 @@ int spider_sys_get_table_sts(
   } else {
     spider_get_sys_table_sts_info(
       table_sts,
-      data_file_length,
-      max_data_file_length,
-      index_file_length,
-      records,
-      mean_rec_length,
-      check_time,
-      create_time,
-      update_time
+      stat
     );
   }
 
@@ -3847,7 +3986,7 @@ void spider_store_rewritten_table_id(
   SPIDER_RWTBL *info
 ) {
   DBUG_ENTER("spider_store_rewritten_table_id");
-  table->field[2]->store(info->table_id);
+  table->field[2]->store(info->table_id, TRUE);
   DBUG_VOID_RETURN;
 }
 
@@ -3856,7 +3995,7 @@ void spider_store_rewritten_partition_id(
   SPIDER_RWTBLTBL *info
 ) {
   DBUG_ENTER("spider_store_rewritten_partition_id");
-  table->field[3]->store(info->partition_id);
+  table->field[3]->store(info->partition_id, TRUE);
   DBUG_VOID_RETURN;
 }
 
