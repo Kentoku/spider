@@ -156,6 +156,10 @@ int spider_parse_sql::init(
     {
       continue;
     }
+    if (!spider_dbton[roop_count].create_db_sql)
+    {
+      continue;
+    }
     if (unlikely(!(tmp->next = (spider_db_sql *) spider_dbton[roop_count].
       create_db_sql())))
     {
