@@ -1167,6 +1167,26 @@ THR_LOCK_DATA **ha_spider::store_lock(
         !spider_param_local_lock_table(thd)
       ) {
         wide_handler->lock_table_type = 1;
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+        if (partition_handler_share && partition_handler_share->handlers)
+        {
+          uint roop_count;
+          for (roop_count = 0; roop_count < partition_handler_share->no_parts;
+            ++roop_count)
+          {
+            if (unlikely((store_error_num =
+              partition_handler_share->handlers[roop_count]->
+                append_lock_tables_list())))
+            {
+              break;
+            }
+          }
+        } else {
+#endif
+          store_error_num = append_lock_tables_list();
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+        }
+#endif
       }
     } else {
       DBUG_PRINT("info",("spider default lock route"));
@@ -1182,6 +1202,27 @@ THR_LOCK_DATA **ha_spider::store_lock(
           spider_param_semi_table_lock(thd, wide_handler->semi_table_lock)
         ) {
           wide_handler->lock_table_type = 2;
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+          if (partition_handler_share && partition_handler_share->handlers)
+          {
+            uint roop_count;
+            for (roop_count = 0;
+              roop_count < partition_handler_share->no_parts;
+              ++roop_count)
+            {
+              if (unlikely((store_error_num =
+                partition_handler_share->handlers[roop_count]->
+                  append_lock_tables_list())))
+              {
+                break;
+              }
+            }
+          } else {
+#endif
+            store_error_num = append_lock_tables_list();
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+          }
+#endif
         }
       }
       if (
@@ -15936,10 +15977,10 @@ int ha_spider::set_union_table_name_pos_sql()
   DBUG_RETURN(0);
 }
 
-int ha_spider::lock_tables()
+int ha_spider::append_lock_tables_list()
 {
   int error_num, roop_count;
-  DBUG_ENTER("ha_spider::lock_tables");
+  DBUG_ENTER("ha_spider::append_lock_tables_list");
   DBUG_PRINT("info",("spider lock_table_type=%u",
     wide_handler->lock_table_type));
 
@@ -16003,6 +16044,15 @@ int ha_spider::lock_tables()
       }
     }
   }
+  DBUG_RETURN(0);
+}
+
+int ha_spider::lock_tables()
+{
+  int error_num, roop_count;
+  DBUG_ENTER("ha_spider::lock_tables");
+  DBUG_PRINT("info",("spider lock_table_type=%u",
+    wide_handler->lock_table_type));
 
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   if ((conn_kinds & SPIDER_CONN_KIND_MYSQL))
