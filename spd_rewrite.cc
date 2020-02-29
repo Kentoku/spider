@@ -781,6 +781,7 @@ int spider_rewrite_parse(
         {
           break;
         }
+        /* fall through */
       default:
         *parse_sql_p = NULL;
         DBUG_RETURN(ER_SPIDER_COND_SKIP_NUM);
