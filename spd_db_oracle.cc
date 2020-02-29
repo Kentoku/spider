@@ -6551,7 +6551,7 @@ int spider_oracle_handler::append_direct_update_set(
   DBUG_ENTER("spider_oracle_handler::append_direct_update_set");
   if (
     spider->direct_update_kinds == SPIDER_SQL_KIND_SQL &&
-    spider->direct_update_fields
+    spider->wide_handler->direct_update_fields
   ) {
     if (str->reserve(SPIDER_SQL_SET_LEN))
       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
@@ -6659,8 +6659,8 @@ int spider_oracle_handler::append_update_columns(
   uint alias_length
 ) {
   int error_num;
-  List_iterator_fast<Item> fi(*spider->direct_update_fields),
-    vi(*spider->direct_update_values);
+  List_iterator_fast<Item> fi(*spider->wide_handler->direct_update_fields),
+    vi(*spider->wide_handler->direct_update_values);
   Item *field, *value;
   DBUG_ENTER("spider_oracle_handler::append_update_columns");
   while ((field = fi++))
