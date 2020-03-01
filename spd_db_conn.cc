@@ -1894,6 +1894,7 @@ int spider_db_append_key_where_internal(
     key_part++,
     key_count++
   ) {
+    DBUG_PRINT("info", ("spider tgt_key_part_map=%lu", tgt_key_part_map));
     store_length = key_part->store_length;
     field = key_part->field;
     key_name_length = dbton_share->get_column_name_length(field->field_index);
@@ -1919,7 +1920,6 @@ int spider_db_append_key_where_internal(
 #endif
       }
     } else {
-      DBUG_PRINT("info", ("spider tgt_key_part_map=%lu", tgt_key_part_map));
       if (tgt_key_part_map > 1)
         key_eq = TRUE;
       else
@@ -1929,7 +1929,8 @@ int spider_db_append_key_where_internal(
       (key_eq && use_key == start_key) ||
       (!key_eq && start_key_part_map)
     ) {
-      bool tgt_final = (use_key == start_key && tgt_key_part_map == 1);
+      bool tgt_final = (use_key == start_key &&
+        (tgt_key_part_map == 1 || !end_key_part_map));
       ptr = start_key->key + length;
       if (
         (error_num = dbton_hdl->append_is_null_part(sql_type, key_part,
@@ -2026,7 +2027,7 @@ int spider_db_append_key_where_internal(
 
               if (use_key == start_key)
               {
-                if (tgt_key_part_map == 1)
+                if (tgt_key_part_map == 1 || !end_key_part_map)
                 {
                   if (str->reserve(SPIDER_SQL_EQUAL_LEN))
                     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
@@ -2085,7 +2086,7 @@ int spider_db_append_key_where_internal(
 
               if (use_key == start_key)
               {
-                if (tgt_key_part_map == 1)
+                if (tgt_key_part_map == 1 || !end_key_part_map)
                 {
                   if (str->reserve(SPIDER_SQL_GT_LEN))
                     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
@@ -2145,7 +2146,7 @@ int spider_db_append_key_where_internal(
 
               if (use_key == start_key)
               {
-                if (tgt_key_part_map == 1)
+                if (tgt_key_part_map == 1 || !end_key_part_map)
                 {
                   if (str->reserve(SPIDER_SQL_LT_LEN))
                     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
@@ -2211,7 +2212,7 @@ int spider_db_append_key_where_internal(
 
               if (use_key == start_key)
               {
-                if (tgt_key_part_map == 1)
+                if (tgt_key_part_map == 1 || !end_key_part_map)
                 {
                   if (str->reserve(SPIDER_SQL_LTEQUAL_LEN))
                     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
@@ -2360,7 +2361,7 @@ int spider_db_append_key_where_internal(
 
               if (use_key == start_key)
               {
-                if (tgt_key_part_map == 1)
+                if (tgt_key_part_map == 1 || !end_key_part_map)
                 {
                   if (str->reserve(SPIDER_SQL_GTEQUAL_LEN))
                     DBUG_RETURN(HA_ERR_OUT_OF_MEM);
@@ -2514,7 +2515,7 @@ int spider_db_append_key_where_internal(
 
                 if (use_key == end_key)
                 {
-                  if (tgt_key_part_map == 1)
+                  if (tgt_key_part_map == 1 || !start_key_part_map)
                   {
                     if (str->reserve(SPIDER_SQL_LT_LEN))
                       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
@@ -2560,7 +2561,7 @@ int spider_db_append_key_where_internal(
 
                 if (use_key == end_key)
                 {
-                  if (tgt_key_part_map == 1)
+                  if (tgt_key_part_map == 1 || !start_key_part_map)
                   {
                     if (str->reserve(SPIDER_SQL_LTEQUAL_LEN))
                       DBUG_RETURN(HA_ERR_OUT_OF_MEM);
