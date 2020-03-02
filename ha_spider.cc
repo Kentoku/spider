@@ -1055,6 +1055,16 @@ THR_LOCK_DATA **ha_spider::store_lock(
 ) {
   DBUG_ENTER("ha_spider::store_lock");
   DBUG_PRINT("info",("spider this=%p", this));
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+  if (
+    wide_handler->stage == SPD_HND_STAGE_STORE_LOCK &&
+    wide_handler->stage_executor != this)
+  {
+    DBUG_RETURN(to);
+  }
+  wide_handler->stage = SPD_HND_STAGE_STORE_LOCK;
+  wide_handler->stage_executor = this;
+#endif
   wide_handler->lock_table_type = 0;
   if (lock_type == TL_IGNORE)
   {
@@ -1256,6 +1266,16 @@ int ha_spider::external_lock(
 #if MYSQL_VERSION_ID < 50500
   DBUG_PRINT("info",("spider thd->options=%x", (int) thd->options));
 #endif
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+  if (
+    wide_handler->stage == SPD_HND_STAGE_EXTERNAL_LOCK &&
+    wide_handler->stage_executor != this)
+  {
+    DBUG_RETURN(0);
+  }
+  wide_handler->stage = SPD_HND_STAGE_EXTERNAL_LOCK;
+  wide_handler->stage_executor = this;
+#endif
 #ifdef HANDLER_HAS_NEED_INFO_FOR_AUTO_INC
   info_auto_called = FALSE;
 #endif
@@ -1390,6 +1410,16 @@ int ha_spider::start_stmt(
   thr_lock_type lock_type
 ) {
   DBUG_ENTER("ha_spider::start_stmt");
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+  if (
+    wide_handler->stage == SPD_HND_STAGE_START_STMT &&
+    wide_handler->stage_executor != this)
+  {
+    DBUG_RETURN(0);
+  }
+  wide_handler->stage = SPD_HND_STAGE_START_STMT;
+  wide_handler->stage_executor = this;
+#endif
   DBUG_RETURN(0);
 }
 
@@ -1500,6 +1530,10 @@ int ha_spider::reset()
 #endif
 #ifdef INFO_KIND_FORCE_LIMIT_BEGIN
     wide_handler->info_limit = 9223372036854775807LL;
+#endif
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+    wide_handler->stage = SPD_HND_STAGE_NONE;
+    wide_handler->stage_executor = NULL;
 #endif
   }
   if (!(tmp_trx = spider_get_trx(thd, TRUE, &error_num2)))
@@ -1616,6 +1650,16 @@ int ha_spider::extra(
   DBUG_ENTER("ha_spider::extra");
   DBUG_PRINT("info",("spider this=%p", this));
   DBUG_PRINT("info",("spider operation=%d", (int) operation));
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+  if (
+    wide_handler->stage == SPD_HND_STAGE_EXTRA &&
+    wide_handler->stage_executor != this)
+  {
+    DBUG_RETURN(0);
+  }
+  wide_handler->stage = SPD_HND_STAGE_EXTRA;
+  wide_handler->stage_executor = this;
+#endif
   switch (operation)
   {
     case HA_EXTRA_QUICK:
@@ -12027,6 +12071,16 @@ int ha_spider::set_top_table_and_fields(
   uint top_table_fields
 ) {
   DBUG_ENTER("ha_spider::set_top_table_and_fields");
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+  if (
+    wide_handler->stage == SPD_HND_STAGE_SET_TOP_TABLE_AND_FIELDS &&
+    wide_handler->stage_executor != this)
+  {
+    DBUG_RETURN(0);
+  }
+  wide_handler->stage = SPD_HND_STAGE_SET_TOP_TABLE_AND_FIELDS;
+  wide_handler->stage_executor = this;
+#endif
   if (!wide_handler->set_top_table_fields)
   {
     wide_handler->set_top_table_fields = TRUE;
@@ -12039,6 +12093,16 @@ int ha_spider::set_top_table_and_fields(
 void ha_spider::clear_top_table_fields()
 {
   DBUG_ENTER("ha_spider::clear_top_table_fields");
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+  if (
+    wide_handler->stage == SPD_HND_STAGE_CLEAR_TOP_TABLE_FIELDS &&
+    wide_handler->stage_executor != this)
+  {
+    DBUG_VOID_RETURN;
+  }
+  wide_handler->stage = SPD_HND_STAGE_CLEAR_TOP_TABLE_FIELDS;
+  wide_handler->stage_executor = this;
+#endif
   if (wide_handler->set_top_table_fields)
   {
     wide_handler->set_top_table_fields = FALSE;
@@ -12111,6 +12175,16 @@ const COND *ha_spider::cond_push(
   const COND *cond
 ) {
   DBUG_ENTER("ha_spider::cond_push");
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+  if (
+    wide_handler->stage == SPD_HND_STAGE_COND_PUSH &&
+    wide_handler->stage_executor != this)
+  {
+    DBUG_RETURN(NULL);
+  }
+  wide_handler->stage = SPD_HND_STAGE_COND_PUSH;
+  wide_handler->stage_executor = this;
+#endif
   wide_handler->cond_check = FALSE;
   if (cond)
   {
@@ -12129,6 +12203,16 @@ const COND *ha_spider::cond_push(
 void ha_spider::cond_pop()
 {
   DBUG_ENTER("ha_spider::cond_pop");
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+  if (
+    wide_handler->stage == SPD_HND_STAGE_COND_POP &&
+    wide_handler->stage_executor != this)
+  {
+    DBUG_VOID_RETURN;
+  }
+  wide_handler->stage = SPD_HND_STAGE_COND_POP;
+  wide_handler->stage_executor = this;
+#endif
   if (wide_handler->condition)
   {
     SPIDER_CONDITION *tmp_cond = wide_handler->condition->next;
@@ -12145,6 +12229,16 @@ int ha_spider::info_push(
   int error_num = 0;
   DBUG_ENTER("ha_spider::info_push");
   DBUG_PRINT("info",("spider this=%p", this));
+#ifdef WITH_PARTITION_STORAGE_ENGINE
+  if (
+    wide_handler->stage == SPD_HND_STAGE_INFO_PUSH &&
+    wide_handler->stage_executor != this)
+  {
+    DBUG_RETURN(0);
+  }
+  wide_handler->stage = SPD_HND_STAGE_INFO_PUSH;
+  wide_handler->stage_executor = this;
+#endif
 #ifdef HA_CAN_BULK_ACCESS
   if (
 #ifdef HANDLER_HAS_DIRECT_UPDATE_ROWS

@@ -684,8 +684,23 @@ typedef struct st_spider_wide_share
   longlong           *cardinality;
 } SPIDER_WIDE_SHARE;
 
+enum spider_hnd_stage {
+  SPD_HND_STAGE_NONE,
+  SPD_HND_STAGE_STORE_LOCK,
+  SPD_HND_STAGE_EXTERNAL_LOCK,
+  SPD_HND_STAGE_START_STMT,
+  SPD_HND_STAGE_EXTRA,
+  SPD_HND_STAGE_COND_PUSH,
+  SPD_HND_STAGE_COND_POP,
+  SPD_HND_STAGE_INFO_PUSH,
+  SPD_HND_STAGE_SET_TOP_TABLE_AND_FIELDS,
+  SPD_HND_STAGE_CLEAR_TOP_TABLE_FIELDS
+};
+
 typedef struct st_spider_wide_handler
 {
+  spider_hnd_stage   stage;
+  handler            *stage_executor;
   THR_LOCK_DATA      lock;
   SPIDER_TRX         *trx;
   uchar              *searched_bitmap;
