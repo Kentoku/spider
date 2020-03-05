@@ -3619,7 +3619,6 @@ int spider_set_connect_info_default(
                 database_has_default_value = spider_dbton[roop_count2].
                   db_util->database_has_default_value();
               }
-              }
               if (check_default_file)
               {
                 default_file_has_default_value = spider_dbton[roop_count2].
