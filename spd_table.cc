@@ -3547,8 +3547,10 @@ int spider_set_connect_info_default(
 ) {
   bool check_socket;
   bool check_database;
+  bool check_default_file;
   bool socket_has_default_value;
   bool database_has_default_value;
+  bool default_file_has_default_value;
   int error_num, roop_count, roop_count2;
   DBUG_ENTER("spider_set_connect_info_default");
   for (roop_count = 0; roop_count < (int) share->all_link_count; roop_count++)
@@ -3576,10 +3578,20 @@ int spider_set_connect_info_default(
     } else {
       check_database = FALSE;
     }
-    if (check_socket || check_database)
+    if (
+      !share->tgt_default_files[roop_count] &&
+      share->tgt_default_groups[roop_count] &&
+      (*spd_defaults_file || *spd_defaults_extra_file)
+    ) {
+      check_default_file = TRUE;
+    } else {
+      check_default_file = FALSE;
+    }
+    if (check_socket || check_database || check_default_file)
     {
       socket_has_default_value = check_socket;
       database_has_default_value = check_database;
+      default_file_has_default_value = check_default_file;
       if (share->tgt_wrappers[roop_count])
       {
         for (roop_count2 = 0; roop_count2 < SPIDER_DBTON_SIZE; roop_count2++)
@@ -3607,6 +3619,12 @@ int spider_set_connect_info_default(
                 database_has_default_value = spider_dbton[roop_count2].
                   db_util->database_has_default_value();
               }
+              }
+              if (check_default_file)
+              {
+                default_file_has_default_value = spider_dbton[roop_count2].
+                  db_util->default_file_has_default_value();
+              }
               break;
             }
           }
@@ -3615,6 +3633,7 @@ int spider_set_connect_info_default(
     } else {
       socket_has_default_value = FALSE;
       database_has_default_value = FALSE;
+      default_file_has_default_value = FALSE;
     }
 
     if (!share->tgt_wrappers[roop_count])
@@ -3676,11 +3695,8 @@ int spider_set_connect_info_default(
       }
     }
 
-    if (
-      !share->tgt_default_files[roop_count] &&
-      share->tgt_default_groups[roop_count] &&
-      (*spd_defaults_file || *spd_defaults_extra_file)
-    ) {
+    if (default_file_has_default_value)
+    {
       DBUG_PRINT("info",("spider create default tgt_default_files"));
       if (*spd_defaults_extra_file)
       {

@@ -1369,8 +1369,10 @@ int spider_udf_set_direct_sql_param_default(
 ) {
   bool check_socket;
   bool check_database;
+  bool check_default_file;
   bool socket_has_default_value;
   bool database_has_default_value;
+  bool default_file_has_default_value;
   int error_num, roop_count;
   DBUG_ENTER("spider_udf_set_direct_sql_param_default");
   if (direct_sql->server_name)
@@ -1396,10 +1398,20 @@ int spider_udf_set_direct_sql_param_default(
   } else {
     check_database = FALSE;
   }
-  if (check_socket || check_database)
+  if (
+    !direct_sql->tgt_default_file &&
+    direct_sql->tgt_default_group &&
+    (*spd_defaults_file || *spd_defaults_extra_file)
+  ) {
+    check_default_file = TRUE;
+  } else {
+    check_default_file = FALSE;
+  }
+  if (check_socket || check_database || check_default_file)
   {
     socket_has_default_value = check_socket;
     database_has_default_value = check_database;
+    default_file_has_default_value = check_default_file;
     if (direct_sql->tgt_wrapper)
     {
       for (roop_count = 0; roop_count < SPIDER_DBTON_SIZE; roop_count++)
@@ -1427,6 +1439,11 @@ int spider_udf_set_direct_sql_param_default(
               database_has_default_value = spider_dbton[roop_count].
                 db_util->database_has_default_value();
             }
+            if (check_default_file)
+            {
+              default_file_has_default_value = spider_dbton[roop_count].
+                db_util->default_file_has_default_value();
+            }
             break;
           }
         }
@@ -1435,6 +1452,7 @@ int spider_udf_set_direct_sql_param_default(
   } else {
     socket_has_default_value = FALSE;
     database_has_default_value = FALSE;
+    default_file_has_default_value = FALSE;
   }
 
   if (database_has_default_value)
@@ -1479,11 +1497,8 @@ int spider_udf_set_direct_sql_param_default(
     }
   }
 
-  if (
-    !direct_sql->tgt_default_file &&
-    direct_sql->tgt_default_group &&
-    (*spd_defaults_file || *spd_defaults_extra_file)
-  ) {
+  if (default_file_has_default_value)
+  {
     DBUG_PRINT("info",("spider create default tgt_default_file"));
     if (*spd_defaults_extra_file)
     {
