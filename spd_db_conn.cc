@@ -4203,7 +4203,7 @@ int spider_db_store_result(
         request_key.handler = spider;
         request_key.request_id = spider->db_request_id[link_idx];
         request_key.next = NULL;
-        if (!(current->result = conn->db_conn->use_result(&request_key,
+        if (!(current->result = conn->db_conn->use_result(spider, &request_key,
           &error_num)))
         {
           if (!error_num)
@@ -4936,7 +4936,7 @@ void spider_db_discard_result(
   request_key.handler = spider;
   request_key.request_id = spider->db_request_id[link_idx];
   request_key.next = NULL;
-  if ((result = conn->db_conn->use_result(&request_key, &error_num)))
+  if ((result = conn->db_conn->use_result(spider, &request_key, &error_num)))
   {
     result->free_result();
     delete result;
@@ -4966,7 +4966,7 @@ void spider_db_discard_multiple_result(
   {
     if (!conn->db_conn->cmp_request_key_to_snd(&request_key))
       break;
-    if ((result = conn->db_conn->use_result(&request_key, &error_num)))
+    if ((result = conn->db_conn->use_result(spider, &request_key, &error_num)))
     {
       result->free_result();
       delete result;
@@ -6850,7 +6850,8 @@ int spider_db_bulk_insert(
             request_key.handler = spider;
             request_key.request_id = spider->db_request_id[roop_count2];
             request_key.next = NULL;
-            if ((result = conn->db_conn->use_result(&request_key, &error_num)))
+            if ((result = conn->db_conn->use_result(spider, &request_key,
+              &error_num)))
             {
               result->free_result();
               delete result;
@@ -7020,7 +7021,8 @@ int spider_db_bulk_bulk_insert(
         request_key.handler = spider;
         request_key.request_id = spider->db_request_id[roop_count2];
         request_key.next = NULL;
-        if ((result = conn->db_conn->use_result(&request_key, &error_num)))
+        if ((result = conn->db_conn->use_result(spider, &request_key,
+          &error_num)))
         {
           result->free_result();
           delete result;
@@ -7878,7 +7880,8 @@ int spider_db_direct_update(
         request_key.handler = spider;
         request_key.request_id = spider->db_request_id[roop_count];
         request_key.next = NULL;
-        if ((result = conn->db_conn->use_result(&request_key, &error_num)))
+        if ((result = conn->db_conn->use_result(spider, &request_key,
+          &error_num)))
         {
           if (!counted)
           {
@@ -8204,7 +8207,8 @@ int spider_db_bulk_direct_update(
       request_key.handler = spider;
       request_key.request_id = spider->db_request_id[roop_count];
       request_key.next = NULL;
-      if ((result = conn->db_conn->use_result(&request_key, &error_num)))
+      if ((result = conn->db_conn->use_result(spider, &request_key,
+        &error_num)))
       {
         if (!counted)
         {
@@ -8537,7 +8541,8 @@ int spider_db_direct_delete(
         request_key.handler = spider;
         request_key.request_id = spider->db_request_id[roop_count];
         request_key.next = NULL;
-        if ((result = conn->db_conn->use_result(&request_key, &error_num)))
+        if ((result = conn->db_conn->use_result(spider, &request_key,
+          &error_num)))
         {
           if (!counted)
           {
@@ -10879,7 +10884,7 @@ int spider_db_udf_direct_sql(
         request_key.handler = direct_sql;
         request_key.request_id = 1;
         request_key.next = NULL;
-        if ((result = conn->db_conn->use_result(&request_key, &error_num)))
+        if ((result = conn->db_conn->use_result(NULL, &request_key, &error_num)))
         {
           end_of_file = FALSE;
           if (roop_count >= 0)
@@ -11824,7 +11829,7 @@ int spider_db_udf_copy_tables(
       request_key.handler = copy_tables;
       request_key.request_id = 1;
       request_key.next = NULL;
-      if ((result = tmp_conn->db_conn->use_result(&request_key, &error_num)))
+      if ((result = tmp_conn->db_conn->use_result(spider, &request_key, &error_num)))
       {
         SPIDER_DB_ROW *row;
         roop_count = 0;
@@ -12301,7 +12306,8 @@ int spider_db_open_handler(
       request_key.handler = spider;
       request_key.request_id = spider->db_request_id[link_idx];
       request_key.next = NULL;
-      if (!(result = conn->db_conn->use_result(&request_key, &error_num)))
+      if (!(result = conn->db_conn->use_result(spider, &request_key,
+        &error_num)))
       {
         if (!error_num)
         {
@@ -12440,7 +12446,8 @@ int spider_db_bulk_open_handler(
     request_key.handler = spider;
     request_key.request_id = spider->db_request_id[link_idx];
     request_key.next = NULL;
-    if (!(result = conn->db_conn->use_result(&request_key, &error_num)))
+    if (!(result = conn->db_conn->use_result(spider, &request_key,
+      &error_num)))
     {
       if (!error_num)
       {
