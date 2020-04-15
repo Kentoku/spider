@@ -11829,7 +11829,7 @@ int spider_db_udf_copy_tables(
       request_key.handler = copy_tables;
       request_key.request_id = 1;
       request_key.next = NULL;
-      if ((result = tmp_conn->db_conn->use_result(spider, &request_key, &error_num)))
+      if ((result = tmp_conn->db_conn->use_result(NULL, &request_key, &error_num)))
       {
         SPIDER_DB_ROW *row;
         roop_count = 0;
