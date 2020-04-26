@@ -234,6 +234,8 @@ typedef st_spider_result SPIDER_RESULT;
 #define SPIDER_SQL_PARTITION_LEN (sizeof(SPIDER_SQL_PARTITION_STR) - 1)
 #define SPIDER_SQL_SUBPARTITION_STR " subpartition "
 #define SPIDER_SQL_SUBPARTITION_LEN (sizeof(SPIDER_SQL_SUBPARTITION_STR) - 1)
+#define SPIDER_SQL_MIN_STR "min"
+#define SPIDER_SQL_MIN_LEN (sizeof(SPIDER_SQL_MIN_STR) - 1)
 
 #define SPIDER_SQL_LOP_CHK_PRM_PRF_STR "spider_lc_"
 #define SPIDER_SQL_LOP_CHK_PRM_PRF_LEN (sizeof(SPIDER_SQL_LOP_CHK_PRM_PRF_STR) - 1)
@@ -1469,6 +1471,7 @@ public:
 #ifdef SPIDER_HAS_GROUP_BY_HANDLER
   SPIDER_LINK_IDX_CHAIN *link_idx_chain;
 #endif
+  bool strict_group_by;
   spider_db_handler(ha_spider *spider, spider_db_share *db_share) :
     dbton_id(db_share->dbton_id), spider(spider), db_share(db_share),
     first_link_idx(-1) {}

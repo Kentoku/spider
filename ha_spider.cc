@@ -14007,6 +14007,7 @@ void ha_spider::sync_from_clone_source_base(
     dbton_hdl = dbton_handler[dbton_id];
     dbton_hdl2 = spider->dbton_handler[dbton_id];
     dbton_hdl->first_link_idx = dbton_hdl2->first_link_idx;
+    dbton_hdl->strict_group_by = dbton_hdl2->strict_group_by;
   }
   DBUG_VOID_RETURN;
 }
@@ -14022,6 +14023,7 @@ void ha_spider::set_first_link_idx()
     dbton_id = share->use_dbton_ids[roop_count2];
     dbton_hdl = dbton_handler[dbton_id];
     dbton_hdl->first_link_idx = -1;
+    dbton_hdl->strict_group_by = FALSE;
   }
   for (
     roop_count = spider_conn_link_idx_next(share->link_statuses,
@@ -14040,6 +14042,10 @@ void ha_spider::set_first_link_idx()
       {
         dbton_hdl->first_link_idx = roop_count;
       }
+      if (share->strict_group_bys[all_link_idx])
+      {
+        dbton_hdl->strict_group_by = TRUE;
+      }
     }
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
     dbton_id = share->hs_dbton_ids[all_link_idx];
@@ -14049,6 +14055,10 @@ void ha_spider::set_first_link_idx()
       if (dbton_hdl->first_link_idx == -1)
       {
         dbton_hdl->first_link_idx = roop_count;
+      }
+      if (share->strict_group_bys[all_link_idx])
+      {
+        dbton_hdl->strict_group_by = TRUE;
       }
     }
 #endif
