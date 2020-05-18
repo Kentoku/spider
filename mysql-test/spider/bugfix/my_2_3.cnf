@@ -1,4 +1,5 @@
 [mysqld.2.3]
+loose_partition=                         1
 
 [ENV]
 CHILD2_3_MYPORT=          @mysqld.2.3.port

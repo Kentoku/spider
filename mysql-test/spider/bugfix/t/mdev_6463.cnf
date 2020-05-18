@@ -1,0 +1,11 @@
+!include include/default_mysqld.cnf
+!include ../my_1_1.cnf
+!include ../my_2_1.cnf
+!include ../my_2_2.cnf
+!include ../my_2_3.cnf
+!include ../my_3_1.cnf
+!include ../my_3_2.cnf
+!include ../my_3_3.cnf
+
+[ENV]
+OUTPUT_CHILD_GROUP2=      1
