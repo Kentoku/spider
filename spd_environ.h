@@ -1,5 +1,5 @@
-/* Copyright (C) 2008-2019 Kentoku Shiba
-   Copyright (C) 2017-2019 MariaDB corp
+/* Copyright (C) 2008-2020 Kentoku Shiba
+   Copyright (C) 2017-2020 MariaDB corp
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -58,5 +58,9 @@
 #define SPIDER_TOKEN_10_4
 #define SPIDER_LIKE_FUNC_HAS_GET_NEGATED
 #define HA_HAS_CHECKSUM_EXTENDED
+#endif
+
+#if defined(MARIADB_BASE_VERSION) && MYSQL_VERSION_ID >=	100500
+#define SPIDER_I_S_USE_SHOW_FOR_COLUMN
 #endif
 #endif /* SPD_ENVIRON_INCLUDED */

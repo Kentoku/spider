@@ -36,8 +36,10 @@
 #include "spd_trx.h"
 
 extern struct st_mysql_plugin spider_i_s_alloc_mem;
+extern struct st_mysql_plugin spider_i_s_wrapper_protocols;
 #ifdef MARIADB_BASE_VERSION
 extern struct st_maria_plugin spider_i_s_alloc_mem_maria;
+extern struct st_maria_plugin spider_i_s_wrapper_protocols_maria;
 #endif
 #ifdef SPIDER_REWRITE_AVAILABLE
 extern struct st_mysql_plugin spider_audit_rewrite;
@@ -3662,7 +3664,8 @@ mysql_declare_plugin(spider)
 #ifdef SPIDER_REWRITE_AVAILABLE
 spider_audit_rewrite,
 #endif
-spider_i_s_alloc_mem
+spider_i_s_alloc_mem,
+spider_i_s_wrapper_protocols
 mysql_declare_plugin_end;
 
 #ifdef MARIADB_BASE_VERSION
@@ -3685,6 +3688,7 @@ maria_declare_plugin(spider)
 #ifdef SPIDER_REWRITE_AVAILABLE
 spider_audit_rewrite_maria,
 #endif
-spider_i_s_alloc_mem_maria
+spider_i_s_alloc_mem_maria,
+spider_i_s_wrapper_protocols_maria
 maria_declare_plugin_end;
 #endif

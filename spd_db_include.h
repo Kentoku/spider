@@ -2044,6 +2044,23 @@ enum spider_db_access_type
   SPIDER_DB_ACCESS_TYPE_NOSQL
 };
 
+#define SPIDER_MATURITY_UNKNOWN      0
+#define SPIDER_MATURITY_EXPERIMENTAL 1
+#define SPIDER_MATURITY_ALPHA        2
+#define SPIDER_MATURITY_BETA         3
+#define SPIDER_MATURITY_GAMMA        4
+#define SPIDER_MATURITY_STABLE       5
+
+static const LEX_CSTRING maturity_name[] =
+{
+  { STRING_WITH_LEN("Unknown") },
+  { STRING_WITH_LEN("Experimental") },
+  { STRING_WITH_LEN("Alpha") },
+  { STRING_WITH_LEN("Beta") },
+  { STRING_WITH_LEN("Gamma") },
+  { STRING_WITH_LEN("Stable") }
+};
+
 typedef struct st_spider_dbton
 {
   uint dbton_id;
@@ -2060,6 +2077,9 @@ typedef struct st_spider_dbton
   spider_db_sql *(*create_db_sql)();
   bool (*support_direct_join)();
   spider_db_util *db_util;
+  const char *descr;
+  const char *version_info;
+  unsigned int maturity;
 } SPIDER_DBTON;
 
 spider_db_sql *spider_mariadb_create_sql();
