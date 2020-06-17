@@ -10045,7 +10045,7 @@ int spider_db_open_item_string(
   {
     THD *thd = NULL;
     TABLE *table;
-    my_bitmap_map *saved_map;
+    my_bitmap_map *saved_map = NULL;
     Time_zone *saved_time_zone;
     String str_value;
     char tmp_buf[MAX_FIELD_WIDTH];
