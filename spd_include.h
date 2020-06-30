@@ -261,7 +261,7 @@ const char SPIDER_empty_string = "";
 #define SPIDER_LINK_MON_DRAW_FEW_MON         1
 #define SPIDER_LINK_MON_DRAW                 2
 
-#define SPIDER_TMP_SHARE_CHAR_PTR_COUNT     22
+#define SPIDER_TMP_SHARE_CHAR_PTR_COUNT     23
 #define SPIDER_TMP_SHARE_UINT_COUNT         SPIDER_TMP_SHARE_CHAR_PTR_COUNT
 #define SPIDER_TMP_SHARE_LONG_COUNT         20
 #define SPIDER_TMP_SHARE_LONGLONG_COUNT      3
@@ -357,6 +357,7 @@ typedef struct st_spider_alter_table
   char               **tmp_tgt_default_groups;
   char               **tmp_tgt_dsns;
   char               **tmp_tgt_filedsns;
+  char               **tmp_tgt_drivers;
   char               **tmp_static_link_ids;
   long               *tmp_tgt_ports;
   long               *tmp_tgt_ssl_vscs;
@@ -380,6 +381,7 @@ typedef struct st_spider_alter_table
   uint               *tmp_tgt_default_groups_lengths;
   uint               *tmp_tgt_dsns_lengths;
   uint               *tmp_tgt_filedsns_lengths;
+  uint               *tmp_tgt_drivers_lengths;
   uint               *tmp_static_link_ids_lengths;
 
   uint               tmp_server_names_charlen;
@@ -399,6 +401,7 @@ typedef struct st_spider_alter_table
   uint               tmp_tgt_default_groups_charlen;
   uint               tmp_tgt_dsns_charlen;
   uint               tmp_tgt_filedsns_charlen;
+  uint               tmp_tgt_drivers_charlen;
   uint               tmp_static_link_ids_charlen;
 
   uint               tmp_server_names_length;
@@ -418,6 +421,7 @@ typedef struct st_spider_alter_table
   uint               tmp_tgt_default_groups_length;
   uint               tmp_tgt_dsns_length;
   uint               tmp_tgt_filedsns_length;
+  uint               tmp_tgt_drivers_length;
   uint               tmp_static_link_ids_length;
   uint               tmp_tgt_ports_length;
   uint               tmp_tgt_ssl_vscs_length;
@@ -504,6 +508,7 @@ typedef struct st_spider_conn
   char               *tgt_default_group;
   char               *tgt_dsn;
   char               *tgt_filedsn;
+  char               *tgt_driver;
   long               tgt_port;
   long               tgt_ssl_vsc;
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
@@ -526,6 +531,7 @@ typedef struct st_spider_conn
   uint               tgt_default_group_length;
   uint               tgt_dsn_length;
   uint               tgt_filedsn_length;
+  uint               tgt_driver_length;
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
   uint               hs_sock_length;
 #endif
@@ -1137,6 +1143,7 @@ typedef struct st_spider_share
   char               **tgt_default_groups;
   char               **tgt_dsns;
   char               **tgt_filedsns;
+  char               **tgt_drivers;
   char               **static_link_ids;
   char               **tgt_pk_names;
   char               **tgt_sequence_names;
@@ -1194,6 +1201,7 @@ typedef struct st_spider_share
   uint               *tgt_default_groups_lengths;
   uint               *tgt_dsns_lengths;
   uint               *tgt_filedsns_lengths;
+  uint               *tgt_drivers_lengths;
   uint               *static_link_ids_lengths;
   uint               *tgt_pk_names_lengths;
   uint               *tgt_sequence_names_lengths;
@@ -1226,6 +1234,7 @@ typedef struct st_spider_share
   uint               tgt_default_groups_charlen;
   uint               tgt_dsns_charlen;
   uint               tgt_filedsns_charlen;
+  uint               tgt_drivers_charlen;
   uint               static_link_ids_charlen;
   uint               tgt_pk_names_charlen;
   uint               tgt_sequence_names_charlen;
@@ -1254,6 +1263,7 @@ typedef struct st_spider_share
   uint               tgt_default_groups_length;
   uint               tgt_dsns_length;
   uint               tgt_filedsns_length;
+  uint               tgt_drivers_length;
   uint               static_link_ids_length;
   uint               tgt_pk_names_length;
   uint               tgt_sequence_names_length;
@@ -1391,6 +1401,7 @@ typedef struct st_spider_direct_sql
   char                 *tgt_default_group;
   char                 *tgt_dsn;
   char                 *tgt_filedsn;
+  char                 *tgt_driver;
   char                 *conn_key;
   long                 tgt_port;
   long                 tgt_ssl_vsc;
@@ -1411,6 +1422,7 @@ typedef struct st_spider_direct_sql
   uint                 tgt_default_group_length;
   uint                 tgt_dsn_length;
   uint                 tgt_filedsn_length;
+  uint                 tgt_driver_length;
   uint                 conn_key_length;
   uint                 dbton_id;
 #ifdef SPIDER_HAS_HASH_VALUE_TYPE
