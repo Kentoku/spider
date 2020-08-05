@@ -3650,7 +3650,7 @@ int spider_parse_connect_info(
         ("spider tgt_filedsns_lengths[%d] = %u", roop_count,
         share->tgt_filedsns_lengths[roop_count]));
       if (share->tgt_filedsns_lengths[roop_count] >
-        SPIDER_CONNECT_INFO_MAX_LEN)
+        SPIDER_CONNECT_INFO_PATH_MAX_LEN)
       {
         error_num = ER_SPIDER_INVALID_CONNECT_INFO_TOO_LONG_NUM;
         my_printf_error(error_num, ER_SPIDER_INVALID_CONNECT_INFO_TOO_LONG_STR,
