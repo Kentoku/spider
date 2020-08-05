@@ -313,8 +313,14 @@ int spider_udf_direct_sql_create_conn_key(
     *direct_sql->conn_key = '0' + direct_sql->connection_channel;
   DBUG_PRINT("info",("spider tgt_wrapper=%s", direct_sql->tgt_wrapper));
   tmp_name = strmov(direct_sql->conn_key + 1, direct_sql->tgt_wrapper);
-  DBUG_PRINT("info",("spider tgt_host=%s", direct_sql->tgt_host));
-  tmp_name = strmov(tmp_name + 1, direct_sql->tgt_host);
+  if (direct_sql->tgt_host)
+  {
+    DBUG_PRINT("info",("spider tgt_host=%s", direct_sql->tgt_host));
+    tmp_name = strmov(tmp_name + 1, direct_sql->tgt_host);
+  } else {
+    DBUG_PRINT("info",("spider tgt_host=NULL"));
+    tmp_name++;
+  }
   my_sprintf(port_str, (port_str, "%05ld", direct_sql->tgt_port));
   DBUG_PRINT("info",("spider port_str=%s", port_str));
   tmp_name = strmov(tmp_name + 1, port_str);

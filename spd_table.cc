@@ -4646,9 +4646,14 @@ int spider_create_conn_keys(
     DBUG_PRINT("info",("spider tgt_wrappers[%d]=%s", roop_count,
       share->tgt_wrappers[roop_count]));
     tmp_name = strmov(tmp_name + 1, share->tgt_wrappers[roop_count]);
-    DBUG_PRINT("info",("spider tgt_hosts[%d]=%s", roop_count,
-      share->tgt_hosts[roop_count]));
-    tmp_name = strmov(tmp_name + 1, share->tgt_hosts[roop_count]);
+    if (share->tgt_hosts[roop_count])
+    {
+      DBUG_PRINT("info",("spider tgt_hosts[%d]=%s", roop_count,
+        share->tgt_hosts[roop_count]));
+      tmp_name = strmov(tmp_name + 1, share->tgt_hosts[roop_count]);
+    } else {
+      tmp_name++;
+    }
     my_sprintf(port_str, (port_str, "%05ld", share->tgt_ports[roop_count]));
     DBUG_PRINT("info",("spider port_str=%s", port_str));
     tmp_name = strmov(tmp_name + 1, port_str);
