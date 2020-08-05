@@ -7480,6 +7480,20 @@ bool spider_db_mbase_util::default_file_has_default_value()
   DBUG_RETURN(TRUE);
 }
 
+bool spider_db_mbase_util::host_has_default_value()
+{
+  DBUG_ENTER("spider_db_mbase_util::host_has_default_value");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_RETURN(TRUE);
+}
+
+bool spider_db_mbase_util::port_has_default_value()
+{
+  DBUG_ENTER("spider_db_mbase_util::port_has_default_value");
+  DBUG_PRINT("info",("spider this=%p", this));
+  DBUG_RETURN(TRUE);
+}
+
 bool spider_db_mbase_util::append_charset_name_before_string()
 {
   DBUG_ENTER("spider_db_mbase_util::append_charset_name_before_string");

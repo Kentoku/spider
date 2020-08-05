@@ -3769,9 +3769,13 @@ int spider_set_connect_info_default(
   bool check_socket;
   bool check_database;
   bool check_default_file;
+  bool check_host;
+  bool check_port;
   bool socket_has_default_value;
   bool database_has_default_value;
   bool default_file_has_default_value;
+  bool host_has_default_value;
+  bool port_has_default_value;
   int error_num, roop_count, roop_count2;
   DBUG_ENTER("spider_set_connect_info_default");
   for (roop_count = 0; roop_count < (int) share->all_link_count; roop_count++)
@@ -3808,11 +3812,26 @@ int spider_set_connect_info_default(
     } else {
       check_default_file = FALSE;
     }
-    if (check_socket || check_database || check_default_file)
+    if (!share->tgt_hosts[roop_count])
+    {
+      check_host = TRUE;
+    } else {
+      check_host = FALSE;
+    }
+    if (share->tgt_ports[roop_count] == -1)
+    {
+      check_port = TRUE;
+    } else {
+      check_port = FALSE;
+    }
+    if (check_socket || check_database || check_default_file || check_host ||
+      check_port)
     {
       socket_has_default_value = check_socket;
       database_has_default_value = check_database;
       default_file_has_default_value = check_default_file;
+      host_has_default_value = check_host;
+      port_has_default_value = check_port;
       if (share->tgt_wrappers[roop_count])
       {
         for (roop_count2 = 0; roop_count2 < SPIDER_DBTON_SIZE; roop_count2++)
@@ -3845,6 +3864,16 @@ int spider_set_connect_info_default(
                 default_file_has_default_value = spider_dbton[roop_count2].
                   db_util->default_file_has_default_value();
               }
+              if (check_host)
+              {
+                host_has_default_value = spider_dbton[roop_count2].
+                  db_util->host_has_default_value();
+              }
+              if (check_port)
+              {
+                port_has_default_value = spider_dbton[roop_count2].
+                  db_util->port_has_default_value();
+              }
               break;
             }
           }
@@ -3854,6 +3883,8 @@ int spider_set_connect_info_default(
       socket_has_default_value = FALSE;
       database_has_default_value = FALSE;
       default_file_has_default_value = FALSE;
+      host_has_default_value = FALSE;
+      port_has_default_value = FALSE;
     }
 
     if (!share->tgt_wrappers[roop_count])
@@ -3869,7 +3900,7 @@ int spider_set_connect_info_default(
       }
     }
 
-    if (!share->tgt_hosts[roop_count])
+    if (host_has_default_value)
     {
       DBUG_PRINT("info",("spider create default tgt_hosts"));
       share->tgt_hosts_lengths[roop_count] = strlen(my_localhost);
@@ -3987,7 +4018,7 @@ int spider_set_connect_info_default(
     }
 */
 
-    if (share->tgt_ports[roop_count] == -1)
+    if (port_has_default_value)
     {
       share->tgt_ports[roop_count] = MYSQL_PORT;
     } else if (share->tgt_ports[roop_count] < 0)

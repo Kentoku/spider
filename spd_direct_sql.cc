@@ -1430,9 +1430,13 @@ int spider_udf_set_direct_sql_param_default(
   bool check_socket;
   bool check_database;
   bool check_default_file;
+  bool check_host;
+  bool check_port;
   bool socket_has_default_value;
   bool database_has_default_value;
   bool default_file_has_default_value;
+  bool host_has_default_value;
+  bool port_has_default_value;
   int error_num, roop_count;
   DBUG_ENTER("spider_udf_set_direct_sql_param_default");
   if (direct_sql->server_name)
@@ -1467,11 +1471,26 @@ int spider_udf_set_direct_sql_param_default(
   } else {
     check_default_file = FALSE;
   }
-  if (check_socket || check_database || check_default_file)
+  if (!direct_sql->tgt_host)
+  {
+    check_host = TRUE;
+  } else {
+    check_host = FALSE;
+  }
+  if (direct_sql->tgt_port == -1)
+  {
+    check_port = TRUE;
+  } else {
+    check_port = FALSE;
+  }
+  if (check_socket || check_database || check_default_file || check_host ||
+    check_port)
   {
     socket_has_default_value = check_socket;
     database_has_default_value = check_database;
     default_file_has_default_value = check_default_file;
+    host_has_default_value = check_host;
+    port_has_default_value = check_port;
     if (direct_sql->tgt_wrapper)
     {
       for (roop_count = 0; roop_count < SPIDER_DBTON_SIZE; roop_count++)
@@ -1503,6 +1522,16 @@ int spider_udf_set_direct_sql_param_default(
             {
               default_file_has_default_value = spider_dbton[roop_count].
                 db_util->default_file_has_default_value();
+            }
+            if (check_host)
+            {
+              host_has_default_value = spider_dbton[roop_count].
+                db_util->host_has_default_value();
+            }
+            if (check_port)
+            {
+              port_has_default_value = spider_dbton[roop_count].
+                db_util->port_has_default_value();
             }
             break;
           }
@@ -1543,7 +1572,7 @@ int spider_udf_set_direct_sql_param_default(
     }
   }
 
-  if (!direct_sql->tgt_host)
+  if (host_has_default_value)
   {
     DBUG_PRINT("info",("spider create default tgt_host"));
     direct_sql->tgt_host_length = strlen(my_localhost);
@@ -1589,7 +1618,7 @@ int spider_udf_set_direct_sql_param_default(
     direct_sql->access_mode = 0;
 #endif
 
-  if (direct_sql->tgt_port == -1)
+  if (port_has_default_value)
   {
 #if defined(HS_HAS_SQLCOM) && defined(HAVE_HANDLERSOCKET)
     if (direct_sql->access_mode == 1)
