@@ -1548,6 +1548,8 @@ int spider_udf_set_direct_sql_param_default(
     socket_has_default_value = FALSE;
     database_has_default_value = FALSE;
     default_file_has_default_value = FALSE;
+    host_has_default_value = FALSE;
+    port_has_default_value = FALSE;
   }
 
   if (database_has_default_value)
