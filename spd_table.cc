@@ -6367,6 +6367,7 @@ int spider_free_share(
 #endif
     if (
       share->sts_init &&
+      share->table_share->tmp_table == NO_TMP_TABLE &&
       spider_param_store_last_sts(share->store_last_sts)
     ) {
       if (!thd)
@@ -6387,6 +6388,7 @@ int spider_free_share(
     }
     if (
       share->crd_init &&
+      share->table_share->tmp_table == NO_TMP_TABLE &&
       spider_param_store_last_crd(share->store_last_crd)
     ) {
       if (!thd)
@@ -8324,6 +8326,7 @@ int spider_get_sts(
 #endif
   if (
     !share->sts_init &&
+    share->table_share->tmp_table == NO_TMP_TABLE &&
     spider_param_load_sts_at_startup(share->load_sts_at_startup) &&
     (!share->init || share->init_error)
   ) {
@@ -8474,6 +8477,7 @@ int spider_get_crd(
 #endif
   if (
     !share->crd_init &&
+    share->table_share->tmp_table == NO_TMP_TABLE &&
     spider_param_load_sts_at_startup(share->load_crd_at_startup)
   ) {
     error_num = spider_sys_get_table_crd(
